@@ -6,7 +6,7 @@ import { PLANS } from "./data/plans.js";
 import { SUBJECTS, WEEKDAYS } from "./data/subjects.js";
 import { VERSIONS_EN, VERSIONS_ZH, ve, vz } from "./data/versions.js";
 import { currentPlan, defaultVersions, fetchVersions, planState, progressOf, yearInfo } from "./hs.js";
-import { parseRef } from "./data/bible.js";
+import { parseRef, refKey } from "./data/bible.js";
 import { VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
 
@@ -90,10 +90,10 @@ function openScriptures(){
 }
 // 成套导入的选择页
 function openVerseSets(){
-  const have = new Set(S.hs.scriptures.map(s => s.ref.replace(/\s+/g, "")));
+  const have = new Set(S.hs.scriptures.map(s => refKey(s.ref)));
   $("#sheetIn").innerHTML = `${head("成套导入经文卡")}
   <p class="small muted">只给出处，正文按设置里的译本自动抓取（已有的出处会跳过）。抓取需要联网，几十节约十几秒。</p>
-  ${VERSE_SETS.map(s => { const n = s.refs.filter(r => { const p = parseRef(r); return p && !have.has(p.label.replace(/\s+/g, "")); }).length;
+  ${VERSE_SETS.map(s => { const n = s.refs.filter(r => parseRef(r) && !have.has(refKey(r))).length;
     return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(s.name)}</b><div class="small muted">${esc(s.desc)} 共 ${s.refs.length} 节${n < s.refs.length ? `，还有 ${n} 节没导入` : ""}</div></div><button class="btn ${n ? "primary" : ""}" data-act="scr-set-go" data-set="${s.id}" ${n ? "" : "disabled"}>${n ? "生成" : "已全部导入"}</button></div></div>`; }).join("")}
   <div class="btns"><button class="btn" data-act="scriptures">返回经文卡库</button></div>`;
   showSheet();
@@ -104,7 +104,7 @@ const fetchFields = [
   { k: "fetchZh", label: "中文抓取译本", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"]] },
   { k: "fetchEn", label: "英文抓取译本", type: "seg", opts: [["WEB", "WEB（公有领域，现代英语）"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV（需代理）"]] },
   { k: "esvProxy", label: "ESV 代理地址（Supabase Edge Function 的 URL，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" }];
-const genFields = [{ k: "refs", label: "每行一个出处，中英文都行", type: "area", rows: 8, ph: "约翰福音 3:16\n诗篇 23\n1 John 4:19\n腓 4:13" }];
+const genFields = [{ k: "refs", label: "每行一个出处，中英文都行；卡片标题会写成“诗篇 56:3 - Psalms 56:3”", type: "area", rows: 8, ph: "约翰福音 3:16\n诗篇 23\n1 John 4:19\n腓 4:13" }];
 const nccFields = [
   { k: "lang", label: "粘贴的是哪种语言", type: "seg", opts: [["zh", "中文（官方简体页）"], ["en", "English"]] },
   { k: "text", label: "全选复制官方页面的全文，粘贴到这里", type: "area", rows: 10, ph: "问题1：\n你无论是生是死，唯一的安慰是什么？\n我无论是生是死……" }];

@@ -61,4 +61,9 @@ async function fetchPassage(ref, version, esvProxy){
 }
 const canFetch = (version, esvProxy) => !!(ZH[version] || EN[version] || (version === "ESV" && esvProxy));
 
-export { BOOKS, parseRef, fetchPassage, canFetch, ZH as ZH_SOURCES, EN as EN_SOURCES };
+// 卡片标题：中英文出处并列，如 “诗篇 56:3 - Psalms 56:3”
+const biRef = p => `${p.label} - ${p.labelEn}`;
+// 去重用的键：老卡只有中文出处，新卡是中英并列，都归一到中文标签（去空格）；解析不了的按原文比较
+function refKey(ref){ const first = String(ref || "").split(/\s+[-–—]\s+/)[0]; const p = parseRef(first); return (p ? p.label : String(ref || "")).replace(/\s+/g, ""); }
+
+export { BOOKS, parseRef, fetchPassage, canFetch, biRef, refKey, ZH as ZH_SOURCES, EN as EN_SOURCES };

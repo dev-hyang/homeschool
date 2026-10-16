@@ -8,7 +8,7 @@ import { SUBJECTS } from "./data/subjects.js";
 import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
-import { canFetch, fetchPassage, parseRef } from "./data/bible.js";
+import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { VERSE_SETS, parseCatechism } from "./data/verse-sets.js";
 
 /* ============ 家庭学堂数据层（在线优先） ============
@@ -159,7 +159,7 @@ function fetchVersions(){
 }
 async function fetchBoth(ref){
   const p = parseRef(ref); if (!p) return { error: "看不懂出处" };
-  const v = fetchVersions(); const out = { ref: p.label, text_zh: "", text_en: "", version_zh: "", version_en: "", errors: [] };
+  const v = fetchVersions(); const out = { ref: biRef(p), text_zh: "", text_en: "", version_zh: "", version_en: "", errors: [] };
   const [a, b] = await Promise.allSettled([fetchPassage(p, v.zh, v.esv), fetchPassage(p, v.en, v.esv)]);
   if (a.status === "fulfilled") { out.text_zh = a.value.text; out.version_zh = a.value.version; } else out.errors.push("中文：" + (a.reason && a.reason.message));
   if (b.status === "fulfilled") { out.text_en = b.value.text; out.version_en = b.value.version; } else out.errors.push("英文：" + (b.reason && b.reason.message));
@@ -167,15 +167,15 @@ async function fetchBoth(ref){
 }
 // refs：出处数组；已有同出处的卡跳过。返回 { added, skipped, failed: [ref, 原因] }
 async function generateCards(refs, kind = "verse"){
-  const have = new Set(S.hs.scriptures.map(s => s.ref.replace(/\s+/g, "")));
+  const have = new Set(S.hs.scriptures.map(s => refKey(s.ref)));
   const res = { added: 0, skipped: 0, failed: [] };
   for (const raw of refs) {
     const p = parseRef(raw); if (!p) { res.failed.push([raw, "看不懂出处"]); continue; }
-    if (have.has(p.label.replace(/\s+/g, ""))) { res.skipped++; continue; }
+    if (have.has(refKey(p.label))) { res.skipped++; continue; }
     const f = await fetchBoth(p.label);
     if (!f.text_zh && !f.text_en) { res.failed.push([raw, f.errors.join("；")]); continue; }
     await upsertScripture({ kind, ref: f.ref, text_zh: f.text_zh, text_en: f.text_en, version_zh: f.version_zh, version_en: f.version_en, source: "自动抓取（getBible）" });
-    have.add(f.ref.replace(/\s+/g, "")); res.added++;
+    have.add(refKey(f.ref)); res.added++;
   }
   return res;
 }
@@ -185,11 +185,11 @@ async function importCatechism(text, lang){
   const items = parseCatechism(text); if (!items.length) return { added: 0, updated: 0 };
   let added = 0, updated = 0;
   for (const it of items) {
-    const ref = `新城要理问答 问 ${it.n}`;
+    const ref = `新城要理问答 问 ${it.n} - New City Catechism Q${it.n}`;
     const body = `问：${it.q}${it.a ? ` 答：${it.a}` : ""}`;
-    const cur = S.hs.scriptures.find(s => s.ref === ref);
+    const cur = S.hs.scriptures.find(s => s.ref === ref || s.ref === `新城要理问答 问 ${it.n}`);
     const patch = lang === "en" ? { text_en: body, version_en: "New City Catechism" } : { text_zh: body, version_zh: "新城要理问答官方简体" };
-    if (cur) { await upsertScripture({ ...cur, ...patch }); updated++; }
+    if (cur) { await upsertScripture({ ...cur, ref, ...patch }); updated++; }
     else { await upsertScripture({ kind: "catechism", ref, text_zh: "", text_en: "", version_zh: "", version_en: "", ...patch, source: "newcitycatechism.com", sort: 1000 + it.n }); added++; }
   }
   return { added, updated, total: items.length };
