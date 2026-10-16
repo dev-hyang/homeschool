@@ -149,13 +149,13 @@ async function importSeedScriptures(){
 const scripture = id => S.hs.scriptures.find(s => s.id === id) || null;
 
 /* ---- 自动抓取经文：按出处生成卡 ---- */
-// 抓取用的译本：优先设置里的“抓取译本”，否则用默认译本；取不到的译本（如没配代理的 ESV）回退到公有领域译本
+// 抓取用的译本：优先设置里的“抓取译本”，否则用默认译本；取不到的译本（如没配代理的 ESV / NASB / NIV）回退：中文和合本，英文 BSB（公有领域的现代英语）
 function fetchVersions(){
   const s = S.hs.settings, esv = s.esvProxy || "";
   let zh = s.fetchZh || defaultVersions().zh, en = s.fetchEn || defaultVersions().en;
-  const zhFallback = !canFetch(zh, esv), enFallback = !canFetch(en, esv);
-  if (zhFallback) zh = "和合本"; if (enFallback) en = "WEB";
-  return { zh, en, esv, zhFallback, enFallback };
+  const zhFallback = !canFetch(zh, esv), enFallback = !canFetch(en, esv), wanted = { zh, en };
+  if (zhFallback) zh = "和合本"; if (enFallback) en = "BSB";
+  return { zh, en, esv, zhFallback, enFallback, wanted };
 }
 async function fetchBoth(ref){
   const p = parseRef(ref); if (!p) return { error: "看不懂出处" };

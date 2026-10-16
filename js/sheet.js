@@ -76,7 +76,7 @@ function openScriptures(){
   const stateOf = s => { const p = progressOf(s.id, cid); return !p ? "" : p.status === "learning" ? "在学" : `会背 · 复习 ${p.next_review || ""}`; };
   $("#sheetIn").innerHTML = `${head("经文卡库")}
   <p class="small muted">经文卡属于全家，背诵进度按孩子分开。当前孩子：${esc(childName())}。</p>
-  <p class="small muted">自动抓取用：中文 ${esc(fv.zh)}${fv.zhFallback ? "（已回退）" : ""} · 英文 ${esc(fv.en)}${fv.enFallback ? "（ESV 需代理，已回退）" : ""} <button class="chip" data-act="fetch-settings">改</button>${S.hs.versions ? "" : " · 译本字段需要迁移 005"}</p>
+  <p class="small muted">自动抓取用：中文 ${esc(fv.zh)}${fv.zhFallback ? "（已回退）" : ""} · 英文 ${esc(fv.en)}${fv.enFallback ? `（${esc(fv.wanted.en)} 需代理，已回退）` : ""} <button class="chip" data-act="fetch-settings">改</button>${S.hs.versions ? "" : " · 译本字段需要迁移 005"}</p>
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="scr-gen">按出处生成</button><button class="btn" data-act="scr-set">成套导入</button><button class="btn" data-act="ncc-import">新城要理问答</button><button class="btn" data-act="scr-add">手写一张</button></div>
   ${list.length ? "" : `<p class="small muted">“按出处生成”：贴几行出处（如 约翰福音 3:16），中英文经文自动抓取。或先<button class="chip" data-act="seed-scriptures">导入起步经文卡（和合本 / ESV）</button>。</p>`}
   ${list.length ? list.map(s => `<div class="card" style="margin-top:10px"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(s.ref)}</b> <span class="small muted">${s.kind === "catechism" ? "问答" : s.kind === "hymn" ? "诗歌" : "经文"}${stateOf(s) ? " · " + esc(stateOf(s)) : ""}</span><div>${esc(s.text_zh)}<span class="small muted">${esc(vz(s))}</span></div><div class="small muted">${esc(s.text_en)}${esc(ve(s))}</div>${s.source ? `<div class="small muted">${esc(s.source)}</div>` : ""}</div></div>
@@ -101,9 +101,9 @@ function openVerseSets(){
 // 只读的说明页
 function openInfo(title, html){ $("#sheetIn").innerHTML = `${head(esc(title))}${html}`; showSheet(); }
 const fetchFields = [
-  { k: "fetchZh", label: "中文抓取译本", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"]] },
-  { k: "fetchEn", label: "英文抓取译本", type: "seg", opts: [["WEB", "WEB（公有领域，现代英语）"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV（需代理）"]] },
-  { k: "esvProxy", label: "ESV 代理地址（Supabase Edge Function 的 URL，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" }];
+  { k: "fetchZh", label: "中文抓取译本（免费直取）", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"], ["当代译本", "当代译本"]] },
+  { k: "fetchEn", label: "英文抓取译本：前五个免费直取，后五个有版权、需要代理", type: "seg", opts: [["BSB", "BSB（现代英语，公有领域）"], ["NLT", "NLT"], ["WEB", "WEB"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV ＊"], ["NASB", "NASB ＊"], ["NIV", "NIV ＊"], ["CSB", "CSB ＊"], ["NKJV", "NKJV ＊"]] },
+  { k: "esvProxy", label: "代理地址（Supabase Edge Function 的 URL；ESV 用 Crossway 密钥，NASB / NIV / CSB / NKJV 用 API.Bible 密钥，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" }];
 const genFields = [{ k: "refs", label: "每行一个出处，中英文都行；卡片标题会写成“诗篇 56:3 - Psalms 56:3”", type: "area", rows: 8, ph: "约翰福音 3:16\n诗篇 23\n1 John 4:19\n腓 4:13" }];
 const nccFields = [
   { k: "lang", label: "粘贴的是哪种语言", type: "seg", opts: [["zh", "中文（官方简体页）"], ["en", "English"]] },
@@ -156,8 +156,8 @@ function openSettings(){
   ${S.hs.loaded ? `<h2>读经计划</h2><div class="panel">${planHTML()}</div>
   <h2>本月诗歌</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">还没填</span>`}</p><div class="btns" style="margin-top:0"><button class="btn" data-act="devo-hymn">修改</button><button class="btn" data-act="scriptures">经文卡库</button></div></div>
   <h2>经文译本</h2><div class="panel"><p>手写卡的默认标注：中文 <b>${esc(defaultVersions().zh)}</b>，英文 <b>${esc(defaultVersions().en)}</b>。</p>
-    <p class="small">自动抓取用：中文 <b>${esc(fetchVersions().zh)}</b>，英文 <b>${esc(fetchVersions().en)}</b>${fetchVersions().enFallback ? "（ESV 需要代理，暂时回退到公有领域的 WEB）" : ""}。和合本、新译本、WEB、KJV、ASV 从 getBible 免费直取；ESV 有版权，需要一个 Supabase Edge Function 代理并在这里填地址。</p>
-    <div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">手写卡默认译本</button><button class="btn" data-act="fetch-settings">抓取译本与 ESV 代理</button></div></div>
+    <p class="small">自动抓取用：中文 <b>${esc(fetchVersions().zh)}</b>，英文 <b>${esc(fetchVersions().en)}</b>${fetchVersions().enFallback ? `（${esc(fetchVersions().wanted.en)} 需要代理，暂时回退到公有领域的 BSB）` : ""}。免费直取：和合本、新译本、当代译本；BSB、NLT、WEB、KJV、ASV。有版权的 ESV、NASB、NIV、CSB、NKJV 要经一个 Supabase Edge Function 代理（持 Crossway / API.Bible 的免费非商业密钥），在这里填地址。</p>
+    <div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">手写卡默认译本</button><button class="btn" data-act="fetch-settings">抓取译本与代理</button></div></div>
   <h2>学年与假期</h2><div class="panel">${yearHTML()}</div>
   <h2>回写小月亮</h2><div class="panel"><p class="small">${S.hs.settings.mirror ? "已开启：" : "未开启："}完成带分钟数的任务时，阅读与语言记为小月亮的“阅读”，艺术与音乐记为“音乐运动”，标题含“户外”记为“户外”，其余不回写。这样成长页的趋势图仍然完整。</p>
     <div class="btns" style="margin-top:0"><button class="btn ${S.hs.settings.mirror ? "" : "primary"}" data-act="mirror-toggle">${S.hs.settings.mirror ? "关闭回写" : "开启回写"}</button></div></div>` : ""}
