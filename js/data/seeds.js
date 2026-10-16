@@ -23,10 +23,10 @@ const SEED_SCRIPTURES = [
   { kind: "verse", ref: "帖撒罗尼迦前书 5:16-18", zh: "要常常喜乐，不住地祷告，凡事谢恩。", en: "Rejoice always, pray without ceasing, give thanks in all circumstances." },
   { kind: "verse", ref: "约翰一书 4:19", zh: "我们爱，因为神先爱我们。", en: "We love because he first loved us." },
   { kind: "verse", ref: "约书亚记 1:9", zh: "你当刚强壮胆！不要惧怕，也不要惊惶，因为你无论往哪里去，耶和华你的神必与你同在。", en: "Be strong and courageous. Do not be frightened, and do not be dismayed, for the Lord your God is with you wherever you go." },
-  { kind: "catechism", ref: "新城要理问答 问 1", zh: "问：我们在生与死中唯一的盼望是什么？答：我们不属于自己，乃是属于神。", en: "Q: What is our only hope in life and death? A: That we are not our own but belong to God.", source: "New City Catechism（儿童版简答；中文为参考译文）" },
-  { kind: "catechism", ref: "新城要理问答 问 2", zh: "问：神是谁？答：神是万有的创造者和维系者。", en: "Q: What is God? A: God is the creator of everyone and everything.", source: "New City Catechism（儿童版简答；中文为参考译文）" },
-  { kind: "catechism", ref: "新城要理问答 问 3", zh: "问：神有几个位格？答：三个位格，一位神：圣父、圣子、圣灵。", en: "Q: How many persons are there in God? A: There are three persons in one God: the Father, the Son, and the Holy Spirit.", source: "New City Catechism（儿童版简答；中文为参考译文）" }
-].map((s, i) => ({ ...s, sort: i, source: s.source || "和合本 / ESV" }));
+  { kind: "catechism", ref: "新城要理问答 问 1", zh: "问：我们在生与死中唯一的盼望是什么？答：我们不属于自己，乃是属于神。", en: "Q: What is our only hope in life and death? A: That we are not our own but belong to God.", version_zh: "参考译文", version_en: "New City Catechism 儿童版", source: "New City Catechism" },
+  { kind: "catechism", ref: "新城要理问答 问 2", zh: "问：神是谁？答：神是万有的创造者和维系者。", en: "Q: What is God? A: God is the creator of everyone and everything.", version_zh: "参考译文", version_en: "New City Catechism 儿童版", source: "New City Catechism" },
+  { kind: "catechism", ref: "新城要理问答 问 3", zh: "问：神有几个位格？答：三个位格，一位神：圣父、圣子、圣灵。", en: "Q: How many persons are there in God? A: There are three persons in one God: the Father, the Son, and the Holy Spirit.", version_zh: "参考译文", version_en: "New City Catechism 儿童版", source: "New City Catechism" }
+].map((s, i) => ({ ...s, sort: i, version_zh: s.version_zh || "和合本", version_en: s.version_en || "ESV", source: s.source || "" }));
 
 /* 周例行模板：套用到一个孩子。family=true 的行是全家项，child_id 为空。 */
 const ROUTINE_TEMPLATES = {

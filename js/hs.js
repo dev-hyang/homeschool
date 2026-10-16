@@ -3,6 +3,7 @@ import { S } from "./core/state.js";
 import { D, dayKey, newId, toast } from "./core/util.js";
 import { PLANS, planById } from "./data/plans.js";
 import { COURSE_TEMPLATES, GOAL_TEMPLATES, ROUTINE_TEMPLATES, SEED_RESOURCES, SEED_SCRIPTURES } from "./data/seeds.js";
+import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 
 /* ============ 家庭学堂数据层（在线优先） ============
    进入家庭时一次性读取；每次写入直接到 Supabase，成功后更新内存并重绘。
@@ -29,7 +30,9 @@ async function loadAll(){
   const bad = rs.find(r => r.error);
   if (bad) { console.error(bad.error); S.hs.loaded = false; S.hs.error = missingTable(bad.error) ? "missing" : "error"; return; }
   const [fam, scr, prog, rout, tasks, devo] = rs.map(r => r.data);
-  S.hs = { ...S.hs, loaded: true, error: null, day, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
+  // 迁移 005 加的译本列：任一行带该字段即视为已迁移；没有卡时写一次探测
+  const versions = (scr && scr.length) ? ("version_zh" in scr[0]) : await probeVersions(f);
+  S.hs = { ...S.hs, loaded: true, error: null, day, versions, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
   // 阶段 2–4 的表（迁移 004）；还没建时这些页面单独提示，不影响今天页
   const rs2 = await Promise.all([
     SB.client.from("hs_units").select("*").eq("family_id", f).order("sort"),
@@ -41,6 +44,7 @@ async function loadAll(){
   else { const [u, l, g, r] = rs2.map(x => x.data || []); S.hs = { ...S.hs, phase2: true, units: u, lessons: l, goals: g, resources: r }; }
   await ensureTodayTasks();
 }
+async function probeVersions(f){ const { error } = await SB.client.from("hs_scriptures").select("version_zh").eq("family_id", f).limit(1); return !error; }
 // day rolled over while the page stayed open → reload today's rows
 async function refreshIfNewDay(){ if (S.hs.loaded && S.hs.day !== today()) await loadAll(); }
 
@@ -81,8 +85,12 @@ async function saveDevotion(patch){
 }
 
 /* ---- 经文卡 ---- */
+// 家庭默认译本（设置里改），新卡和导入都用它
+const defaultVersions = () => ({ zh: S.hs.settings.versionZh || DEFAULT_ZH, en: S.hs.settings.versionEn || DEFAULT_EN });
 async function upsertScripture(s){
-  const row = { family_id: fid(), id: s.id || newId(), kind: s.kind || "verse", ref: s.ref || "", text_zh: s.text_zh || "", text_en: s.text_en || "", source: s.source || "", sort: s.sort ?? S.hs.scriptures.length };
+  const dv = defaultVersions();
+  const row = { family_id: fid(), id: s.id || newId(), kind: s.kind || "verse", ref: s.ref || "", text_zh: s.text_zh || "", text_en: s.text_en || "", version_zh: s.version_zh ?? (s.text_zh ? dv.zh : ""), version_en: s.version_en ?? (s.text_en ? dv.en : ""), source: s.source || "", sort: s.sort ?? S.hs.scriptures.length };
+  if (!S.hs.versions) { delete row.version_zh; delete row.version_en; } // 迁移 005 还没跑：先不写这两列
   return put(S.hs.scriptures, await run(SB.client.from("hs_scriptures").upsert(row).select().single()));
 }
 async function deleteScripture(id){
@@ -92,7 +100,7 @@ async function deleteScripture(id){
 }
 async function importSeedScriptures(){
   const have = new Set(S.hs.scriptures.map(s => s.ref));
-  const rows = SEED_SCRIPTURES.filter(s => !have.has(s.ref)).map((s, i) => ({ family_id: fid(), id: newId() + i.toString(36), kind: s.kind, ref: s.ref, text_zh: s.zh, text_en: s.en, source: s.source, sort: S.hs.scriptures.length + i }));
+  const rows = SEED_SCRIPTURES.filter(s => !have.has(s.ref)).map((s, i) => { const r = { family_id: fid(), id: newId() + i.toString(36), kind: s.kind, ref: s.ref, text_zh: s.zh, text_en: s.en, version_zh: s.version_zh, version_en: s.version_en, source: s.source, sort: S.hs.scriptures.length + i }; if (!S.hs.versions) { delete r.version_zh; delete r.version_en; } return r; });
   if (!rows.length) return 0;
   const data = await run(SB.client.from("hs_scriptures").insert(rows).select());
   S.hs.scriptures.push(...data); return data.length;
@@ -300,7 +308,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, progressOf, setProgress, dueReviews, learningCards, learnedCount,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, progressOf, setProgress, dueReviews, learningCards, learnedCount,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
