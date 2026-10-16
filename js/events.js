@@ -5,6 +5,8 @@ import { $, dayKey, toast } from "./core/util.js";
 import { parsePlan } from "./data/plans.js";
 import * as hs from "./hs.js";
 import { setLawState } from "./law.js";
+import { download, reportCSV, shiftMonth } from "./reports.js";
+import { RES_LANGS, RES_TYPES } from "./resources.js";
 import { childOpts, closeSheet, drawForm, getForm, openForm, openScriptures, openSettings, readForm, scriptureFields, subjectOpts, weekdayOpts } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
@@ -28,6 +30,8 @@ document.addEventListener("click", async ev => {
   if (d.devochild) { const dv = hs.devotionDraft(), set = new Set(dv.children || []); set.has(d.devochild) ? set.delete(d.devochild) : set.add(d.devochild); await hs.saveDevotion({ children: [...set] }); render(); return; }
   if (d.plan) { await hs.choosePlan(d.plan); openSettings(); toast("已切换读经计划"); return; }
   if (d.state) { setLawState(d.state); render(); return; }
+  if (d.subject) { S.courseSubject = d.subject; render(); return; }
+  if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
 
   try {
     switch (d.act) {
@@ -83,12 +87,62 @@ document.addEventListener("click", async ev => {
         openForm("编辑例行", routineFields(), { ...r, child_id: r.child_id || "" }, async f => { await hs.upsertRoutine({ ...r, ...f }); back(); }, async () => { if (confirm("删除这条例行？今天还没做的对应任务一起删除。")) { await hs.deleteRoutine(r.id); back(); } }); break; }
       case "template-apply": { const n = await hs.applyTemplate(d.tpl, S.childId); render(); toast(n ? `已套用 ${n} 条例行到${childName()}` : "模板里的内容都已经有了"); break; }
 
+      /* 课程 */
+      case "course-template": { const n = await hs.applyCourseTemplate(d.tpl, S.childId); render(); toast(n ? `已套用 ${n} 个单元` : "起步课程都已经有了"); break; }
+      case "unit-add": openForm("新单元", unitFields(), { subject: S.courseSubject, title: "", note: "", child_id: S.childId, active: true }, async f => { if (!f.title) { toast("请填单元名"); return; } await hs.upsertUnit(f); S.courseSubject = f.subject; back(); }); break;
+      case "unit-edit": { const u = hs.unit(d.uid); if (!u) break;
+        openForm("编辑单元", unitFields(), { ...u, child_id: u.child_id || "" }, async f => { await hs.upsertUnit({ ...u, ...f }); S.courseSubject = f.subject; back(); }, async () => { if (confirm("删除这个单元和它的全部课时？")) { await hs.deleteUnit(u.id); back(); } }); break; }
+      case "lesson-add": openForm("新课时", lessonFields(), { unit_id: d.uid, title: "", faith_note: "", verse_ref: "", note: "" }, async f => { if (!f.title) { toast("请填课时名"); return; } await hs.upsertLesson(f); back(); }); break;
+      case "lesson-edit": { const l = hs.lesson(d.lid); if (!l) break;
+        openForm("编辑课时", [...lessonFields(), { k: "minutes", label: "用时（分钟）", type: "num" }], l, async f => { await hs.upsertLesson({ ...l, ...f }); back(); }, async () => { await hs.deleteLesson(l.id); back(); }); break; }
+      case "lesson-schedule": { const t = await hs.scheduleLesson(d.lid); render(); toast(t ? "已排进今天的任务" : "没能排进去"); break; }
+      case "lesson-done": await hs.setLessonStatus(d.lid, "done"); render(); break;
+      case "lesson-undo": await hs.setLessonStatus(d.lid, "planned"); render(); break;
+
+      /* 目标 */
+      case "goal-template": { const n = await hs.applyGoalTemplate(d.tpl, S.childId); render(); toast(n ? `已添加 ${n} 个目标` : "这些目标都已经在了"); break; }
+      case "goal-add": openForm("新目标", goalFields(), { area: "bible", title: "", target_on: "", evidence: "" }, async f => { if (!f.title) { toast("请填目标"); return; } await hs.upsertGoal(f); back(); }); break;
+      case "goal-edit": { const g = S.hs.goals.find(x => x.id === d.gid); if (!g) break;
+        openForm("编辑目标", [...goalFields(), { k: "achieved_on", label: "达成日期（空 = 未达成）", type: "date" }], g, async f => { await hs.upsertGoal({ ...g, ...f }); back(); }, async () => { await hs.deleteGoal(g.id); back(); }); break; }
+      case "goal-toggle": await hs.toggleGoal(d.gid); render(); break;
+
+      /* 资源 */
+      case "seed-resources": { const n = await hs.importSeedResources(); render(); toast(n ? `已导入 ${n} 条资源` : "起步资源都已经在库里了"); break; }
+      case "res-add": openForm("新资源", resourceFields(), { type: "link", lang: "zh", subject: "", title: "", url: "", source: "", tags: "", note: "" }, async f => { if (!f.title) { toast("请填名称"); return; } await hs.upsertResource(f); back(); }); break;
+      case "res-edit": { const r = S.hs.resources.find(x => x.id === d.rid); if (!r) break;
+        openForm("编辑资源", resourceFields(), { ...r, tags: (r.tags || []).join(", ") }, async f => { await hs.upsertResource({ ...r, ...f }); back(); }, async () => { await hs.deleteResource(r.id); back(); }); break; }
+
+      /* 日历与报告 */
+      case "cal-prev": S.calMonth = shiftMonth(S.calMonth, -1); S.calDay = null; render(); break;
+      case "cal-next": S.calMonth = shiftMonth(S.calMonth, 1); S.calDay = null; render(); break;
+      case "cal-day": S.calDay = S.calDay === d.date ? null : d.date; render(); break;
+      case "dayoff-toggle": await hs.toggleDayOff(d.date); render(); break;
+      case "report-prev": S.reportMonth = shiftMonth(S.reportMonth, -1); render(); break;
+      case "report-next": S.reportMonth = shiftMonth(S.reportMonth, 1); render(); break;
+      case "report-csv": { const csv = reportCSV(S.reportMonth, S.childId); if (csv) download(`家庭学堂-${childName()}-${S.reportMonth}.csv`, csv); break; }
+      case "mirror-toggle": await hs.saveSettings({ mirror: !S.hs.settings.mirror }); openSettings(); break;
+
       /* 表单 */
       case "form-save": { readForm(); const f = getForm(); await f.onSave(f.draft); break; }
       case "form-delete": { const f = getForm(); if (f.onDelete) await f.onDelete(); break; }
     }
   } catch (e) { /* run() already toasted; keep the page usable */ }
 });
+const unitFields = () => [
+  { k: "title", label: "单元名", type: "text", ph: "数到 10" }, { k: "subject", label: "领域", type: "seg", opts: subjectOpts },
+  { k: "child_id", label: "给谁", type: "seg", opts: childOpts(true) }, { k: "note", label: "说明（可空）", type: "text" }, { k: "active", label: "进行中", type: "check" }];
+const lessonFields = () => [
+  { k: "title", label: "课时", type: "text", ph: "认识 1、2、3" }, { k: "faith_note", label: "信仰连接（一句话）", type: "text", ph: "一位神，三个位格" },
+  { k: "verse_ref", label: "关联经文", type: "text", ph: "申命记 6:4" }, { k: "note", label: "备注", type: "area" }];
+const goalFields = () => [
+  { k: "title", label: "目标", type: "text", ph: "能数到 20" }, { k: "area", label: "领域", type: "seg", opts: subjectOpts },
+  { k: "target_on", label: "希望何时达成（可空）", type: "date" }, { k: "evidence", label: "证据 / 备注", type: "text", ph: "10 月 16 日数给外婆听" }];
+const resourceFields = () => [
+  { k: "title", label: "名称", type: "text" }, { k: "url", label: "链接", type: "text", ph: "https://" },
+  { k: "type", label: "类型", type: "seg", opts: Object.entries(RES_TYPES) }, { k: "lang", label: "语言", type: "seg", opts: Object.entries(RES_LANGS) },
+  { k: "subject", label: "领域（可不选）", type: "seg", opts: [["", "跨领域"], ...subjectOpts] },
+  { k: "age_min", label: "适合年龄从（岁）", type: "num" }, { k: "age_max", label: "到（岁）", type: "num" },
+  { k: "source", label: "推荐来源", type: "text", ph: "吹号者 / AmblesideOnline" }, { k: "tags", label: "标签（逗号分隔）", type: "text" }, { k: "note", label: "一句备注", type: "area" }];
 function routineFields(){
   return [
     { k: "title", label: "做什么", type: "text", ph: "英文拼读" }, { k: "subject", label: "领域", type: "seg", opts: subjectOpts },

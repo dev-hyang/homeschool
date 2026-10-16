@@ -50,4 +50,68 @@ const ROUTINE_TEMPLATES = {
   ] }
 };
 
-export { SEED_SCRIPTURES, ROUTINE_TEMPLATES };
+/* Pre-K 起步课程：每个领域一个单元、几节课时，每课时带一句信仰连接与经文。套用后随意改。 */
+const COURSE_TEMPLATES = {
+  prek: { name: "Pre-K 起步课程", units: [
+    { subject: "bible", title: "从创造到挪亚（故事圣经 1–4）", lessons: [
+      ["神创造天地", "万物都是神说有就有的，我也是", "创世记 1"], ["伊甸园里的亚当夏娃", "神把人放在美好的家里", "创世记 2"],
+      ["人离开了神", "不听话带来分离，神却应许拯救", "创世记 3"], ["挪亚与方舟", "神守约，彩虹是记号", "创世记 6–9"] ] },
+    { subject: "language", title: "英文：字母与音 A–F", lessons: [
+      ["A a 和它的音", "A 是 Adam，神造的第一个人", "创世记 2:7"], ["B b 和它的音", "B 是 Bible，神的话", "诗篇 119:105"],
+      ["C c 和它的音", "C 是 Creation", "创世记 1:1"], ["D d 和它的音", "D 是 David，牧羊的小孩", "撒母耳记上 16"],
+      ["E e 和它的音", "E 是 Eden", "创世记 2:8"], ["F f 和它的音", "F 是 Faith", "希伯来书 11:1"] ] },
+    { subject: "language", title: "中文识字：三字经远古篇 1–4 课", lessons: [
+      ["第 1 课", "起初神造天地", "创世记 1:1"], ["第 2 课", "神造人，有神的形象", "创世记 1:27"], ["第 3 课", "人犯罪", "创世记 3"], ["第 4 课", "挪亚", "创世记 6"] ] },
+    { subject: "math", title: "数到 10", lessons: [
+      ["认识 1、2、3", "一位神，三个位格", "申命记 6:4"], ["认识 4、5、6", "创造的第四到第六天", "创世记 1:14-31"],
+      ["认识 7 到 10", "第七天安息", "创世记 2:2-3"], ["比多少、比大小", "神看一切都甚好", "创世记 1:31"],
+      ["圆形、三角形、方形", "神是有秩序的", "哥林多前书 14:33"], ["规律 ABAB", "季节昼夜有规律是神的应许", "创世记 8:22"] ] },
+    { subject: "history", title: "我们家与圣经的时间线", lessons: [
+      ["我们家的故事：爸爸妈妈从哪里来", "神把我们放在这个家", "诗篇 68:6"], ["时间线第一站：创造", "历史从神开始", "创世记 1"],
+      ["亚伯拉罕的旅程（看地图）", "神呼召人出发", "创世记 12"], ["出埃及的路", "神带领他的百姓", "出埃及记 14"] ] },
+    { subject: "science", title: "秋天的自然观察", lessons: [
+      ["树叶为什么变色", "诸天述说神的荣耀", "诗篇 19:1"], ["捡种子、种种子", "一粒种子里有生命", "马可福音 4:30-32"],
+      ["记录一周天气", "神掌管风雨", "马可福音 4:39"], ["月亮的样子", "神造两个大光", "创世记 1:16"] ] },
+    { subject: "arts", title: "本月赞美诗与一幅画", lessons: [
+      ["学唱本月诗歌", "用诗歌赞美神", "诗篇 100"], ["看一幅画：梵高《星夜》", "画家看见的天空", "诗篇 8:3"],
+      ["手工：创造的六日转盘", "用手重述创造", "创世记 1"], ["用身体打节拍", "欢呼跳跃赞美", "诗篇 150"] ] },
+    { subject: "life", title: "品格：听从与感恩", lessons: [
+      ["听从爸爸妈妈", "", "以弗所书 6:1"], ["说谢谢：凡事谢恩", "", "帖撒罗尼迦前书 5:18"], ["收拾自己的玩具", "各按其时成为美好", "传道书 3:11"], ["分享一样东西给别人", "施比受更为有福", "使徒行传 20:35"] ] }
+  ] }
+};
+
+/* 学前目标清单（起步建议，按孩子调整） */
+const GOAL_TEMPLATES = {
+  prek: { name: "Pre-K 目标", goals: [
+    ["bible", "能背 20 节经文"], ["bible", "能用自己的话讲 10 个圣经故事"], ["arts", "会唱 10 首诗歌"],
+    ["language", "认全英文字母及其音"], ["language", "认读约 200–300 个中文字"], ["language", "能自己翻书从头读到尾（看图讲）"],
+    ["math", "能数到 20，再到 100"], ["math", "认识常见形状和简单规律"],
+    ["science", "能描述四季和一周天气"], ["history", "能说出自己家族三代人的名字和来处"],
+    ["life", "每天自己收拾玩具、穿脱衣服"], ["life", "会为别人祷告"] ] }
+};
+
+/* 资源库起步数据：设计方案里核对过的中英文资源 */
+const SEED_RESOURCES = [
+  { title: "吹号者 · 在家教育", url: "https://trumpeter.blog/homeschool/", type: "org", lang: "zh", source: "吹号者", tags: ["理念", "社群"], note: "华人基督徒在家教育的起步路径、讲座与 Telegram 群" },
+  { title: "如何開始在家教育（吹号者）", url: "https://trumpeter.blog/2022/06/07/%e5%a6%82%e4%bd%95%e9%96%8b%e5%a7%8b%e5%9c%a8%e5%ae%b6%e6%95%99%e8%82%b2/", type: "link", lang: "zh", source: "吹号者", tags: ["理念"], note: "从全家一起敬拜神开始的六步" },
+  { title: "在家教育常用教材和网站（吹号者）", url: "https://trumpeter.blog/2021/05/14/%e5%9c%a8%e5%ae%b6%e6%95%99%e8%82%b2%e5%b8%b8%e7%94%a8%e6%95%99%e6%9d%90%e5%92%8c%e7%bd%91%e7%ab%99/", type: "link", lang: "zh", source: "吹号者", tags: ["教材清单"], note: "2021 年整理的英文课程清单与选教材建议" },
+  { title: "用中文教导圣经 TBIC《基督教新编三字经》", url: "https://tbic.cc/", type: "course", subject: "language", lang: "zh", age_min: 4, source: "TBIC", tags: ["识字", "圣经"], note: "三字韵文讲救恩史，边识字边学圣经，有家庭教育版" },
+  { title: "新城要理问答 · 简体中文", url: "https://newcitycatechism.com/translations/chinese-simplified.html", type: "link", subject: "bible", lang: "bi", age_min: 4, source: "The Gospel Coalition", tags: ["要理问答"], note: "52 问官方简体译本；App 免费含儿童歌曲" },
+  { title: "华人基督教教材推荐（含华恩儿童教理问答）", url: "https://chinachristianedu.wordpress.com/%E5%8D%8E%E4%BA%BA%E5%9F%BA%E7%9D%A3%E6%95%99%E4%B8%AD%E5%B0%8F%E5%AD%A6%E6%95%99%E8%82%B2%E6%95%99%E6%9D%90%E6%8E%A8%E8%8D%90/", type: "link", lang: "zh", source: "华人青少年基督教教育网", tags: ["主日学", "教理问答", "诗歌"], note: "中文主日学、儿童圣经故事、诗歌与书店的大清单，部分链接已失效" },
+  { title: "AmblesideOnline Year 0", url: "https://www.amblesideonline.org/ao-y0", type: "course", lang: "en", age_max: 6, source: "AmblesideOnline", tags: ["夏洛特·梅森", "免费"], note: "6 岁前不上正式课：户外、家务、共读、自然观察" },
+  { title: "All About Reading Pre-reading", url: "https://www.allaboutlearningpress.com/all-about-reading/", type: "course", subject: "language", lang: "en", age_min: 3, age_max: 6, source: "All About Learning Press", tags: ["拼读"], note: "每天 20 分钟，轻脚本；Pre-reading 约 $120" },
+  { title: "Math-U-See Primer", url: "https://mathusee.com/curriculum/primer/", type: "course", subject: "math", lang: "en", age_min: 4, source: "Math-U-See", tags: ["数学", "教具"], note: "掌握式进度，教具加视频" },
+  { title: "Abeka Preschool（K4 / K5）", url: "https://www.abeka.com/preschool/", type: "course", lang: "en", age_min: 2, age_max: 6, source: "Abeka", tags: ["全科", "拼读", "圣经"], note: "传统教材式，K5 每个字母配一节经文" },
+  { title: "BJU Press Footsteps for Fours", url: "https://www.bjupresshomeschool.com/category/preschool/5637160358.c", type: "course", lang: "en", age_min: 4, age_max: 5, source: "BJU Press", tags: ["拼读", "前阅读"], note: "圣经课 Bible Truths K4 单独购买" },
+  { title: "Sonlight Preschool / Pre-K", url: "https://www.sonlight.com/pages/all-subjects-packages?sku=1MSP", type: "course", lang: "en", age_min: 3, age_max: 5, source: "Sonlight", tags: ["共读", "书单"], note: "以文学为本，书单可作阅读参考" },
+  { title: "My Father's World 早期课程", url: "https://www.mfwbooks.com/", type: "course", lang: "en", age_min: 2, age_max: 6, source: "My Father's World", tags: ["单元主题", "全科"], note: "2–3 岁、Pre-K、K 各有整年包" },
+  { title: "Memoria Press Junior Kindergarten", url: "https://www.memoriapress.com/curriculum/junior-kindergarten/", type: "course", lang: "en", age_min: 4, age_max: 5, source: "Memoria Press", tags: ["古典", "绘本"], note: "绘本清单质量高" },
+  { title: "Easy Peasy All-in-One Homeschool", url: "https://allinonehomeschool.com/", type: "course", lang: "en", age_min: 3, source: "Easy Peasy", tags: ["免费", "在线"], note: "免费 180 天课程，学前为 Getting Ready 1" },
+  { title: "Apologia Young Explorers 适用年龄", url: "https://support.apologia.com/kb/article/390-what-ages-can-use-the-young-explorer-series/", type: "link", subject: "science", lang: "en", age_min: 5, age_max: 11, source: "Apologia", tags: ["科学", "创造论"], note: "K–6；学前用配套绘本单" },
+  { title: "The Jesus Storybook Bible", url: "https://www.sonlight.com/PMSP.html", type: "book", subject: "bible", lang: "en", age_min: 3, source: "Sally Lloyd-Jones", tags: ["故事圣经"], note: "44 个故事，每个指向基督；有中英双语版" },
+  { title: "HSLDA Illinois", url: "https://hslda.org/legal/illinois", type: "org", lang: "en", source: "HSLDA", tags: ["法规"], note: "州法概览与法案通知" },
+  { title: "ICHE 伊利诺伊基督徒在家教育者协会", url: "https://iche.org/", type: "org", lang: "en", source: "ICHE", tags: ["社群", "法规"], note: "法律更新、支持小组、年会" },
+  { title: "北卡 DNPE 在家教育", url: "https://www.doa.nc.gov/divisions/non-public-education/home-schools", type: "org", lang: "en", source: "NC DNPE", tags: ["法规"], note: "备案与测试要求（参考）" }
+];
+
+export { SEED_SCRIPTURES, ROUTINE_TEMPLATES, COURSE_TEMPLATES, GOAL_TEMPLATES, SEED_RESOURCES };

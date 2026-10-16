@@ -1,7 +1,10 @@
 import { BABY_LOG_URL } from "./core/config.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
+import { viewCourse } from "./course.js";
 import { viewLaw } from "./law.js";
+import { viewReports } from "./reports.js";
+import { viewResources } from "./resources.js";
 import { viewRoutines } from "./routines.js";
 import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
@@ -41,9 +44,5 @@ function gateHTML(){
   if (!S.hs.loaded) return `<div class="empty">正在读取…</div>`;
   return "";
 }
-const soon = (n, what) => `<div class="empty">阶段 ${n} 加入：${what}</div>`;
-function viewCourse(){ return soon(2, "七个领域的课程树、每课时的信仰连接、学前目标清单。"); }
-function viewResources(){ return soon(3, "中英文资源库，含吹号者、TBIC、AmblesideOnline 等种子数据。"); }
-function viewReports(){ return soon(4, "每科时长、出勤天数、读过的书、背下的经文。"); }
 
 export { renderStatus, toggleKids, render, refreshSettingsIfOpen };
