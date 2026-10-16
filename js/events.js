@@ -4,6 +4,7 @@ import { S, childName, setChild } from "./core/state.js";
 import { $, dayKey, toast } from "./core/util.js";
 import { parsePlan } from "./data/plans.js";
 import * as hs from "./hs.js";
+import { setLawState } from "./law.js";
 import { childOpts, closeSheet, drawForm, getForm, openForm, openScriptures, openSettings, readForm, scriptureFields, subjectOpts, weekdayOpts } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
@@ -26,6 +27,7 @@ document.addEventListener("click", async ev => {
   // devotion participants
   if (d.devochild) { const dv = hs.devotionDraft(), set = new Set(dv.children || []); set.has(d.devochild) ? set.delete(d.devochild) : set.add(d.devochild); await hs.saveDevotion({ children: [...set] }); render(); return; }
   if (d.plan) { await hs.choosePlan(d.plan); openSettings(); toast("已切换读经计划"); return; }
+  if (d.state) { setLawState(d.state); render(); return; }
 
   try {
     switch (d.act) {

@@ -8,7 +8,7 @@
 
 - 同一个 Supabase 项目、同一个账号、同一个家庭、同一份孩子列表。两个站点都在 `dev-hyang.github.io` 下，登录会话通过浏览器自动共享。
 - 孩子的名字和生日在小月亮里维护；这里只读。数据库里孩子来自 `children` 表（迁移 002），表还没建时回退到 `families.settings` 的 JSON。
-- 数据库脚本统一放在 baby-log 仓库的 `supabase/` 目录（基线 `schema.sql` 加编号迁移）。本仓库以后新增的表也写成那里的迁移文件。
+- 数据库脚本（基线 `schema.sql` 加编号迁移）放在 baby-log 本地检出的 `supabase/` 目录，不进 git。本仓库以后新增的表也写成那里的迁移文件，在 Supabase SQL Editor 里手动执行。
 - 在线优先：直接读写 Supabase，不做离线队列；本机只存"当前看哪个孩子"和主题。
 
 ## 文件结构
@@ -32,7 +32,7 @@ js/
   data/subjects.js  七个领域
   data/plans.js     读经计划模板与导入解析
   data/seeds.js     起步经文卡、周例行模板
-  data/law.js       各州法规摘要（目前伊利诺伊）
+  data/law.js       各州法规摘要（默认伊利诺伊；密歇根、印第安纳、北卡、田纳西供参考）
 ```
 
 ## 阶段

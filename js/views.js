@@ -36,7 +36,7 @@ function gateHTML(){
   if (S.cloud === "signedout") return `<div class="empty">用和小月亮一样的账号登录，就能看到家里的孩子。<br><button class="btn primary" data-act="settings">去登录</button></div>`;
   if (S.cloud === "nofamily") return `<div class="empty">已登录，但还没有加入家庭。<br><button class="btn primary" data-act="settings">创建或加入家庭</button></div>`;
   if (!S.children.length) return `<div class="empty">家庭里还没有孩子。先在<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">小月亮</a>的设置里添加，这里会自动出现。</div>`;
-  if (S.hs.error === "missing") return `<div class="empty">数据库还没有家庭学堂的表。<br>请在 Supabase 执行 baby-log 仓库里的 <code>supabase/migrations/003_homeschool_phase1.sql</code>，然后刷新。</div>`;
+  if (S.hs.error === "missing") return `<div class="empty">数据库还没有家庭学堂的表。<br>请在 Supabase 执行本地 <code>supabase/migrations/003_homeschool_phase1.sql</code>，然后刷新。</div>`;
   if (S.hs.error) return `<div class="empty">读取家庭学堂数据失败。<br>请刷新重试。</div>`;
   if (!S.hs.loaded) return `<div class="empty">正在读取…</div>`;
   return "";
