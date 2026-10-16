@@ -6,7 +6,8 @@ import { parsePlan } from "./data/plans.js";
 import * as hs from "./hs.js";
 import { setLawState } from "./law.js";
 import { download, reportCSV, shiftMonth } from "./reports.js";
-import { RES_LANGS, RES_TYPES, ideaSourcesHTML } from "./resources.js";
+import { RES_LANGS, RES_TYPES, feedItem, ideaSourcesHTML } from "./resources.js";
+import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
@@ -35,6 +36,7 @@ document.addEventListener("click", async ev => {
   if (d.subject) { S.courseSubject = d.subject; render(); return; }
   if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
+  if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
 
   try {
     switch (d.act) {
@@ -123,6 +125,9 @@ document.addEventListener("click", async ev => {
       case "idea-all": S.ideaFilter.all = true; render(); break;
       case "idea-less": S.ideaFilter.all = false; render(); break;
       case "idea-sources": openInfo("参考来源", ideaSourcesHTML()); break;
+      case "feed-add": { const x = feedItem(+d.i); if (!x) break; const cat = S.ideaFilter.cat, c = CATS[cat];
+        const title = cat === "outdoor" ? `户外：${x.title}` : cat === "chore" ? `家务：${x.title}` : x.title;
+        await hs.upsertTask({ child_id: S.childId || null, title, subject: c.subject, note: `${x.excerpt ? x.excerpt + " " : ""}${x.url}` }); render(); toast(`已加到${childName()}今天：${x.title}`); break; }
       case "idea-add": { const x = ideas(d.band, d.cat)[+d.i]; if (!x) break; const c = CATS[d.cat];
         const title = d.cat === "outdoor" ? `户外：${x.t}` : d.cat === "chore" ? `家务：${x.t}` : x.t;
         await hs.upsertTask({ child_id: S.childId || null, title, subject: c.subject, note: x.h + (x.f ? `（${x.f}）` : "") }); render(); toast(`已加到${childName()}今天：${x.t}`); break; }

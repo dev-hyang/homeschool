@@ -2,9 +2,35 @@ import { S, ageMonths, childName } from "./core/state.js";
 import { esc } from "./core/util.js";
 import { SUBJECTS, subject } from "./data/subjects.js";
 import { BANDS, CATS, IDEA_SOURCES, bandFor, ideas } from "./data/ideas.js";
+import { FEEDS, dailyPicks } from "./data/feeds.js";
+import { render } from "./views.js";
 
-/* ============ 日常点子：手工 / 户外 / 家务，按孩子年龄段 ============ */
-S.ideaFilter = S.ideaFilter || { band: "", cat: "craft", seed: 0, all: false };
+/* ============ 日常点子：手工 / 户外 / 家务，按孩子年龄段 ============
+   两种来源：每日新鲜 = 直接读几家博客的公开接口，每条链接到原文；精选清单 = 内置的固定清单（离线也能用）。 */
+S.ideaFilter = S.ideaFilter || { band: "", cat: "craft", seed: 0, all: false, mode: "feed", lang: "en" };
+const feedCache = new Map(); // key → "loading" | { items, errors, feeds }
+let shownFeed = [];          // 当前画在页面上的那组，给“加到今天”按下标取
+const feedItem = i => shownFeed[i];
+function ensureFeed(f, band){
+  const key = `${new Date().toISOString().slice(0, 10)}|${band}|${f.cat}|${f.lang}|${f.seed}`;
+  if (feedCache.has(key)) return feedCache.get(key);
+  feedCache.set(key, "loading");
+  dailyPicks({ band, cat: f.cat, lang: f.lang, seed: f.seed })
+    .then(r => { feedCache.set(key, r); if (S.tab === "resources") render(); })
+    .catch(e => { feedCache.set(key, { items: [], errors: [e.message], feeds: [] }); if (S.tab === "resources") render(); });
+  return "loading";
+}
+const searchUrl = x => `https://www.google.com/search?q=${encodeURIComponent(`${x.t} ${x.q || "幼儿 活动"}`)}`;
+function feedHTML(f, band, color){
+  const r = ensureFeed(f, band);
+  if (r === "loading") return `<p class="muted">正在从博客取今天的点子…</p>`;
+  shownFeed = r.items;
+  if (!r.items.length) return `<p class="muted">这一批没取到${r.errors.length ? `（${esc(r.errors.join("；"))}）` : ""}。点“换一批”，或切到精选清单。</p>`;
+  return r.items.map((x, i) => `<div class="res"><span class="bar" style="background:${color}"></span>
+    <div class="v"><a href="${esc(x.url)}" target="_blank" rel="noopener"><b>${esc(x.title)}</b></a>${x.excerpt ? `<div class="small">${esc(x.excerpt)}${x.excerpt.length >= 140 ? "…" : ""}</div>` : ""}<div class="small muted">${esc(x.source)}${x.date ? ` · ${esc(x.date)}` : ""} · 点标题看原文</div></div>
+    <button class="chip" data-act="feed-add" data-i="${i}" title="加到${esc(childName())}今天的任务">加到今天</button></div>`).join("")
+    + `<p class="small muted" style="margin:8px 0 0">今天这组来自 ${esc(r.feeds.join("、"))}。同一天看到的一样，“换一批”换站或换页。</p>`;
+}
 // 伪随机但稳定：同一天同一 seed 看到同一批，点“换一批”才变
 function pick(list, n, seed){
   const day = new Date().toISOString().slice(0, 10); let h = 0; for (const c of day + seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -15,17 +41,21 @@ function viewIdeas(){
   const f = S.ideaFilter, auto = bandFor(ageMonths()), band = BANDS.find(b => b.id === f.band) || auto, list = ideas(band.id, f.cat);
   const shown = f.all ? list.map((x, i) => [x, i]) : pick(list, 4, f.seed);
   const chip = (attr, val, label, cur) => `<button class="chip" data-if="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
-  const item = ([x, i]) => `<div class="res"><span class="bar" style="background:${subject(CATS[f.cat].subject).color}"></span>
-    <div class="v"><b>${esc(x.t)}</b><div class="small">${esc(x.h)}</div>${x.f ? `<div class="small muted">✝ ${esc(x.f)}</div>` : ""}</div>
-    <button class="chip" data-act="idea-add" data-band="${band.id}" data-cat="${f.cat}" data-i="${i}" title="加到${childName()}今天的任务">加到今天</button></div>`;
+  const color = subject(CATS[f.cat].subject).color, feed = f.mode !== "list";
+  const item = ([x, i]) => `<div class="res"><span class="bar" style="background:${color}"></span>
+    <div class="v"><b>${esc(x.t)}</b> <a class="small" href="${searchUrl(x)}" target="_blank" rel="noopener">搜详情</a><div class="small">${esc(x.h)}</div>${x.f ? `<div class="small muted">✝ ${esc(x.f)}</div>` : ""}</div>
+    <button class="chip" data-act="idea-add" data-band="${band.id}" data-cat="${f.cat}" data-i="${i}" title="加到${esc(childName())}今天的任务">加到今天</button></div>`;
   return `<h2>日常点子</h2>
-  <div class="chips" role="group" aria-label="年龄段">${BANDS.map(b => chip("band", b.id, b.name + (b.id === auto.id ? `（${childName()}）` : ""), band.id)).join("")}</div>
+  <div class="chips" role="group" aria-label="来源">${chip("mode", "feed", "每日新鲜（博客）", feed ? "feed" : "list")}${chip("mode", "list", "精选清单", feed ? "feed" : "list")}${feed ? `<span style="flex-basis:100%"></span>${chip("lang", "en", "English 博客", f.lang)}${chip("lang", "zh", "中文（吹号者）", f.lang)}` : ""}</div>
+  <div class="chips" role="group" aria-label="年龄段" style="margin-top:0">${BANDS.map(b => chip("band", b.id, b.name + (b.id === auto.id ? `（${childName()}）` : ""), band.id)).join("")}</div>
   <div class="chips" role="group" aria-label="类别" style="margin-top:0">${Object.entries(CATS).map(([k, c]) => chip("cat", k, `${c.icon} ${c.name}`, f.cat)).join("")}</div>
-  <div class="panel">${f.cat === "chore" ? `<p class="small muted" style="margin-top:0">家务按年龄逐级加码：前一档会做的继续做，这里只列本档新加的。先一起做，再放手。</p>` : ""}
-    ${shown.map(item).join("")}
-    <div class="btns" style="margin-top:8px">${f.all ? `<button class="btn" data-act="idea-less">只看几条</button>` : `<button class="btn" data-act="idea-shuffle">换一批</button><button class="btn" data-act="idea-all">看全部 ${list.length} 条</button>`}<button class="btn" data-act="idea-sources">参考来源</button></div></div>`;
+  <div class="panel">${feed ? feedHTML(f, band.id, color) : `${f.cat === "chore" ? `<p class="small muted" style="margin-top:0">家务按年龄逐级加码：前一档会做的继续做，这里只列本档新加的。先一起做，再放手。</p>` : ""}${shown.map(item).join("")}`}
+    <div class="btns" style="margin-top:8px">${feed ? `<button class="btn" data-act="idea-shuffle">换一批</button>` : f.all ? `<button class="btn" data-act="idea-less">只看几条</button>` : `<button class="btn" data-act="idea-shuffle">换一批</button><button class="btn" data-act="idea-all">看全部 ${list.length} 条</button>`}<button class="btn" data-act="idea-sources">参考来源</button></div></div>`;
 }
-const ideaSourcesHTML = () => `<p class="small muted">点子大多改写自下面这些长期更新的站点，年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 的内容抓不到，看到好的可以手动加进资源库。</p>
+const ideaSourcesHTML = () => `<p class="small muted"><b>每日新鲜</b>直接读下面博客的 WordPress 公开接口（和经文抓取用 getBible 一个道理：无密钥、浏览器直取），每条都链接到原文；<b>精选清单</b>是内置的固定清单，每条带一个“搜详情”。年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 没有公开接口，抓不到，看到好的可以手动加进资源库。</p>
+  <h2>每日新鲜读的博客</h2>
+  ${FEEDS.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="https://${esc(s.host)}/" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${s.lang === "zh" ? "中文" : "英文"} · ${s.cats.map(c => CATS[c].name).join(" / ")}</div></div><span></span></div>`).join("")}
+  <h2>精选清单参考</h2>
   ${IDEA_SOURCES.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${esc(s.note)}</div></div><span></span></div>`).join("")}`;
 
 /* ============ 资源页：链接、书目、视频、打印件，按领域 / 语言 / 类型筛选 ============ */
@@ -51,4 +81,4 @@ function viewResources(){
   <p class="small muted" style="margin-top:8px">资源属于全家。链接随时会失效，发现了就点编辑改掉。</p>`;
 }
 
-export { viewResources, ideaSourcesHTML, TYPES as RES_TYPES, LANGS as RES_LANGS };
+export { viewResources, ideaSourcesHTML, feedItem, TYPES as RES_TYPES, LANGS as RES_LANGS };

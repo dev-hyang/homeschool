@@ -1,4 +1,5 @@
 import { APP_VERSION, BABY_LOG_URL } from "./core/config.js";
+import { t } from "./core/i18n.js";
 import { $, esc } from "./core/util.js";
 import { ABOUT } from "./data/about.js";
 import { showSheet } from "./sheet.js";
@@ -6,7 +7,7 @@ import { showSheet } from "./sheet.js";
 /* ============ 介绍页：设计思路与使用说明（设置页和未登录引导里打开） ============ */
 function openAbout(){
   const A = ABOUT;
-  $("#sheetIn").innerHTML = `<div class="sheet-head"><h3 id="sheetTitle">关于家庭学堂</h3><span><button class="iconbtn" data-act="close" aria-label="关闭">关闭</button></span></div>
+  $("#sheetIn").innerHTML = `<div class="sheet-head"><h3 id="sheetTitle">${esc(t("aboutTitle"))}</h3><span><button class="iconbtn" data-act="close" aria-label="${esc(t("close"))}">${esc(t("close"))}</button></span></div>
   <p>${esc(A.intro)}</p>
   <h2>设计原则</h2>
   <div class="panel"><ol class="plain" style="padding-left:20px">${A.principles.map(([t, d]) => `<li style="margin:6px 0"><b>${esc(t)}。</b>${esc(d)}</li>`).join("")}</ol></div>

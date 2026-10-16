@@ -1,4 +1,5 @@
 import { BABY_LOG_URL } from "./core/config.js";
+import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
 import { viewCourse } from "./course.js";
@@ -10,14 +11,20 @@ import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
 
 /* ============ 渲染 ============ */
+const TAB_KEYS = { today: "tabToday", course: "tabCourse", resources: "tabResources", calendar: "tabCalendar", reports: "tabReports", law: "tabLaw" };
 function renderStatus(){
-  const st = { loading: ["", "连接中"], offline: ["", "云端不可用"], signedout: ["", "未登录"], nofamily: ["", "还没加入家庭"], ready: ["ok", `家庭 · ${Object.keys(S.members).length || 1} 人`] }[S.cloud];
-  $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${st[1]}`;
+  const st = { loading: ["", t("connecting")], offline: ["", t("offline")], signedout: ["", t("signedout")], nofamily: ["", t("nofamily")], ready: ["ok", t("family", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
+  $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
   const c = child();
-  $("#bname").innerHTML = `${esc(c ? `${c.name || "宝宝"}的学堂` : "家庭学堂")}<span class="chev" aria-hidden="true"></span>`;
-  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? "家庭里还没有孩子" : "登录后显示孩子");
-  $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || "宝宝")}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
-    + `<button class="manage" role="menuitem" data-act="settings">家庭与孩子…</button>`;
+  $("#bname").innerHTML = `${esc(c ? t("schoolOf", { name: c.name || t("baby") }) : t("brand"))}<span class="chev" aria-hidden="true"></span>`;
+  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? t("noKids") : t("afterLogin"));
+  $("#kids").setAttribute("aria-label", t("switchChild"));
+  $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("baby"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
+    + `<button class="manage" role="menuitem" data-act="settings">${esc(t("manageKids"))}</button>`;
+  // 框架文字：介绍徽章、设置按钮、底部页签
+  const about = $('header .badge[data-act="about"]'); if (about) about.textContent = t("about");
+  const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("settings"); set.setAttribute("aria-label", t("settings")); }
+  document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_KEYS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
 function toggleKids(open = $("#kids").hidden){
   $("#kids").hidden = !open;
@@ -30,7 +37,7 @@ function render(){
   const v = { today: viewToday, course: viewCourse, resources: viewResources, calendar: viewRoutines, law: viewLaw, reports: viewReports }[S.tab] || viewToday;
   $("#main").innerHTML = S.tab === "law" ? v() : (gateHTML() || v());
 }
-function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === "设置") openSettings(); }
+function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("settings")) openSettings(); }
 
 /* 没登录 / 没家庭 / 没孩子 / 表没建时，每个页面都先把路指清楚 */
 function gateHTML(){

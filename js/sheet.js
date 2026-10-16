@@ -1,5 +1,6 @@
 import { familyHTML } from "./core/auth.js";
 import { APP_VERSION, BABY_LOG_URL, LS_PREFIX } from "./core/config.js";
+import { LOCALES, locale, t } from "./core/i18n.js";
 import { S, ageText, childName, stageOf } from "./core/state.js";
 import { $, esc } from "./core/util.js";
 import { PLANS } from "./data/plans.js";
@@ -32,7 +33,7 @@ $("#sheet").addEventListener("close", () => {
 // close + redraw in one step; the dialog's own close event also redraws, but it is dispatched asynchronously
 function closeSheet(){ const d = $("#sheet"); if (d.open) d.close(); render(); }
 window.addEventListener("popstate", () => closeSheet());
-const head = (title, extra = "") => `<div class="sheet-head"><h3 id="sheetTitle">${title}</h3><span>${extra}<button class="iconbtn" data-act="close" aria-label="关闭">关闭</button></span></div>`;
+const head = (title, extra = "") => `<div class="sheet-head"><h3 id="sheetTitle">${title}</h3><span>${extra}<button class="iconbtn" data-act="close" aria-label="${esc(t("close"))}">${esc(t("close"))}</button></span></div>`;
 
 /* ---- 通用小表单：spec 描述字段，保存时把 draft 交给 onSave ---- */
 let form = null; // { title, fields, draft, onSave, onDelete }
@@ -166,7 +167,7 @@ const breakFields = [
 function themePref(){ try { return localStorage.getItem(LS_PREFIX + ".theme") || ""; } catch (e) { return ""; } }
 function openSettings(){
   const kids = S.children;
-  $("#sheetIn").innerHTML = `${head("设置", `<button class="iconbtn" data-act="about">介绍</button> `)}
+  $("#sheetIn").innerHTML = `${head(esc(t("settings")), `<button class="iconbtn" data-act="about">${esc(t("about"))}</button> `)}
   <h2>家庭</h2>
   ${familyHTML()}
 
@@ -188,9 +189,13 @@ function openSettings(){
     <p class="small muted" style="margin-top:8px">孩子的名字和生日在<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">小月亮</a>的设置里维护，两个应用共用同一份。${S.childrenSource === "settings" ? "（当前读取的是旧格式；数据库迁移 002 执行后会自动切到 children 表。）" : ""}</p>
   </div>
 
-  <h2>显示</h2>
-  <div class="seg" role="group" aria-label="外观">${[["", "跟随系统"], ["light", "浅色"], ["dark", "深色"]].map(([v, l]) => `<button data-theme-set="${v}" aria-pressed="${themePref() === v}">${l}</button>`).join("")}</div>
-  <p class="small muted" style="margin-top:24px">版本 ${APP_VERSION}</p>`;
+  <h2>${esc(t("language"))}</h2>
+  <div class="seg" role="group" aria-label="${esc(t("language"))}">${LOCALES.map(([v, l]) => `<button data-locale-set="${v}" aria-pressed="${locale() === v}" lang="${v}">${l}</button>`).join("")}</div>
+  <p class="small muted">${esc(t("languageNote"))}</p>
+
+  <h2>${esc(t("display"))}</h2>
+  <div class="seg" role="group" aria-label="${esc(t("theme"))}">${[["", t("themeSystem")], ["light", t("themeLight")], ["dark", t("themeDark")]].map(([v, l]) => `<button data-theme-set="${v}" aria-pressed="${themePref() === v}">${esc(l)}</button>`).join("")}</div>
+  <p class="small muted" style="margin-top:24px">${esc(t("version"))} ${APP_VERSION}</p>`;
   showSheet();
 }
 
