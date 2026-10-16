@@ -32,7 +32,8 @@ function ageMonths(cid = S.childId, at = Date.now()){
   return Math.max(0, m);
 }
 function ageText(cid = S.childId){
-  const m = ageMonths(cid); if (m == null) return "没有填生日";
+  const d = ageDays(cid), m = ageMonths(cid); if (m == null) return "没有填生日";
+  if (d < 60) return `出生第 ${d + 1} 天`;
   return m < 24 ? `${m} 个月` : `${Math.floor(m / 12)} 岁 ${m % 12} 个月`;
 }
 // 阶段：2 岁前只记录不排课；2–3 岁节奏；3–5 岁 Pre-K；5 岁起 K+
