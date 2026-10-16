@@ -98,6 +98,8 @@ function openVerseSets(){
   <div class="btns"><button class="btn" data-act="scriptures">返回经文卡库</button></div>`;
   showSheet();
 }
+// 只读的说明页
+function openInfo(title, html){ $("#sheetIn").innerHTML = `${head(esc(title))}${html}`; showSheet(); }
 const fetchFields = [
   { k: "fetchZh", label: "中文抓取译本", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"]] },
   { k: "fetchEn", label: "英文抓取译本", type: "seg", opts: [["WEB", "WEB（公有领域，现代英语）"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV（需代理）"]] },
@@ -175,5 +177,5 @@ function openSettings(){
   showSheet();
 }
 
-export { showSheet, closeSheet, openForm, drawForm, readForm, openScriptures, openVerseSets, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields, fetchFields, genFields, nccFields };
+export { showSheet, closeSheet, openForm, drawForm, readForm, openInfo, openScriptures, openVerseSets, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields, fetchFields, genFields, nccFields };
 export function getForm(){ return form; }
