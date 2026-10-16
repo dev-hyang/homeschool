@@ -5,7 +5,9 @@ import { $, esc } from "./core/util.js";
 import { PLANS } from "./data/plans.js";
 import { SUBJECTS, WEEKDAYS } from "./data/subjects.js";
 import { VERSIONS_EN, VERSIONS_ZH, ve, vz } from "./data/versions.js";
-import { currentPlan, defaultVersions, planState, progressOf, yearInfo } from "./hs.js";
+import { currentPlan, defaultVersions, fetchVersions, planState, progressOf, yearInfo } from "./hs.js";
+import { parseRef } from "./data/bible.js";
+import { VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
 
 /* ============ 整页表单（替换内容区，和小月亮一样的交互） ============ */
@@ -52,8 +54,9 @@ function drawForm(){
     const list = f.list ? `<datalist id="${id}_list">${f.list.map(o => `<option value="${esc(o)}">`).join("")}</datalist>` : "";
     return `<div class="field"><label for="${id}">${f.label}</label><input id="${id}" type="text" data-f="${f.k}" value="${esc(v || "")}" placeholder="${esc(f.ph || "")}" ${f.list ? `list="${id}_list"` : ""}>${list}</div>`;
   }).join("");
+  const extra = fields.some(f => f.k === "ref") && fields.some(f => f.k === "text_zh") ? `<button class="btn" data-act="form-fetch">按出处抓取经文</button>` : "";
   $("#sheetIn").innerHTML = `${head(title)}${html}
-    <div class="btns"><button class="btn primary" data-act="form-save">保存</button>${onDelete ? `<button class="btn danger" data-act="form-delete">删除</button>` : ""}</div>`;
+    <div class="btns"><button class="btn primary" data-act="form-save">保存</button>${extra}${onDelete ? `<button class="btn danger" data-act="form-delete">删除</button>` : ""}</div>`;
 }
 function readForm(){
   $("#sheetIn").querySelectorAll("[data-f]").forEach(el => {
@@ -69,12 +72,13 @@ const weekdayOpts = [1, 2, 3, 4, 5, 6, 0].map(d => [d, "周" + WEEKDAYS[d]]);
 
 /* ---- 经文卡库 ---- */
 function openScriptures(){
-  const cid = S.childId, list = S.hs.scriptures, dvs = defaultVersions();
+  const cid = S.childId, list = S.hs.scriptures, fv = fetchVersions();
   const stateOf = s => { const p = progressOf(s.id, cid); return !p ? "" : p.status === "learning" ? "在学" : `会背 · 复习 ${p.next_review || ""}`; };
   $("#sheetIn").innerHTML = `${head("经文卡库")}
   <p class="small muted">经文卡属于全家，背诵进度按孩子分开。当前孩子：${esc(childName())}。</p>
-  <p class="small muted">默认译本：中文 ${esc(dvs.zh)} · 英文 ${esc(dvs.en)} <button class="chip" data-act="versions-edit">改</button>${S.hs.versions ? "" : " · 译本字段需要迁移 005"}</p>
-  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="scr-add">＋ 新卡</button>${list.length ? "" : `<button class="btn" data-act="seed-scriptures">导入起步经文卡（20 节和合本 / ESV + 新城要理问答 3 问）</button>`}</div>
+  <p class="small muted">自动抓取用：中文 ${esc(fv.zh)}${fv.zhFallback ? "（已回退）" : ""} · 英文 ${esc(fv.en)}${fv.enFallback ? "（ESV 需代理，已回退）" : ""} <button class="chip" data-act="fetch-settings">改</button>${S.hs.versions ? "" : " · 译本字段需要迁移 005"}</p>
+  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="scr-gen">按出处生成</button><button class="btn" data-act="scr-set">成套导入</button><button class="btn" data-act="ncc-import">新城要理问答</button><button class="btn" data-act="scr-add">手写一张</button></div>
+  ${list.length ? "" : `<p class="small muted">“按出处生成”：贴几行出处（如 约翰福音 3:16），中英文经文自动抓取。或先<button class="chip" data-act="seed-scriptures">导入起步经文卡（和合本 / ESV）</button>。</p>`}
   ${list.length ? list.map(s => `<div class="card" style="margin-top:10px"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(s.ref)}</b> <span class="small muted">${s.kind === "catechism" ? "问答" : s.kind === "hymn" ? "诗歌" : "经文"}${stateOf(s) ? " · " + esc(stateOf(s)) : ""}</span><div>${esc(s.text_zh)}<span class="small muted">${esc(vz(s))}</span></div><div class="small muted">${esc(s.text_en)}${esc(ve(s))}</div>${s.source ? `<div class="small muted">${esc(s.source)}</div>` : ""}</div></div>
     <div class="btns" style="margin-top:8px">
       ${!progressOf(s.id, cid) ? `<button class="btn" data-act="scr-start" data-sid="${esc(s.id)}">${esc(childName())}开始背</button>` : `<button class="btn" data-act="scr-reset" data-sid="${esc(s.id)}">清除${esc(childName())}的进度</button>`}
@@ -84,6 +88,24 @@ function openScriptures(){
   ${list.length ? `<div class="btns"><button class="btn" data-act="seed-scriptures">补充导入起步经文卡（和合本 / ESV）</button></div>` : ""}`;
   showSheet();
 }
+// 成套导入的选择页
+function openVerseSets(){
+  const have = new Set(S.hs.scriptures.map(s => s.ref.replace(/\s+/g, "")));
+  $("#sheetIn").innerHTML = `${head("成套导入经文卡")}
+  <p class="small muted">只给出处，正文按设置里的译本自动抓取（已有的出处会跳过）。抓取需要联网，几十节约十几秒。</p>
+  ${VERSE_SETS.map(s => { const n = s.refs.filter(r => { const p = parseRef(r); return p && !have.has(p.label.replace(/\s+/g, "")); }).length;
+    return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(s.name)}</b><div class="small muted">${esc(s.desc)} 共 ${s.refs.length} 节${n < s.refs.length ? `，还有 ${n} 节没导入` : ""}</div></div><button class="btn ${n ? "primary" : ""}" data-act="scr-set-go" data-set="${s.id}" ${n ? "" : "disabled"}>${n ? "生成" : "已全部导入"}</button></div></div>`; }).join("")}
+  <div class="btns"><button class="btn" data-act="scriptures">返回经文卡库</button></div>`;
+  showSheet();
+}
+const fetchFields = [
+  { k: "fetchZh", label: "中文抓取译本", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"]] },
+  { k: "fetchEn", label: "英文抓取译本", type: "seg", opts: [["WEB", "WEB（公有领域，现代英语）"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV（需代理）"]] },
+  { k: "esvProxy", label: "ESV 代理地址（Supabase Edge Function 的 URL，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" }];
+const genFields = [{ k: "refs", label: "每行一个出处，中英文都行", type: "area", rows: 8, ph: "约翰福音 3:16\n诗篇 23\n1 John 4:19\n腓 4:13" }];
+const nccFields = [
+  { k: "lang", label: "粘贴的是哪种语言", type: "seg", opts: [["zh", "中文（官方简体页）"], ["en", "English"]] },
+  { k: "text", label: "全选复制官方页面的全文，粘贴到这里", type: "area", rows: 10, ph: "问题1：\n你无论是生是死，唯一的安慰是什么？\n我无论是生是死……" }];
 const scriptureFields = [
   { k: "kind", label: "类型", type: "seg", opts: [["verse", "经文"], ["catechism", "要理问答"], ["hymn", "诗歌"]] },
   { k: "ref", label: "出处 / 问答编号 / 诗歌名", type: "text", ph: "约翰福音 3:16" },
@@ -131,7 +153,9 @@ function openSettings(){
 
   ${S.hs.loaded ? `<h2>读经计划</h2><div class="panel">${planHTML()}</div>
   <h2>本月诗歌</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">还没填</span>`}</p><div class="btns" style="margin-top:0"><button class="btn" data-act="devo-hymn">修改</button><button class="btn" data-act="scriptures">经文卡库</button></div></div>
-  <h2>经文译本</h2><div class="panel"><p>新建经文卡时默认标注：中文 <b>${esc(defaultVersions().zh)}</b>，英文 <b>${esc(defaultVersions().en)}</b>。每张卡也可以单独改。起步经文卡固定为和合本 / ESV。</p><div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">修改默认译本</button></div></div>
+  <h2>经文译本</h2><div class="panel"><p>手写卡的默认标注：中文 <b>${esc(defaultVersions().zh)}</b>，英文 <b>${esc(defaultVersions().en)}</b>。</p>
+    <p class="small">自动抓取用：中文 <b>${esc(fetchVersions().zh)}</b>，英文 <b>${esc(fetchVersions().en)}</b>${fetchVersions().enFallback ? "（ESV 需要代理，暂时回退到公有领域的 WEB）" : ""}。和合本、新译本、WEB、KJV、ASV 从 getBible 免费直取；ESV 有版权，需要一个 Supabase Edge Function 代理并在这里填地址。</p>
+    <div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">手写卡默认译本</button><button class="btn" data-act="fetch-settings">抓取译本与 ESV 代理</button></div></div>
   <h2>学年与假期</h2><div class="panel">${yearHTML()}</div>
   <h2>回写小月亮</h2><div class="panel"><p class="small">${S.hs.settings.mirror ? "已开启：" : "未开启："}完成带分钟数的任务时，阅读与语言记为小月亮的“阅读”，艺术与音乐记为“音乐运动”，标题含“户外”记为“户外”，其余不回写。这样成长页的趋势图仍然完整。</p>
     <div class="btns" style="margin-top:0"><button class="btn ${S.hs.settings.mirror ? "" : "primary"}" data-act="mirror-toggle">${S.hs.settings.mirror ? "关闭回写" : "开启回写"}</button></div></div>` : ""}
@@ -151,5 +175,5 @@ function openSettings(){
   showSheet();
 }
 
-export { showSheet, closeSheet, openForm, drawForm, readForm, openScriptures, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields };
+export { showSheet, closeSheet, openForm, drawForm, readForm, openScriptures, openVerseSets, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields, fetchFields, genFields, nccFields };
 export function getForm(){ return form; }

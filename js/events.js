@@ -8,7 +8,7 @@ import { setLawState } from "./law.js";
 import { download, reportCSV, shiftMonth } from "./reports.js";
 import { RES_LANGS, RES_TYPES } from "./resources.js";
 import { openAbout } from "./about.js";
-import { breakFields, childOpts, closeSheet, drawForm, getForm, openForm, openScriptures, openSettings, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
+import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
 /* ============ 事件分发 ============ */
@@ -63,6 +63,12 @@ document.addEventListener("click", async ev => {
       case "scr-week": await hs.saveSettings({ weekVerse: S.hs.settings.weekVerse === d.sid ? null : d.sid }); openScriptures(); break;
       case "scr-add": { const dv = hs.defaultVersions(); openForm("新经文卡", scriptureFields, { kind: "verse", version_zh: dv.zh, version_en: dv.en, source: "" }, async f => { if (!f.ref) { toast("请填出处"); return; } await hs.upsertScripture(f); openScriptures(); }); break; }
       case "versions-edit": { const dv = hs.defaultVersions(); openForm("默认译本", versionFields, dv, async f => { await hs.saveSettings({ versionZh: f.zh || "", versionEn: f.en || "" }); openSettings(); toast("默认译本已更新"); }); break; }
+      case "fetch-settings": { const s = S.hs.settings; openForm("自动抓取经文", fetchFields, { fetchZh: s.fetchZh || hs.fetchVersions().zh, fetchEn: s.fetchEn || (s.esvProxy ? "ESV" : hs.fetchVersions().en), esvProxy: s.esvProxy || "" }, async f => { await hs.saveSettings({ fetchZh: f.fetchZh, fetchEn: f.fetchEn, esvProxy: (f.esvProxy || "").trim() }); openScriptures(); toast("抓取设置已保存"); }); break; }
+      case "scr-gen": openForm("按出处生成经文卡", genFields, { refs: "" }, async f => { const refs = f.refs.split(/\r?\n|[;；]/).map(x => x.trim()).filter(Boolean); if (!refs.length) { toast("请贴几行出处"); return; } toast("正在抓取…"); const r = await hs.generateCards(refs); openScriptures(); toast(`新增 ${r.added} 张${r.skipped ? `，已有 ${r.skipped} 张跳过` : ""}${r.failed.length ? `，失败 ${r.failed.length}：${r.failed.map(x => x[0]).join("、")}` : ""}`); }); break;
+      case "scr-set": openVerseSets(); break;
+      case "scr-set-go": { const set = hs.verseSet(d.set); if (!set) break; t.disabled = true; t.textContent = "抓取中…"; const r = await hs.generateCards(set.refs); openScriptures(); toast(`「${set.name}」新增 ${r.added} 张${r.skipped ? `，跳过 ${r.skipped}` : ""}${r.failed.length ? `，失败 ${r.failed.length}` : ""}`); break; }
+      case "ncc-import": openForm("导入新城要理问答", nccFields, { lang: "zh", text: "" }, async f => { const r = await hs.importCatechism(f.text, f.lang); if (!r.total) { toast("没有识别出“问题N：”格式的内容"); return; } openScriptures(); toast(`新城要理问答：新增 ${r.added} 问，补充 ${r.updated} 问`); }); break;
+      case "form-fetch": { readForm(); const f = getForm(); if (!f.draft.ref) { toast("先填出处"); return; } t.textContent = "抓取中…"; const r = await hs.fetchBoth(f.draft.ref); if (r.error) { toast(r.error); drawForm(); break; } Object.assign(f.draft, { ref: r.ref, text_zh: r.text_zh || f.draft.text_zh, text_en: r.text_en || f.draft.text_en, version_zh: r.version_zh || f.draft.version_zh, version_en: r.version_en || f.draft.version_en }); drawForm(); if (r.errors.length) toast(r.errors.join("；")); break; }
       case "scr-edit": { const s = hs.scripture(d.sid); openForm("编辑经文卡", scriptureFields, s, async f => { await hs.upsertScripture({ ...s, ...f }); openScriptures(); }, async () => { if (confirm("删除这张经文卡？所有孩子的进度一起删除。")) { await hs.deleteScripture(s.id); openScriptures(); } }); break; }
 
       /* 读经计划 */

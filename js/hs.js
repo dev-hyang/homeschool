@@ -8,6 +8,8 @@ import { SUBJECTS } from "./data/subjects.js";
 import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
+import { canFetch, fetchPassage, parseRef } from "./data/bible.js";
+import { VERSE_SETS, parseCatechism } from "./data/verse-sets.js";
 
 /* ============ 家庭学堂数据层（在线优先） ============
    进入家庭时一次性读取；每次写入直接到 Supabase，成功后更新内存并重绘。
@@ -145,6 +147,53 @@ async function importSeedScriptures(){
   S.hs.scriptures.push(...data); return data.length;
 }
 const scripture = id => S.hs.scriptures.find(s => s.id === id) || null;
+
+/* ---- 自动抓取经文：按出处生成卡 ---- */
+// 抓取用的译本：优先设置里的“抓取译本”，否则用默认译本；取不到的译本（如没配代理的 ESV）回退到公有领域译本
+function fetchVersions(){
+  const s = S.hs.settings, esv = s.esvProxy || "";
+  let zh = s.fetchZh || defaultVersions().zh, en = s.fetchEn || defaultVersions().en;
+  const zhFallback = !canFetch(zh, esv), enFallback = !canFetch(en, esv);
+  if (zhFallback) zh = "和合本"; if (enFallback) en = "WEB";
+  return { zh, en, esv, zhFallback, enFallback };
+}
+async function fetchBoth(ref){
+  const p = parseRef(ref); if (!p) return { error: "看不懂出处" };
+  const v = fetchVersions(); const out = { ref: p.label, text_zh: "", text_en: "", version_zh: "", version_en: "", errors: [] };
+  const [a, b] = await Promise.allSettled([fetchPassage(p, v.zh, v.esv), fetchPassage(p, v.en, v.esv)]);
+  if (a.status === "fulfilled") { out.text_zh = a.value.text; out.version_zh = a.value.version; } else out.errors.push("中文：" + (a.reason && a.reason.message));
+  if (b.status === "fulfilled") { out.text_en = b.value.text; out.version_en = b.value.version; } else out.errors.push("英文：" + (b.reason && b.reason.message));
+  return out;
+}
+// refs：出处数组；已有同出处的卡跳过。返回 { added, skipped, failed: [ref, 原因] }
+async function generateCards(refs, kind = "verse"){
+  const have = new Set(S.hs.scriptures.map(s => s.ref.replace(/\s+/g, "")));
+  const res = { added: 0, skipped: 0, failed: [] };
+  for (const raw of refs) {
+    const p = parseRef(raw); if (!p) { res.failed.push([raw, "看不懂出处"]); continue; }
+    if (have.has(p.label.replace(/\s+/g, ""))) { res.skipped++; continue; }
+    const f = await fetchBoth(p.label);
+    if (!f.text_zh && !f.text_en) { res.failed.push([raw, f.errors.join("；")]); continue; }
+    await upsertScripture({ kind, ref: f.ref, text_zh: f.text_zh, text_en: f.text_en, version_zh: f.version_zh, version_en: f.version_en, source: "自动抓取（getBible）" });
+    have.add(f.ref.replace(/\s+/g, "")); res.added++;
+  }
+  return res;
+}
+const verseSet = id => VERSE_SETS.find(s => s.id === id) || null;
+// 粘贴新城要理问答官方全文（中文或英文）→ 52 张问答卡；同一问已存在则补上另一种语言
+async function importCatechism(text, lang){
+  const items = parseCatechism(text); if (!items.length) return { added: 0, updated: 0 };
+  let added = 0, updated = 0;
+  for (const it of items) {
+    const ref = `新城要理问答 问 ${it.n}`;
+    const body = `问：${it.q}${it.a ? ` 答：${it.a}` : ""}`;
+    const cur = S.hs.scriptures.find(s => s.ref === ref);
+    const patch = lang === "en" ? { text_en: body, version_en: "New City Catechism" } : { text_zh: body, version_zh: "新城要理问答官方简体" };
+    if (cur) { await upsertScripture({ ...cur, ...patch }); updated++; }
+    else { await upsertScripture({ kind: "catechism", ref, text_zh: "", text_en: "", version_zh: "", version_en: "", ...patch, source: "newcitycatechism.com", sort: 1000 + it.n }); added++; }
+  }
+  return { added, updated, total: items.length };
+}
 
 /* ---- 背诵进度：在学 → 会背了 → 3 天、7 天、30 天、90 天复习 ---- */
 const INTERVALS = [3, 7, 30, 90];
@@ -402,7 +451,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, progressOf, setProgress, dueReviews, learningCards, learnedCount,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
