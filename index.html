@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家庭学堂 · 在家教育</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css?v=2026-10-16.1">
+<script>try { var th = localStorage.getItem("homeschool.v1.theme") || localStorage.getItem("xiaoyueliang.v1.theme"); if (th) document.documentElement.dataset.theme = th; } catch (e) {}</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <button class="bname" id="bname" aria-haspopup="menu" aria-expanded="false" aria-controls="kids">家庭学堂<span class="chev" aria-hidden="true"></span></button>
+      <span id="bage">登录后显示孩子</span>
+      <div class="kids" id="kids" role="menu" aria-label="切换孩子" hidden></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="status" id="status"><span class="dot"></span>连接中</span>
+      <button class="iconbtn" data-act="settings" aria-label="设置">设置</button>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<nav class="tabs" aria-label="主导航"><div class="in">
+  <button data-tab="today"><i aria-hidden="true">☀︎</i>今天</button>
+  <button data-tab="course"><i aria-hidden="true">▤</i>课程</button>
+  <button data-tab="resources"><i aria-hidden="true">✦</i>资源</button>
+  <button data-tab="calendar"><i aria-hidden="true">▦</i>日历</button>
+  <button data-tab="reports"><i aria-hidden="true">↗</i>报告</button>
+</div></nav>
+
+<dialog class="sheet" id="sheet" aria-labelledby="sheetTitle"><div class="sheet-in" id="sheetIn"></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module" src="js/app.js?v=2026-10-16.1"></script>
+</body>
+</html>
