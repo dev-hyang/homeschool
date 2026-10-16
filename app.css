@@ -162,6 +162,10 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .lesson.done .title{color:var(--muted)}
 .lesson .acts{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .dotc{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;vertical-align:0}
+.pace.ok{color:var(--sage)}
+.pace.warn,.num.warn{color:var(--rose);font-weight:500}
+.medrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.medrow:last-child{border-bottom:0}
 
 /* 资源 */
 .res{display:grid;grid-template-columns:4px 1fr auto;gap:10px;align-items:start;padding:8px 0;border-bottom:1px solid var(--line)}

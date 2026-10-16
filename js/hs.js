@@ -3,6 +3,7 @@ import { S } from "./core/state.js";
 import { D, dayKey, newId, toast } from "./core/util.js";
 import { PLANS, planById } from "./data/plans.js";
 import { COURSE_TEMPLATES, GOAL_TEMPLATES, ROUTINE_TEMPLATES, SEED_RESOURCES, SEED_SCRIPTURES } from "./data/seeds.js";
+import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 
 /* ============ 家庭学堂数据层（在线优先） ============
@@ -41,9 +42,42 @@ async function loadAll(){
     SB.client.from("hs_resources").select("*").eq("family_id", f).order("sort")
   ]);
   if (rs2.some(r => r.error)) { S.hs.phase2 = false; }
-  else { const [u, l, g, r] = rs2.map(x => x.data || []); S.hs = { ...S.hs, phase2: true, units: u, lessons: l, goals: g, resources: r }; }
+  else {
+    const [u, l, g, r] = rs2.map(x => x.data || []);
+    // 迁移 006 加的节奏列：任一单元带该字段即视为已迁移；没有单元时探测一次
+    const pacing = u.length ? ("weeks" in u[0]) : !(await SB.client.from("hs_units").select("weeks").eq("family_id", f).limit(1)).error;
+    S.hs = { ...S.hs, phase2: true, pacing, units: u, lessons: l, goals: g, resources: r };
+  }
   await ensureTodayTasks();
 }
+
+/* ---- 学年：开学日、周数、学期长度、假期（settings.year）---- */
+function yearInfo(){
+  const y = S.hs.settings.year || {}; if (!y.start) return null;
+  const start = new Date(y.start + "T00:00:00").getTime(), weeks = +y.weeks || 36, termWeeks = +y.termWeeks || 12;
+  const week = Math.floor((startOfDay(Date.now()) - start) / (7 * D)) + 1;
+  return { start: y.start, weeks, termWeeks, terms: Math.ceil(weeks / termWeeks), week, term: Math.min(Math.ceil(weeks / termWeeks), Math.max(1, Math.ceil(week / termWeeks))), before: week < 1, ended: week > weeks, breaks: y.breaks || [], endOn: dayKey(start + weeks * 7 * D) };
+}
+const inBreak = date => ((S.hs.settings.year || {}).breaks || []).some(b => b.from && b.to && date >= b.from && date <= b.to);
+const isOffDay = date => (S.hs.settings.daysOff || []).includes(date) || inBreak(date);
+async function saveYear(patch){ await saveSettings({ year: { ...(S.hs.settings.year || {}), ...patch } }); }
+
+/* ---- 单元节奏：按预计周数算“应完成多少” ---- */
+function unitPace(u){
+  if (!u || !u.weeks || !u.start_on) return null;
+  const ls = unitLessons(u.id), total = ls.length; if (!total) return null;
+  const done = ls.filter(l => l.status === "done").length;
+  const start = new Date(u.start_on + "T00:00:00").getTime();
+  const elapsed = Math.max(0, (startOfDay(Date.now()) - start) / (7 * D));
+  const expected = Math.min(total, Math.round(total * elapsed / u.weeks));
+  // 最近 4 周的完成速度 → 预计还要几周
+  const since = dayKey(Date.now() - 28 * D), recent = ls.filter(l => l.status === "done" && l.done_on && l.done_on >= since).length;
+  const rate = recent / 4, remaining = total - done;
+  const projectWeeks = remaining === 0 ? 0 : rate > 0 ? Math.ceil(remaining / rate) : null;
+  return { total, done, expected, diff: done - expected, elapsedWeeks: elapsed, endOn: dayKey(start + u.weeks * 7 * D), overdue: elapsed > u.weeks && done < total, projectWeeks, projectOn: projectWeeks == null ? null : dayKey(Date.now() + projectWeeks * 7 * D) };
+}
+// 一个单元第一次被排课或完成课时时，把开始日期记下来
+async function touchUnitStart(uid){ const u = unit(uid); if (u && S.hs.pacing && !u.start_on) await upsertUnit({ ...u, start_on: today() }); }
 async function probeVersions(f){ const { error } = await SB.client.from("hs_scriptures").select("version_zh").eq("family_id", f).limit(1); return !error; }
 // day rolled over while the page stayed open → reload today's rows
 async function refreshIfNewDay(){ if (S.hs.loaded && S.hs.day !== today()) await loadAll(); }
@@ -159,7 +193,7 @@ const routine = id => S.hs.routines.find(r => r.id === id) || null;
 // one task per active routine per day; the id is deterministic so two devices never double-generate
 async function ensureTodayTasks(){
   const day = today(), wd = new Date().getDay();
-  if ((S.hs.settings.daysOff || []).includes(day)) return 0; // 休息日不生成
+  if (isOffDay(day)) return 0; // 休息日、假期不生成
   const rows = S.hs.routines
     .filter(r => r.active && (r.weekdays || []).includes(wd) && !S.hs.tasks.some(t => t.routine_id === r.id && t.date === day))
     .map(r => ({ family_id: fid(), id: `${r.id}@${day}`, child_id: r.child_id, date: day, title: r.title, subject: r.subject, routine_id: r.id, status: "todo", minutes: null, note: "" }));
@@ -195,7 +229,14 @@ const unitLessons = uid => S.hs.lessons.filter(l => l.unit_id === uid).sort((a, 
 function unitProgress(uid){ const ls = unitLessons(uid); return { done: ls.filter(l => l.status === "done").length, total: ls.length }; }
 async function upsertUnit(u){
   const row = { family_id: fid(), id: u.id || newId(), child_id: u.child_id || null, subject: u.subject || "bible", title: u.title || "", note: u.note || "", sort: u.sort ?? S.hs.units.length, active: u.active ?? true };
+  if (S.hs.pacing) { row.weeks = u.weeks == null || u.weeks === "" ? null : +u.weeks; row.start_on = u.start_on || null; row.term = u.term == null || u.term === "" ? null : +u.term; }
   return put(S.hs.units, await run(SB.client.from("hs_units").upsert(row).select().single()));
+}
+// 年度范围表里的一行 → 一个空单元（课时之后按自家教材填）
+async function addScopeUnit(subject, title, weeks, term, childId){
+  if (S.hs.units.some(u => u.title === title && (u.child_id === childId || !u.child_id))) return null;
+  const yi = yearInfo();
+  return upsertUnit({ subject, title, weeks, term, child_id: childId, start_on: yi && yi.term === term ? today() : null });
 }
 async function deleteUnit(id){
   await run(SB.client.from("hs_units").delete().eq("family_id", fid()).eq("id", id));
@@ -209,19 +250,22 @@ async function deleteLesson(id){ await run(SB.client.from("hs_lessons").delete()
 async function setLessonStatus(id, status, extra = {}){
   const l = lesson(id); if (!l) return;
   await upsertLesson({ ...l, status, done_on: status === "done" ? (l.done_on || today()) : null, minutes: extra.minutes ?? l.minutes });
+  if (status === "done") await touchUnitStart(l.unit_id);
 }
 // 把课时排进某一天：生成一条挂着 lesson_id 的任务；任务完成即课时完成
 async function scheduleLesson(id, date = today()){
   const l = lesson(id), u = l && unit(l.unit_id); if (!l || !u) return null;
+  await touchUnitStart(u.id);
   return upsertTask({ id: `${l.id}@${date}`, child_id: u.child_id || S.childId, date, title: l.title, subject: u.subject, lesson_id: l.id, status: "todo", note: l.verse_ref ? `经文 ${l.verse_ref}` : "" });
 }
 async function applyCourseTemplate(key, childId){
   const tpl = COURSE_TEMPLATES[key]; if (!tpl) return 0;
   const have = new Set(S.hs.units.filter(u => u.child_id === childId || !u.child_id).map(u => u.title));
   let n = 0;
+  const yi = yearInfo();
   for (const u of tpl.units) {
     if (have.has(u.title)) continue;
-    const unitRow = await upsertUnit({ child_id: childId, subject: u.subject, title: u.title });
+    const unitRow = await upsertUnit({ child_id: childId, subject: u.subject, title: u.title, weeks: u.weeks || null, start_on: today(), term: yi ? yi.term : null });
     const rows = u.lessons.map(([title, faith_note, verse_ref], i) => ({ family_id: fid(), id: newId() + i.toString(36), unit_id: unitRow.id, title, faith_note: faith_note || "", verse_ref: verse_ref || "", status: "planned", sort: i, note: "" }));
     const data = await run(SB.client.from("hs_lessons").insert(rows).select()); S.hs.lessons.push(...data); n++;
   }
@@ -312,4 +356,5 @@ export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPa
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
-  monthRange, ensureMonth, monthData, toggleDayOff, mirrorKind };
+  monthRange, ensureMonth, monthData, toggleDayOff, mirrorKind,
+  yearInfo, inBreak, isOffDay, saveYear, unitPace, addScopeUnit };

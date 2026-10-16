@@ -7,7 +7,8 @@ import * as hs from "./hs.js";
 import { setLawState } from "./law.js";
 import { download, reportCSV, shiftMonth } from "./reports.js";
 import { RES_LANGS, RES_TYPES } from "./resources.js";
-import { childOpts, closeSheet, drawForm, getForm, openForm, openScriptures, openSettings, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts } from "./sheet.js";
+import { openAbout } from "./about.js";
+import { breakFields, childOpts, closeSheet, drawForm, getForm, openForm, openScriptures, openSettings, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
 /* ============ 事件分发 ============ */
@@ -92,7 +93,7 @@ document.addEventListener("click", async ev => {
       case "course-template": { const n = await hs.applyCourseTemplate(d.tpl, S.childId); render(); toast(n ? `已套用 ${n} 个单元` : "起步课程都已经有了"); break; }
       case "unit-add": openForm("新单元", unitFields(), { subject: S.courseSubject, title: "", note: "", child_id: S.childId, active: true }, async f => { if (!f.title) { toast("请填单元名"); return; } await hs.upsertUnit(f); S.courseSubject = f.subject; back(); }); break;
       case "unit-edit": { const u = hs.unit(d.uid); if (!u) break;
-        openForm("编辑单元", unitFields(), { ...u, child_id: u.child_id || "" }, async f => { await hs.upsertUnit({ ...u, ...f }); S.courseSubject = f.subject; back(); }, async () => { if (confirm("删除这个单元和它的全部课时？")) { await hs.deleteUnit(u.id); back(); } }); break; }
+        openForm("编辑单元", unitFields(), { ...u, child_id: u.child_id || "", term: u.term == null ? "" : String(u.term) }, async f => { await hs.upsertUnit({ ...u, ...f }); S.courseSubject = f.subject; back(); }, async () => { if (confirm("删除这个单元和它的全部课时？")) { await hs.deleteUnit(u.id); back(); } }); break; }
       case "lesson-add": openForm("新课时", lessonFields(), { unit_id: d.uid, title: "", faith_note: "", verse_ref: "", note: "" }, async f => { if (!f.title) { toast("请填课时名"); return; } await hs.upsertLesson(f); back(); }); break;
       case "lesson-edit": { const l = hs.lesson(d.lid); if (!l) break;
         openForm("编辑课时", [...lessonFields(), { k: "minutes", label: "用时（分钟）", type: "num" }], l, async f => { await hs.upsertLesson({ ...l, ...f }); back(); }, async () => { await hs.deleteLesson(l.id); back(); }); break; }
@@ -123,6 +124,13 @@ document.addEventListener("click", async ev => {
       case "report-csv": { const csv = reportCSV(S.reportMonth, S.childId); if (csv) download(`家庭学堂-${childName()}-${S.reportMonth}.csv`, csv); break; }
       case "mirror-toggle": await hs.saveSettings({ mirror: !S.hs.settings.mirror }); openSettings(); break;
 
+      /* 介绍、学年、年度范围 */
+      case "about": openAbout(); break;
+      case "year-edit": { const y = S.hs.settings.year || {}; openForm("学年", yearFields, { start: y.start || "", weeks: y.weeks || 36, termWeeks: y.termWeeks || 12 }, async f => { if (!f.start) { toast("请填开学日期"); return; } await hs.saveYear({ start: f.start, weeks: +f.weeks || 36, termWeeks: +f.termWeeks || 12 }); openSettings(); }); break; }
+      case "break-add": openForm("添加假期", breakFields, { name: "", from: "", to: "" }, async f => { if (!f.from || !f.to || f.to < f.from) { toast("请填正确的起止日期"); return; } await hs.saveYear({ breaks: [...((S.hs.settings.year || {}).breaks || []), { name: f.name, from: f.from, to: f.to }] }); await hs.ensureTodayTasks(); openSettings(); }); break;
+      case "break-del": { const bs = [...((S.hs.settings.year || {}).breaks || [])]; bs.splice(+d.i, 1); await hs.saveYear({ breaks: bs }); await hs.ensureTodayTasks(); openSettings(); break; }
+      case "scope-add": { const u = await hs.addScopeUnit(d.ss, d.title, +d.weeks, +d.term, S.childId); render(); toast(u ? "已加为单元，去填课时" : "已经有这个单元了"); break; }
+
       /* 表单 */
       case "form-save": { readForm(); const f = getForm(); await f.onSave(f.draft); break; }
       case "form-delete": { const f = getForm(); if (f.onDelete) await f.onDelete(); break; }
@@ -131,7 +139,9 @@ document.addEventListener("click", async ev => {
 });
 const unitFields = () => [
   { k: "title", label: "单元名", type: "text", ph: "数到 10" }, { k: "subject", label: "领域", type: "seg", opts: subjectOpts },
-  { k: "child_id", label: "给谁", type: "seg", opts: childOpts(true) }, { k: "note", label: "说明（可空）", type: "text" }, { k: "active", label: "进行中", type: "check" }];
+  { k: "child_id", label: "给谁", type: "seg", opts: childOpts(true) }, { k: "note", label: "说明（可空）", type: "text" },
+  ...(S.hs.pacing ? [{ k: "weeks", label: "预计几周完成（空 = 不计节奏）", type: "num", ph: "3" }, { k: "start_on", label: "从哪天开始算（空 = 第一次排课时自动记）", type: "date" }, { k: "term", label: "第几学期（可空）", type: "seg", opts: [["", "不限"], ["1", "1"], ["2", "2"], ["3", "3"]] }] : []),
+  { k: "active", label: "进行中", type: "check" }];
 const lessonFields = () => [
   { k: "title", label: "课时", type: "text", ph: "认识 1、2、3" }, { k: "faith_note", label: "信仰连接（一句话）", type: "text", ph: "一位神，三个位格" },
   { k: "verse_ref", label: "关联经文", type: "text", ph: "申命记 6:4" }, { k: "note", label: "备注", type: "area" }];

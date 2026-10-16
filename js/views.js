@@ -36,7 +36,7 @@ function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $(
 function gateHTML(){
   if (S.cloud === "loading") return `<div class="empty">正在连接云端…</div>`;
   if (S.cloud === "offline") return `<div class="empty">云端暂时不可用。<br>请检查网络后刷新页面。</div>`;
-  if (S.cloud === "signedout") return `<div class="empty">用和小月亮一样的账号登录，就能看到家里的孩子。<br><button class="btn primary" data-act="settings">去登录</button></div>`;
+  if (S.cloud === "signedout") return `<div class="empty">用和小月亮一样的账号登录，就能看到家里的孩子。<br><button class="btn primary" data-act="settings">去登录</button> <button class="btn" data-act="about">了解家庭学堂</button></div>`;
   if (S.cloud === "nofamily") return `<div class="empty">已登录，但还没有加入家庭。<br><button class="btn primary" data-act="settings">创建或加入家庭</button></div>`;
   if (!S.children.length) return `<div class="empty">家庭里还没有孩子。先在<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">小月亮</a>的设置里添加，这里会自动出现。</div>`;
   if (S.hs.error === "missing") return `<div class="empty">数据库还没有家庭学堂的表。<br>请在 Supabase 执行本地 <code>supabase/migrations/003_homeschool_phase1.sql</code>，然后刷新。</div>`;

@@ -5,7 +5,7 @@ import { $, esc } from "./core/util.js";
 import { PLANS } from "./data/plans.js";
 import { SUBJECTS, WEEKDAYS } from "./data/subjects.js";
 import { VERSIONS_EN, VERSIONS_ZH, ve, vz } from "./data/versions.js";
-import { currentPlan, defaultVersions, planState, progressOf } from "./hs.js";
+import { currentPlan, defaultVersions, planState, progressOf, yearInfo } from "./hs.js";
 import { render } from "./views.js";
 
 /* ============ 整页表单（替换内容区，和小月亮一样的交互） ============ */
@@ -107,17 +107,32 @@ function planHTML(){
   <div class="btns" style="margin-top:8px"><button class="btn" data-act="plan-import">导入自己的计划</button><button class="btn" data-act="plan-restart">本计划从头开始</button></div>`;
 }
 
+/* ---- 学年（设置页里） ---- */
+function yearHTML(){
+  const yi = yearInfo(), y = S.hs.settings.year || {};
+  const breaks = (y.breaks || []).map((b, i) => `<div class="medrow"><span>${esc(b.name || "假期")} <span class="small muted">${esc(b.from)} 到 ${esc(b.to)}</span></span><button class="chip" data-act="break-del" data-i="${i}">删除</button></div>`).join("");
+  return `${yi ? `<p>开学 <b>${esc(yi.start)}</b>，共 <b>${yi.weeks}</b> 周，每学期 ${yi.termWeeks} 周，预计 ${yi.endOn} 结束。${yi.before ? "还没开学。" : yi.ended ? "学年已结束。" : `现在是第 ${yi.week} 周、第 ${yi.term} 学期。`}</p>` : `<p class="muted">还没设置学年。填了开学日期和周数，课程页和报告页才能判断“按计划 / 快 / 慢”。美国惯例 36 周、3 个学期各 12 周。</p>`}
+  <div class="btns" style="margin-top:0"><button class="btn ${yi ? "" : "primary"}" data-act="year-edit">${yi ? "修改学年" : "设置学年"}</button><button class="btn" data-act="break-add">＋ 假期</button></div>
+  ${breaks ? `<div style="margin-top:8px">${breaks}</div>` : ""}
+  <p class="small muted" style="margin-top:8px">假期期间不生成任务，报告里的“计划”也不计这些天。单日休息在日历页点那一天设置。</p>`;
+}
+const yearFields = [
+  { k: "start", label: "开学日期", type: "date" }, { k: "weeks", label: "全年周数", type: "num", ph: "36" }, { k: "termWeeks", label: "每学期周数", type: "num", ph: "12" }];
+const breakFields = [
+  { k: "name", label: "名称", type: "text", ph: "感恩节 / 圣诞 / 春假" }, { k: "from", label: "从", type: "date" }, { k: "to", label: "到", type: "date" }];
+
 /* ---- 设置 ---- */
 function themePref(){ try { return localStorage.getItem(LS_PREFIX + ".theme") || ""; } catch (e) { return ""; } }
 function openSettings(){
   const kids = S.children;
-  $("#sheetIn").innerHTML = `${head("设置")}
+  $("#sheetIn").innerHTML = `${head("设置", `<button class="iconbtn" data-act="about">介绍</button> `)}
   <h2>家庭</h2>
   ${familyHTML()}
 
   ${S.hs.loaded ? `<h2>读经计划</h2><div class="panel">${planHTML()}</div>
   <h2>本月诗歌</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">还没填</span>`}</p><div class="btns" style="margin-top:0"><button class="btn" data-act="devo-hymn">修改</button><button class="btn" data-act="scriptures">经文卡库</button></div></div>
   <h2>经文译本</h2><div class="panel"><p>新建经文卡时默认标注：中文 <b>${esc(defaultVersions().zh)}</b>，英文 <b>${esc(defaultVersions().en)}</b>。每张卡也可以单独改。起步经文卡固定为和合本 / ESV。</p><div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">修改默认译本</button></div></div>
+  <h2>学年与假期</h2><div class="panel">${yearHTML()}</div>
   <h2>回写小月亮</h2><div class="panel"><p class="small">${S.hs.settings.mirror ? "已开启：" : "未开启："}完成带分钟数的任务时，阅读与语言记为小月亮的“阅读”，艺术与音乐记为“音乐运动”，标题含“户外”记为“户外”，其余不回写。这样成长页的趋势图仍然完整。</p>
     <div class="btns" style="margin-top:0"><button class="btn ${S.hs.settings.mirror ? "" : "primary"}" data-act="mirror-toggle">${S.hs.settings.mirror ? "关闭回写" : "开启回写"}</button></div></div>` : ""}
 
@@ -136,5 +151,5 @@ function openSettings(){
   showSheet();
 }
 
-export { showSheet, closeSheet, openForm, drawForm, readForm, openScriptures, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields };
+export { showSheet, closeSheet, openForm, drawForm, readForm, openScriptures, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields };
 export function getForm(){ return form; }
