@@ -28,6 +28,10 @@ button,input,select,textarea{font:inherit;color:inherit}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 8px}
 .brand{display:flex;flex-direction:column;position:relative}
 .brand > span{font-size:13px;color:var(--muted)}
+.brand-row{display:flex;align-items:center;gap:8px}
+/* 介绍 badge：新手随时能点开 */
+.badge{border:1px solid var(--line);background:var(--slate-soft);color:var(--slate);border-radius:999px;padding:2px 9px;font-size:12px;line-height:18px;cursor:pointer;min-height:24px}
+.badge:hover{background:var(--slate);color:#fff}
 /* child switcher: the name itself is the trigger, the menu drops down under it */
 .bname{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:700;font-size:20px;letter-spacing:.02em;min-height:28px}
 .bname .chev{display:inline-block;width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .15s}
