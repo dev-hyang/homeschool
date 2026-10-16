@@ -1,8 +1,8 @@
 import { S, childName, stageOf } from "./core/state.js";
 import { esc } from "./core/util.js";
-import { COURSE_TEMPLATES, GOAL_TEMPLATES, SCOPE_PREK } from "./data/seeds.js";
+import { GOAL_TEMPLATES, SCOPE_PREK } from "./data/seeds.js";
 import { SUBJECTS, subject } from "./data/subjects.js";
-import { unitLessons, unitPace, unitProgress, yearInfo } from "./hs.js";
+import { nextInChain, unitDone, unitLessons, unitPace, unitProgress, yearInfo } from "./hs.js";
 
 /* ============ 课程页：科目 → 单元 → 课时，节奏，年度范围，学前目标 ============ */
 S.courseSubject = S.courseSubject || "bible";
@@ -17,6 +17,18 @@ function paceHTML(u){
   else txt = "按计划";
   const proj = p.done < p.total ? (p.projectOn ? ` · 照最近速度约 ${p.projectOn} 完成` : p.done ? "" : " · 还没开始") : "";
   return `<span class="small pace ${cls}">${txt}${p.overdue ? " · 已过预计结束日" : ""} · 预计 ${u.weeks} 周到 ${p.endOn}${proj}</span>`;
+}
+
+/* 课程库里这个领域的下一单元 */
+function nextHTML(sj, cid, units){
+  const c = nextInChain(sj, cid);
+  const allDone = units.length > 0 && units.every(unitDone);
+  if (!c.total) return `<div class="panel" style="margin-top:10px"><p class="small muted">课程库里「${SUBJECTS[sj].label}」在${esc(c.stageName || "这个阶段")}没有预设单元，用“粘贴教材目录”或自己写。</p></div>`;
+  if (!c.next) return `<div class="panel" style="margin-top:10px"><p class="small">${esc(c.stageName)} 阶段「${SUBJECTS[sj].label}」的 ${c.total} 个单元都已生成${allDone ? "并完成" : ""}。${c.stage === "school" ? "K 以后的内容来自你们选的教材，用“粘贴教材目录”继续。" : "孩子进入下一阶段后这里会换成新的单元链；也可以用“粘贴教材目录”加自己的。"}</p></div>`;
+  const row = t => { const n = t.next; if (!n) return `<div class="row" style="margin-top:6px"><div class="v small muted">${esc(t.track)}轨道的 ${t.total} 个单元都已生成。</div></div>`;
+    return `<div class="row" style="margin-top:6px"><div class="v"><span class="small muted">${esc(c.stageName)} · ${SUBJECTS[sj].label}${t.track ? ` · ${esc(t.track)}` : ""} · 第 ${n.index + 1}/${c.total} 单元</span><div><b>下一单元：${esc(n.title)}</b></div><div class="small muted">${n.weeks ? `建议 ${n.weeks} 周` : ""}${n.lessons.length ? ` · ${n.lessons.length} 节课时` : " · 骨架单元，课时用“粘贴教材目录”填"}</div></div>
+      <button class="btn ${allDone || !units.length ? "primary" : ""}" data-act="gen-next" data-sj="${sj}" data-track="${esc(t.track)}">生成</button></div>`; };
+  return `<div class="panel ${allDone ? "next-hot" : ""}" style="margin-top:10px">${allDone ? `<div class="small muted">当前单元已完成</div>` : ""}${c.tracks.map(row).join("")}</div>`;
 }
 
 function viewCourse(){
@@ -44,8 +56,9 @@ function viewCourse(){
   return `<h2>课程 · ${esc(childName())}</h2>
   <p class="small muted">${yi ? (yi.before ? `学年 ${yi.start} 开始，还有 ${1 - yi.week} 周` : yi.ended ? `学年已结束（共 ${yi.weeks} 周）` : `第 ${yi.week} / ${yi.weeks} 周 · 第 ${yi.term} 学期`) : `还没设置学年。到设置里填开学日期和周数，单元就能显示“按计划 / 快 / 慢”。`}${S.hs.pacing ? "" : " 节奏字段需要迁移 006。"}</p>
   <div class="chips" role="group" aria-label="领域">${bySubject.map(({ k, n }) => `<button class="chip" data-subject="${k}" aria-pressed="${k === sj}">${SUBJECTS[k].label}${n ? ` ${n}` : ""}</button>`).join("")}</div>
-  ${units.length ? units.map(unitCard).join("") : `<div class="empty">「${SUBJECTS[sj].label}」还没有单元。${mine.length ? "" : "套用起步课程最快，之后再按自家情况改。"}</div>`}
-  <div class="btns"><button class="btn primary" data-act="unit-add">＋ 单元</button>${mine.length ? "" : Object.entries(COURSE_TEMPLATES).map(([k, t]) => `<button class="btn" data-act="course-template" data-tpl="${k}">套用：${esc(t.name)}</button>`).join("")}</div>
+  ${units.length ? units.map(unitCard).join("") : `<div class="empty">「${SUBJECTS[sj].label}」还没有单元。</div>`}
+  ${nextHTML(sj, cid, units)}
+  <div class="btns"><button class="btn" data-act="unit-add">＋ 自己写单元</button><button class="btn" data-act="outline-import">粘贴教材目录</button>${mine.length ? "" : `<button class="btn primary" data-act="gen-round">生成本阶段第一轮（七个领域各一个单元）</button>`}</div>
   <p class="small muted" style="margin-top:8px">每课时的“信仰连接”是一句话，提醒这一课和圣经的关联。“排到今天”会生成一条今日任务，勾完任务课时自动完成。给单元填“预计几周”后会按周例行推算应完成多少。</p>
 
   ${scope.length ? `<h2>年度范围 · ${SUBJECTS[sj].label}（Pre-K 建议）</h2>

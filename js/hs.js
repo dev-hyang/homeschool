@@ -2,7 +2,10 @@ import { SB } from "./core/auth.js";
 import { S } from "./core/state.js";
 import { D, dayKey, newId, toast } from "./core/util.js";
 import { PLANS, planById } from "./data/plans.js";
-import { COURSE_TEMPLATES, GOAL_TEMPLATES, ROUTINE_TEMPLATES, SEED_RESOURCES, SEED_SCRIPTURES } from "./data/seeds.js";
+import { GOAL_TEMPLATES, ROUTINE_TEMPLATES, SEED_RESOURCES, SEED_SCRIPTURES } from "./data/seeds.js";
+import { CURRICULUM, chainStage } from "./data/curriculum.js";
+import { SUBJECTS } from "./data/subjects.js";
+import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 
@@ -47,7 +50,8 @@ async function loadAll(){
     const [u, l, g, r] = rs2.map(x => x.data || []);
     // 迁移 006 加的节奏列：任一单元带该字段即视为已迁移；没有单元时探测一次
     const pacing = u.length ? ("weeks" in u[0]) : !(await SB.client.from("hs_units").select("weeks").eq("family_id", f).limit(1)).error;
-    S.hs = { ...S.hs, phase2: true, pacing, units: u, lessons: l, goals: g, resources: r };
+    const tplCol = u.length ? ("tpl" in u[0]) : !(await SB.client.from("hs_units").select("tpl").eq("family_id", f).limit(1)).error; // 迁移 008
+    S.hs = { ...S.hs, phase2: true, pacing, tplCol, units: u, lessons: l, goals: g, resources: r };
   }
   await ensureTodayTasks();
 }
@@ -231,8 +235,64 @@ function unitProgress(uid){ const ls = unitLessons(uid); return { done: ls.filte
 async function upsertUnit(u){
   const row = { family_id: fid(), id: u.id || newId(), child_id: u.child_id || null, subject: u.subject || "bible", title: u.title || "", note: u.note || "", sort: u.sort ?? S.hs.units.length, active: u.active ?? true };
   if (S.hs.pacing) { row.weeks = u.weeks == null || u.weeks === "" ? null : +u.weeks; row.start_on = u.start_on || null; row.term = u.term == null || u.term === "" ? null : +u.term; }
+  if (S.hs.tplCol) row.tpl = u.tpl || null;
   return put(S.hs.units, await run(SB.client.from("hs_units").upsert(row).select().single()));
 }
+
+/* ---- 课程库：按阶段、领域的单元链，生成下一单元 ---- */
+const tplKey = (stage, subject, i) => `${stage}/${subject}/${i}`;
+const unitsOfChild = cid => S.hs.units.filter(u => u.child_id === cid || !u.child_id);
+const unitDone = u => { const p = unitProgress(u.id); return p.total > 0 && p.done === p.total; };
+// 一个领域可以有几条并行轨道（如语言的英文、中文），各自有“下一单元”
+function nextInChain(subject, cid){
+  const stage = chainStage(stageOf(cid).key), chain = ((CURRICULUM[stage] || {}).subjects || {})[subject] || [];
+  const mine = unitsOfChild(cid), trackOf = i => chain[i][3] || "";
+  const applied = i => mine.some(u => u.tpl === tplKey(stage, subject, i) || u.title === chain[i][0]);
+  const tracks = [...new Set(chain.map((_, i) => trackOf(i)))].map(track => {
+    const idx = chain.findIndex((_, i) => trackOf(i) === track && !applied(i));
+    const total = chain.filter((_, i) => trackOf(i) === track).length, done = chain.filter((_, i) => trackOf(i) === track && applied(i)).length;
+    return idx < 0 ? { track, total, applied: done, next: null } : { track, total, applied: done, next: { index: idx, title: chain[idx][0], weeks: chain[idx][1], lessons: chain[idx][2] } };
+  });
+  const first = tracks.find(t => t.next);
+  return { stage, stageName: (CURRICULUM[stage] || {}).name, total: chain.length, applied: chain.filter((_, i) => applied(i)).length, tracks, next: first ? first.next : null };
+}
+// 这条轨道上有没有还没做完的单元（tpl 为空的手写单元算在默认轨道）
+function trackBusy(subject, cid, track, stage){
+  const chain = ((CURRICULUM[stage] || {}).subjects || {})[subject] || [];
+  return unitsOfChild(cid).some(u => { if (u.subject !== subject || !u.active || unitDone(u)) return false; const m = u.tpl && u.tpl.match(/\/(\d+)$/); const tr = m && chain[+m[1]] ? (chain[+m[1]][3] || "") : ""; return tr === track; });
+}
+async function insertLessons(unitId, lessons){
+  if (!lessons.length) return [];
+  const rows = lessons.map(([title, faith_note, verse_ref], i) => ({ family_id: fid(), id: newId() + i.toString(36), unit_id: unitId, title, faith_note: faith_note || "", verse_ref: verse_ref || "", status: "planned", sort: i, note: "" }));
+  const data = await run(SB.client.from("hs_lessons").insert(rows).select()); S.hs.lessons.push(...data); return data;
+}
+async function generateNext(subject, cid, track){
+  const c = nextInChain(subject, cid);
+  const t = (track != null ? c.tracks.find(x => x.track === track) : c.tracks.find(x => x.next)); if (!t || !t.next) return null;
+  const yi = yearInfo();
+  const u = await upsertUnit({ child_id: cid, subject, title: t.next.title, weeks: t.next.weeks, start_on: today(), term: yi ? yi.term : null, tpl: tplKey(c.stage, subject, t.next.index) });
+  await insertLessons(u.id, t.next.lessons);
+  return u;
+}
+// 每个领域的每条轨道：没有进行中的单元就生成下一单元
+async function generateRound(cid){
+  let n = 0;
+  for (const subject of Object.keys(SUBJECTS)) {
+    const c = nextInChain(subject, cid);
+    for (const t of c.tracks) { if (!t.next || trackBusy(subject, cid, t.track, c.stage)) continue; if (await generateNext(subject, cid, t.track)) n++; }
+  }
+  return n;
+}
+// 粘贴教材目录：一行一课，“标题 | 经文” 或 Tab 分隔
+async function importOutline({ subject, title, weeks, text, child_id }){
+  const lessons = (text || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => { const m = l.split(/\t|\|/); return [m[0].trim(), (m[2] || "").trim(), (m[1] || "").trim()]; });
+  if (!title || !lessons.length) return null;
+  const yi = yearInfo();
+  const u = await upsertUnit({ child_id: child_id || cid0(), subject, title, weeks: weeks || null, start_on: today(), term: yi ? yi.term : null });
+  await insertLessons(u.id, lessons);
+  return { unit: u, count: lessons.length };
+}
+const cid0 = () => S.childId;
 // 年度范围表里的一行 → 一个空单元（课时之后按自家教材填）
 async function addScopeUnit(subject, title, weeks, term, childId){
   if (S.hs.units.some(u => u.title === title && (u.child_id === childId || !u.child_id))) return null;
@@ -259,19 +319,8 @@ async function scheduleLesson(id, date = today()){
   await touchUnitStart(u.id);
   return upsertTask({ id: `${l.id}@${date}`, child_id: u.child_id || S.childId, date, title: l.title, subject: u.subject, lesson_id: l.id, status: "todo", note: l.verse_ref ? `经文 ${l.verse_ref}` : "" });
 }
-async function applyCourseTemplate(key, childId){
-  const tpl = COURSE_TEMPLATES[key]; if (!tpl) return 0;
-  const have = new Set(S.hs.units.filter(u => u.child_id === childId || !u.child_id).map(u => u.title));
-  let n = 0;
-  const yi = yearInfo();
-  for (const u of tpl.units) {
-    if (have.has(u.title)) continue;
-    const unitRow = await upsertUnit({ child_id: childId, subject: u.subject, title: u.title, weeks: u.weeks || null, start_on: today(), term: yi ? yi.term : null });
-    const rows = u.lessons.map(([title, faith_note, verse_ref], i) => ({ family_id: fid(), id: newId() + i.toString(36), unit_id: unitRow.id, title, faith_note: faith_note || "", verse_ref: verse_ref || "", status: "planned", sort: i, note: "" }));
-    const data = await run(SB.client.from("hs_lessons").insert(rows).select()); S.hs.lessons.push(...data); n++;
-  }
-  return n;
-}
+// 旧名字保留：套用起步课程 = 生成本阶段第一轮
+const applyCourseTemplate = (_key, childId) => generateRound(childId);
 
 /* ---- 学习目标 ---- */
 async function upsertGoal(g){
@@ -358,4 +407,5 @@ export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPa
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
   monthRange, ensureMonth, monthData, toggleDayOff, mirrorKind,
-  yearInfo, inBreak, isOffDay, saveYear, unitPace, addScopeUnit };
+  yearInfo, inBreak, isOffDay, saveYear, unitPace, addScopeUnit,
+  nextInChain, generateNext, generateRound, importOutline, unitDone };

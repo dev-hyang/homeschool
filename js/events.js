@@ -90,7 +90,9 @@ document.addEventListener("click", async ev => {
       case "template-apply": { const n = await hs.applyTemplate(d.tpl, S.childId); render(); toast(n ? `已套用 ${n} 条例行到${childName()}` : "模板里的内容都已经有了"); break; }
 
       /* 课程 */
-      case "course-template": { const n = await hs.applyCourseTemplate(d.tpl, S.childId); render(); toast(n ? `已套用 ${n} 个单元` : "起步课程都已经有了"); break; }
+      case "gen-round": { const n = await hs.generateRound(S.childId); render(); toast(n ? `已生成 ${n} 个单元` : "每个领域都已有进行中的单元"); break; }
+      case "gen-next": { const u = await hs.generateNext(d.sj, S.childId, d.track ?? null); render(); toast(u ? `已生成「${u.title}」` : "这条链已走完"); break; }
+      case "outline-import": openForm("粘贴教材目录", outlineFields(), { subject: S.courseSubject, title: "", weeks: 12, child_id: S.childId, text: "" }, async f => { const r = await hs.importOutline(f); if (!r) { toast("请填单元名，并至少贴一行课时"); return; } S.courseSubject = f.subject; back(); toast(`已生成「${r.unit.title}」，${r.count} 节课时`); }); break;
       case "unit-add": openForm("新单元", unitFields(), { subject: S.courseSubject, title: "", note: "", child_id: S.childId, active: true }, async f => { if (!f.title) { toast("请填单元名"); return; } await hs.upsertUnit(f); S.courseSubject = f.subject; back(); }); break;
       case "unit-edit": { const u = hs.unit(d.uid); if (!u) break;
         openForm("编辑单元", unitFields(), { ...u, child_id: u.child_id || "", term: u.term == null ? "" : String(u.term) }, async f => { await hs.upsertUnit({ ...u, ...f }); S.courseSubject = f.subject; back(); }, async () => { if (confirm("删除这个单元和它的全部课时？")) { await hs.deleteUnit(u.id); back(); } }); break; }
@@ -142,6 +144,10 @@ const unitFields = () => [
   { k: "child_id", label: "给谁", type: "seg", opts: childOpts(true) }, { k: "note", label: "说明（可空）", type: "text" },
   ...(S.hs.pacing ? [{ k: "weeks", label: "预计几周完成（空 = 不计节奏）", type: "num", ph: "3" }, { k: "start_on", label: "从哪天开始算（空 = 第一次排课时自动记）", type: "date" }, { k: "term", label: "第几学期（可空）", type: "seg", opts: [["", "不限"], ["1", "1"], ["2", "2"], ["3", "3"]] }] : []),
   { k: "active", label: "进行中", type: "check" }];
+const outlineFields = () => [
+  { k: "title", label: "单元名（教材名 + 范围）", type: "text", ph: "Abeka K4 Letters and Sounds 第 1–20 课" }, { k: "subject", label: "领域", type: "seg", opts: subjectOpts },
+  { k: "child_id", label: "给谁", type: "seg", opts: childOpts(true) }, { k: "weeks", label: "预计几周", type: "num" },
+  { k: "text", label: "一行一课。可写“课名 | 经文 | 信仰连接”", type: "area", rows: 10, ph: "第 1 课 字母 A\n第 2 课 字母 B | 诗篇 119:105 | B 是 Bible" }];
 const lessonFields = () => [
   { k: "title", label: "课时", type: "text", ph: "认识 1、2、3" }, { k: "faith_note", label: "信仰连接（一句话）", type: "text", ph: "一位神，三个位格" },
   { k: "verse_ref", label: "关联经文", type: "text", ph: "申命记 6:4" }, { k: "note", label: "备注", type: "area" }];
