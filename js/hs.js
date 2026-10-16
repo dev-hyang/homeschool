@@ -15,7 +15,8 @@ S.hs = { loaded: false, error: null, day: null, settings: {}, scriptures: [], pr
 const fid = () => S.family.id;
 const today = () => dayKey(Date.now());
 const missingTable = err => err && (err.code === "42P01" || err.code === "PGRST205" || /schema cache|does not exist/i.test(err.message || ""));
-async function run(p, msg){ const { data, error } = await p; if (error) { console.error(error); toast(msg || "云端保存失败，请稍后再试"); throw error; } return data; }
+// 失败时把数据库的原话带上，方便排查（例如缺列、权限）
+async function run(p, msg){ const { data, error } = await p; if (error) { console.error(error); toast((msg || "云端保存失败") + (error.message ? "：" + String(error.message).slice(0, 80) : "")); throw error; } return data; }
 const put = (list, row, key = "id") => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); return row; };
 
 async function loadAll(){
