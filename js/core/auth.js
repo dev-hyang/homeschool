@@ -1,6 +1,7 @@
 import { BABY_LOG_URL, SUPABASE_ANON_KEY, SUPABASE_JS, SUPABASE_URL } from "./config.js";
 import { CHILD_KEY, S, setChildren } from "./state.js";
 import { $, esc, toast } from "./util.js";
+import { attachRealtime, loadAll } from "../hs.js";
 import { refreshSettingsIfOpen, render } from "../views.js";
 
 /* ============ 登录、家庭、孩子（与小月亮共用同一套表） ============
@@ -45,6 +46,8 @@ async function enterFamily(fam){
   S.family = fam;
   await Promise.all([loadMembers(), loadChildren()]);
   S.cloud = "ready";
+  render();                 // show the shell with the family first
+  await loadAll();          // homeschool rows (hs_* tables)
   setupRealtime();
   render(); refreshSettingsIfOpen();
 }
@@ -65,8 +68,9 @@ function setupRealtime(){
   SB.channel = SB.client.channel("homeschool-" + S.family.id)
     .on("postgres_changes", { event: "UPDATE", schema: "public", table: "families", filter: "id=eq." + S.family.id }, async payload => {
       if (payload.new) { S.family = { ...S.family, ...payload.new }; await loadChildren(); if (!$("#sheet").open) render(); else refreshSettingsIfOpen(); }
-    })
-    .subscribe();
+    });
+  if (S.hs.loaded) attachRealtime(SB.channel, () => { if (!$("#sheet").open) render(); });
+  SB.channel.subscribe();
 }
 function teardownRealtime(){ if (SB.channel && SB.client) { SB.client.removeChannel(SB.channel); SB.channel = null; } }
 
