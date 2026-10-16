@@ -6,7 +6,7 @@ import { PLANS } from "./data/plans.js";
 import { SUBJECTS, WEEKDAYS } from "./data/subjects.js";
 import { VERSIONS_EN, VERSIONS_ZH, ve, vz } from "./data/versions.js";
 import { currentPlan, defaultVersions, fetchVersions, planState, progressOf, yearInfo } from "./hs.js";
-import { parseRef, refKey } from "./data/bible.js";
+import { SOURCES, SOURCE_FROM, parseRef, refKey } from "./data/bible.js";
 import { VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
 
@@ -51,6 +51,7 @@ function drawForm(){
     if (f.type === "time") return `<div class="field"><label for="${id}">${f.label}</label><input id="${id}" type="time" data-f="${f.k}" value="${esc(v || "")}"></div>`;
     if (f.type === "date") return `<div class="field"><label for="${id}">${f.label}</label><input id="${id}" type="date" data-f="${f.k}" value="${esc(v || "")}"></div>`;
     if (f.type === "check") return `<div class="field"><label class="check"><input type="checkbox" data-f="${f.k}" ${v ? "checked" : ""}>${f.label}</label></div>`;
+    if (f.type === "html") return `<div class="field">${typeof f.html === "function" ? f.html() : f.html}</div>`; // 只读说明块，不参与读取
     const list = f.list ? `<datalist id="${id}_list">${f.list.map(o => `<option value="${esc(o)}">`).join("")}</datalist>` : "";
     return `<div class="field"><label for="${id}">${f.label}</label><input id="${id}" type="text" data-f="${f.k}" value="${esc(v || "")}" placeholder="${esc(f.ph || "")}" ${f.list ? `list="${id}_list"` : ""}>${list}</div>`;
   }).join("");
@@ -103,7 +104,23 @@ function openInfo(title, html){ $("#sheetIn").innerHTML = `${head(esc(title))}${
 const fetchFields = [
   { k: "fetchZh", label: "中文抓取译本（免费直取）", type: "seg", opts: [["和合本", "和合本"], ["新译本", "新译本"], ["当代译本", "当代译本"]] },
   { k: "fetchEn", label: "英文抓取译本：前五个免费直取，后五个有版权、需要代理", type: "seg", opts: [["BSB", "BSB（现代英语，公有领域）"], ["NLT", "NLT"], ["WEB", "WEB"], ["KJV", "KJV"], ["ASV", "ASV"], ["ESV", "ESV ＊"], ["NASB", "NASB ＊"], ["NIV", "NIV ＊"], ["CSB", "CSB ＊"], ["NKJV", "NKJV ＊"]] },
-  { k: "esvProxy", label: "代理地址（Supabase Edge Function 的 URL；ESV 用 Crossway 密钥，NASB / NIV / CSB / NKJV 用 API.Bible 密钥，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" }];
+  { k: "esvProxy", label: "代理地址（Supabase Edge Function 的 URL；ESV 用 Crossway 密钥，NASB / NIV / CSB / NKJV 用 API.Bible 密钥，可空）", type: "text", ph: "https://xxxx.supabase.co/functions/v1/esv" },
+  { k: "_help", type: "html", html: () => fetchHelpHTML() }];
+// “自动抓取经文”里的说明：每个译本的来源、需要什么、版权状态
+function fetchHelpHTML(){
+  const link = f => `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.name)}</a>`;
+  const rows = Object.entries(SOURCES).map(([v, s]) => { const f = SOURCE_FROM[s.from]; return `<tr><td><b>${esc(v)}</b><div class="small muted">${esc(s.about)}</div></td><td class="small">${link(f)}<div class="muted">${esc(s.rights)}</div></td><td class="small">${esc(f.need)}</td></tr>`; }).join("");
+  return `<details style="margin-top:6px"><summary class="small" style="cursor:pointer">各译本的来源、需要什么、版权说明</summary>
+  <div style="overflow-x:auto;margin-top:8px"><table><thead><tr><th>译本</th><th>来源 · 版权</th><th>需要什么</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <ul class="small" style="padding-left:18px;margin:10px 0 0;line-height:1.55">
+    <li><b>直接用</b>的译本：出处交给公开接口，浏览器直接取回，不经过任何中间服务器，也不需要注册。</li>
+    <li><b>需要代理</b>的译本有版权，出版方的接口不允许网页直连，密钥也不能放进网页。做法是部署一个小的 Supabase Edge Function，密钥只存在它那里，网页只填它的地址（源码在 baby-log 本机的 <code>supabase/functions/esv/index.ts</code>，部署步骤在文件头注释）。</li>
+    <li>没配代理时，选了 ESV / NASB / NIV / CSB / NKJV 会自动<b>回退到 BSB</b>（公有领域、措辞接近 ESV）。零配置又想要美国教会常用的现代译本，选 <b>NLT</b>。</li>
+    <li>API.Bible 免费档只能从有版权译本里<b>选 3 本</b>，在它的后台选定后把每本的 bibleId 填进 Edge Function 的 <code>APIBIBLE_IDS</code>。NASB 有 1995 和 2020 两版，NIV 用 2011 版，选的时候留意。</li>
+    <li>有网站无需密钥就提供 NASB / NIV 全文，但没有逐译本的授权说明，这里故意不用。</li>
+    <li>版权译本的引用条款（非商业、注明译本、单次节数上限）由家庭自己遵守；每张卡都标有译本名。</li>
+  </ul></details>`;
+}
 const genFields = [{ k: "refs", label: "每行一个出处，中英文都行；卡片标题会写成“诗篇 56:3 - Psalms 56:3”", type: "area", rows: 8, ph: "约翰福音 3:16\n诗篇 23\n1 John 4:19\n腓 4:13" }];
 const nccFields = [
   { k: "lang", label: "粘贴的是哪种语言", type: "seg", opts: [["zh", "中文（官方简体页）"], ["en", "English"]] },

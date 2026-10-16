@@ -40,19 +40,31 @@ function parseRef(ref){
 const passageId = p => p.from == null ? `${p.usfm}.${p.chapter}` : `${p.usfm}.${p.chapter}.${p.from}${p.to && p.to !== p.from ? `-${p.usfm}.${p.chapter}.${p.to}` : ""}`;
 
 /* ---- 来源表：版本标签 → { src, id } ---- */
+const FROM = {
+  getbible: { name: "getBible", url: "https://getbible.net/", need: "无，直接用" },
+  helloao: { name: "Free Use Bible API", url: "https://bible.helloao.org/", need: "无，直接用" },
+  nlt: { name: "Tyndale 官方 NLT API", url: "https://api.nlt.to/", need: "无；匿名按 IP 每天 500 次、每次 ≤50 节" },
+  esv: { name: "Crossway ESV API", url: "https://api.esv.org/", need: "免费非商业密钥 + 代理" },
+  apibible: { name: "API.Bible（美国圣经公会）", url: "https://scripture.api.bible/", need: "免费 Starter 密钥（非商业、每月 5000 次、从有版权译本里任选 3 本）+ 代理" }
+};
+// 每个译本：src 抓取方式 · id 来源里的编号 · zh 中文 · from 来源说明键 · about 一句话介绍 · rights 版权状态
 const SOURCES = {
   // 中文
-  "和合本": { src: "getbible", id: "cus", zh: true },
-  "新译本": { src: "getbible", id: "cns", zh: true },
-  "当代译本": { src: "helloao", id: "cmn_cbs", zh: true, notice: "圣经当代译本 © Biblica, Inc.（开放资源，需注明）" },
+  "和合本": { src: "getbible", id: "cus", zh: true, from: "getbible", about: "1919 年国语和合本，华人教会最通用", rights: "公有领域" },
+  "新译本": { src: "getbible", id: "cns", zh: true, from: "getbible", about: "环球圣经公会 1992 年现代中文译本", rights: "有版权，授权 CrossWire 分发" },
+  "当代译本": { src: "helloao", id: "cmn_cbs", zh: true, from: "helloao", about: "Biblica 2010 年白话译本，孩子容易懂", rights: "Biblica 开放资源，需注明 © Biblica, Inc." },
   // 英文，无需密钥
-  BSB: { src: "helloao", id: "BSB" },
-  WEB: { src: "getbible", id: "web" },
-  NLT: { src: "nlt", notice: "Holy Bible, New Living Translation © Tyndale House Foundation（非商业引用）" },
-  KJV: { src: "getbible", id: "kjv" },
-  ASV: { src: "getbible", id: "asv" },
+  BSB: { src: "helloao", id: "BSB", from: "helloao", about: "Berean Standard Bible，2023 年起公有领域，措辞接近 ESV", rights: "公有领域" },
+  NLT: { src: "nlt", from: "nlt", about: "New Living Translation，美国非宗派教会和儿童事工常用的意译本", rights: "© Tyndale，非商业引用需注明 NLT" },
+  WEB: { src: "getbible", id: "web", from: "getbible", about: "World English Bible，ASV 的现代化修订；LORD 译作 Yahweh", rights: "公有领域" },
+  KJV: { src: "getbible", id: "kjv", from: "getbible", about: "1611/1769 钦定本", rights: "公有领域（美国）" },
+  ASV: { src: "getbible", id: "asv", from: "getbible", about: "1901 年美国标准本，直译", rights: "公有领域" },
   // 需代理（Edge Function 持密钥）
-  ESV: { src: "proxy" }, NASB: { src: "proxy" }, NIV: { src: "proxy" }, CSB: { src: "proxy" }, NKJV: { src: "proxy" }
+  ESV: { src: "proxy", from: "esv", about: "English Standard Version，改革宗与福音派教会常用", rights: "© Crossway" },
+  NASB: { src: "proxy", from: "apibible", about: "New American Standard Bible（1995 / 2020），最直译", rights: "© Lockman Foundation" },
+  NIV: { src: "proxy", from: "apibible", about: "New International Version 2011，美国销量最大的译本", rights: "© Biblica" },
+  CSB: { src: "proxy", from: "apibible", about: "Christian Standard Bible，美南浸信会出版", rights: "© Holman" },
+  NKJV: { src: "proxy", from: "apibible", about: "New King James Version，保留钦定本句式的现代拼写", rights: "© Thomas Nelson" }
 };
 const ZH = Object.fromEntries(Object.entries(SOURCES).filter(([, v]) => v.zh).map(([k]) => [k, k]));
 const EN = Object.fromEntries(Object.entries(SOURCES).filter(([, v]) => !v.zh && v.src !== "proxy").map(([k]) => [k, k]));
@@ -120,4 +132,4 @@ const biRef = p => `${p.label} - ${p.labelEn}`;
 // 去重用的键：老卡只有中文出处，新卡是中英并列，都归一到中文标签（去空格）；解析不了的按原文比较
 function refKey(ref){ const first = String(ref || "").split(/\s+[-–—]\s+/)[0]; const p = parseRef(first); return (p ? p.label : String(ref || "")).replace(/\s+/g, ""); }
 
-export { BOOKS, SOURCES, parseRef, passageId, fetchPassage, canFetch, needsProxy, biRef, refKey, ZH as ZH_SOURCES, EN as EN_SOURCES, PROXY as PROXY_SOURCES };
+export { BOOKS, SOURCES, FROM as SOURCE_FROM, parseRef, passageId, fetchPassage, canFetch, needsProxy, biRef, refKey, ZH as ZH_SOURCES, EN as EN_SOURCES, PROXY as PROXY_SOURCES };
