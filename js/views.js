@@ -11,20 +11,20 @@ import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
 
 /* ============ 渲染 ============ */
-const TAB_KEYS = { today: "tabToday", course: "tabCourse", resources: "tabResources", calendar: "tabCalendar", reports: "tabReports", law: "tabLaw" };
+const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", reports: "报告", law: "法规" };
 function renderStatus(){
-  const st = { loading: ["", t("connecting")], offline: ["", t("offline")], signedout: ["", t("signedout")], nofamily: ["", t("nofamily")], ready: ["ok", t("family", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
+  const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
   const c = child();
-  $("#bname").innerHTML = `${esc(c ? t("schoolOf", { name: c.name || t("baby") }) : t("brand"))}<span class="chev" aria-hidden="true"></span>`;
-  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? t("noKids") : t("afterLogin"));
-  $("#kids").setAttribute("aria-label", t("switchChild"));
-  $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("baby"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
-    + `<button class="manage" role="menuitem" data-act="settings">${esc(t("manageKids"))}</button>`;
+  $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="chev" aria-hidden="true"></span>`;
+  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? t("家庭里还没有孩子") : t("登录后显示孩子"));
+  $("#kids").setAttribute("aria-label", t("切换孩子"));
+  $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
+    + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
   // 框架文字：介绍徽章、设置按钮、底部页签
-  const about = $('header .badge[data-act="about"]'); if (about) about.textContent = t("about");
-  const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("settings"); set.setAttribute("aria-label", t("settings")); }
-  document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_KEYS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
+  const about = $('header .badge[data-act="about"]'); if (about) about.textContent = t("介绍");
+  const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("设置"); set.setAttribute("aria-label", t("设置")); }
+  document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
 function toggleKids(open = $("#kids").hidden){
   $("#kids").hidden = !open;
@@ -37,18 +37,18 @@ function render(){
   const v = { today: viewToday, course: viewCourse, resources: viewResources, calendar: viewRoutines, law: viewLaw, reports: viewReports }[S.tab] || viewToday;
   $("#main").innerHTML = S.tab === "law" ? v() : (gateHTML() || v());
 }
-function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("settings")) openSettings(); }
+function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
 
 /* 没登录 / 没家庭 / 没孩子 / 表没建时，每个页面都先把路指清楚 */
 function gateHTML(){
-  if (S.cloud === "loading") return `<div class="empty">正在连接云端…</div>`;
-  if (S.cloud === "offline") return `<div class="empty">云端暂时不可用。<br>请检查网络后刷新页面。</div>`;
-  if (S.cloud === "signedout") return `<div class="empty">用和小月亮一样的账号登录，就能看到家里的孩子。<br><button class="btn primary" data-act="settings">去登录</button> <button class="btn" data-act="about">了解家庭学堂</button></div>`;
-  if (S.cloud === "nofamily") return `<div class="empty">已登录，但还没有加入家庭。<br><button class="btn primary" data-act="settings">创建或加入家庭</button></div>`;
-  if (!S.children.length) return `<div class="empty">家庭里还没有孩子。先在<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">小月亮</a>的设置里添加，这里会自动出现。</div>`;
-  if (S.hs.error === "missing") return `<div class="empty">数据库还没有家庭学堂的表。<br>请在 Supabase 执行本地 <code>supabase/migrations/003_homeschool_phase1.sql</code>，然后刷新。</div>`;
-  if (S.hs.error) return `<div class="empty">读取家庭学堂数据失败。<br>请刷新重试。</div>`;
-  if (!S.hs.loaded) return `<div class="empty">正在读取…</div>`;
+  if (S.cloud === "loading") return `<div class="empty">${t("正在连接云端…")}</div>`;
+  if (S.cloud === "offline") return `<div class="empty">${t("云端暂时不可用。")}<br>${t("请检查网络后刷新页面。")}</div>`;
+  if (S.cloud === "signedout") return `<div class="empty">${t("用和小月亮一样的账号登录，就能看到家里的孩子。")}<br><button class="btn primary" data-act="settings">${t("去登录")}</button> <button class="btn" data-act="about">${t("了解家庭学堂")}</button></div>`;
+  if (S.cloud === "nofamily") return `<div class="empty">${t("已登录，但还没有加入家庭。")}<br><button class="btn primary" data-act="settings">${t("创建或加入家庭")}</button></div>`;
+  if (!S.children.length) return `<div class="empty">${t("家庭里还没有孩子。先在")}<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">${t("小月亮")}</a>${t("的设置里添加，这里会自动出现。")}</div>`;
+  if (S.hs.error === "missing") return `<div class="empty">${t("数据库还没有家庭学堂的表。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/003_homeschool_phase1.sql</code>${t("，然后刷新。")}</div>`;
+  if (S.hs.error) return `<div class="empty">${t("读取家庭学堂数据失败。")}<br>${t("请刷新重试。")}</div>`;
+  if (!S.hs.loaded) return `<div class="empty">${t("正在读取…")}</div>`;
   return "";
 }
 

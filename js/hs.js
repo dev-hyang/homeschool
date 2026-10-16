@@ -8,6 +8,7 @@ import { SUBJECTS } from "./data/subjects.js";
 import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
+import { t } from "./core/i18n.js";
 import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { VERSE_SETS, parseCatechism } from "./data/verse-sets.js";
 
@@ -21,7 +22,7 @@ const fid = () => S.family.id;
 const today = () => dayKey(Date.now());
 const missingTable = err => err && (err.code === "42P01" || err.code === "PGRST205" || /schema cache|does not exist/i.test(err.message || ""));
 // 失败时把数据库的原话带上，方便排查（例如缺列、权限）
-async function run(p, msg){ const { data, error } = await p; if (error) { console.error(error); toast((msg || "云端保存失败") + (error.message ? "：" + String(error.message).slice(0, 80) : "")); throw error; } return data; }
+async function run(p, msg){ const { data, error } = await p; if (error) { console.error(error); toast(t(msg || "云端保存失败") + (error.message ? "：" + String(error.message).slice(0, 80) : "")); throw error; } return data; }
 const put = (list, row, key = "id") => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); return row; };
 
 async function loadAll(){
@@ -99,7 +100,7 @@ async function saveSettings(patch){
 function planState(){ const s = S.hs.settings.plan || {}; return { id: s.id || "story", progress: s.progress || {} }; }
 function currentPlan(){
   const { id } = planState();
-  if (id === "custom") { const c = S.hs.settings.customPlan; if (c && c.items && c.items.length) return { id: "custom", name: c.name || "自定义计划", desc: `${c.items.length} 段`, items: c.items }; }
+  if (id === "custom") { const c = S.hs.settings.customPlan; if (c && c.items && c.items.length) return { id: "custom", name: c.name || t("自定义计划"), desc: t("{n} 段", { n: c.items.length }), items: c.items }; }
   return planById(id) || PLANS[0];
 }
 function todayPassage(){
@@ -158,11 +159,11 @@ function fetchVersions(){
   return { zh, en, esv, zhFallback, enFallback, wanted };
 }
 async function fetchBoth(ref){
-  const p = parseRef(ref); if (!p) return { error: "看不懂出处" };
+  const p = parseRef(ref); if (!p) return { error: t("看不懂出处") };
   const v = fetchVersions(); const out = { ref: biRef(p), text_zh: "", text_en: "", version_zh: "", version_en: "", errors: [] };
   const [a, b] = await Promise.allSettled([fetchPassage(p, v.zh, v.esv), fetchPassage(p, v.en, v.esv)]);
-  if (a.status === "fulfilled") { out.text_zh = a.value.text; out.version_zh = a.value.version; } else out.errors.push("中文：" + (a.reason && a.reason.message));
-  if (b.status === "fulfilled") { out.text_en = b.value.text; out.version_en = b.value.version; } else out.errors.push("英文：" + (b.reason && b.reason.message));
+  if (a.status === "fulfilled") { out.text_zh = a.value.text; out.version_zh = a.value.version; } else out.errors.push(t("中文：") + (a.reason && a.reason.message));
+  if (b.status === "fulfilled") { out.text_en = b.value.text; out.version_en = b.value.version; } else out.errors.push(t("英文：") + (b.reason && b.reason.message));
   return out;
 }
 // refs：出处数组；已有同出处的卡跳过。返回 { added, skipped, failed: [ref, 原因] }
@@ -170,7 +171,7 @@ async function generateCards(refs, kind = "verse"){
   const have = new Set(S.hs.scriptures.map(s => refKey(s.ref)));
   const res = { added: 0, skipped: 0, failed: [] };
   for (const raw of refs) {
-    const p = parseRef(raw); if (!p) { res.failed.push([raw, "看不懂出处"]); continue; }
+    const p = parseRef(raw); if (!p) { res.failed.push([raw, t("看不懂出处")]); continue; }
     if (have.has(refKey(p.label))) { res.skipped++; continue; }
     const f = await fetchBoth(p.label);
     if (!f.text_zh && !f.text_en) { res.failed.push([raw, f.errors.join("；")]); continue; }

@@ -1,9 +1,10 @@
 import { LS_PREFIX } from "./config.js";
+import { t } from "./i18n.js";
 import { D, startOfDay } from "./util.js";
 
 /* ============ 应用状态 ============
    在线优先：家庭、成员、孩子都来自 Supabase，不在本机保存副本。
-   本机只记两样偏好：当前看哪个孩子、主题。 */
+   本机只记几样偏好：当前看哪个孩子、主题、界面语言。 */
 const S = {
   tab: "today",
   cloud: "loading",        // loading | offline | signedout | nofamily | ready
@@ -19,7 +20,7 @@ function setChildren(list){
   S.childId = list.some(c => c.id === cid) ? cid : (list[0] ? list[0].id : null);
 }
 const child = (id = S.childId) => S.children.find(c => c.id === id) || null;
-const childName = (id = S.childId) => (child(id) && child(id).name) || "宝宝";
+const childName = (id = S.childId) => (child(id) && child(id).name) || t("宝宝");
 function setChild(id){ if (!S.children.some(c => c.id === id)) return; S.childId = id; try { localStorage.setItem(CHILD_KEY, id); } catch (e) {} }
 
 /* ---- 年龄 ---- */
@@ -32,17 +33,17 @@ function ageMonths(cid = S.childId, at = Date.now()){
   return Math.max(0, m);
 }
 function ageText(cid = S.childId){
-  const d = ageDays(cid), m = ageMonths(cid); if (m == null) return "没有填生日";
-  if (d < 60) return `出生第 ${d + 1} 天`;
-  return m < 24 ? `${m} 个月` : `${Math.floor(m / 12)} 岁 ${m % 12} 个月`;
+  const d = ageDays(cid), m = ageMonths(cid); if (m == null) return t("没有填生日");
+  if (d < 60) return t("出生第 {d} 天", { d: d + 1 });
+  return m < 24 ? t("{m} 个月", { m }) : t("{y} 岁 {m} 个月", { y: Math.floor(m / 12), m: m % 12 });
 }
 // 阶段：2 岁前只记录不排课；2–3 岁节奏；3–5 岁 Pre-K；5 岁起 K+
 function stageOf(cid = S.childId){
-  const m = ageMonths(cid); if (m == null) return { key: "prek", name: "学前" };
-  if (m < 24) return { key: "baby", name: "婴幼儿" };
-  if (m < 36) return { key: "toddler", name: "幼儿" };
-  if (m < 60) return { key: "prek", name: "学前 Pre-K" };
-  return { key: "school", name: "学龄" };
+  const m = ageMonths(cid); if (m == null) return { key: "prek", name: t("学前") };
+  if (m < 24) return { key: "baby", name: t("婴幼儿") };
+  if (m < 36) return { key: "toddler", name: t("幼儿") };
+  if (m < 60) return { key: "prek", name: t("学前 Pre-K") };
+  return { key: "school", name: t("学龄") };
 }
 
 export { S, CHILD_KEY, setChildren, child, childName, setChild, birthTs, ageDays, ageMonths, ageText, stageOf };

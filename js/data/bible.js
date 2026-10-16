@@ -4,6 +4,7 @@
    2) Free Use Bible API（bible.helloao.org，无密钥，跨域开放，静态 JSON）：BSB（Berean Standard Bible，公有领域的现代英语）、WEB、当代译本 cmn_cbs（Biblica 开放资源，需注明）。
    3) NLT API（api.nlt.to，Tyndale 官方；匿名按 IP 每天 500 次、每次 ≤50 节；返回 HTML，这里转成纯文本）。
    有版权且不开放跨域的（ESV、NASB、NIV、CSB、NKJV）走一个小代理（Supabase Edge Function，持有 api.esv.org / API.Bible 的密钥），在设置里填代理地址。 */
+import { t } from "../core/i18n.js";
 const BOOKS = [ // [书号, 中文, 中文简称, 英文, 英文缩写|…, USFM 三字码]
   [1, "创世记", "创", "Genesis", "Gen", "GEN"], [2, "出埃及记", "出", "Exodus", "Ex|Exod", "EXO"], [3, "利未记", "利", "Leviticus", "Lev", "LEV"], [4, "民数记", "民", "Numbers", "Num", "NUM"], [5, "申命记", "申", "Deuteronomy", "Deut|Dt", "DEU"],
   [6, "约书亚记", "书", "Joshua", "Josh", "JOS"], [7, "士师记", "士", "Judges", "Judg|Jdg", "JDG"], [8, "路得记", "得", "Ruth", "Ruth", "RUT"], [9, "撒母耳记上", "撒上", "1 Samuel", "1 Sam|1Sam|1 Sa", "1SA"], [10, "撒母耳记下", "撒下", "2 Samuel", "2 Sam|2Sam|2 Sa", "2SA"],
@@ -85,7 +86,7 @@ const joinVerses = (parts, zh) => parts.filter(Boolean).join(zh ? "" : " ").repl
 
 async function fromGetBible(p, id, zh){
   const j = await getJSON(`https://api.getbible.net/v2/${id}/${p.n}/${p.chapter}.json`);
-  const vs = (j.verses || []).filter(v => inRange(p, v.verse)); if (!vs.length) throw new Error("没有这节经文");
+  const vs = (j.verses || []).filter(v => inRange(p, v.verse)); if (!vs.length) throw new Error(t("没有这节经文"));
   return joinVerses(vs.map(v => clean(v.text, zh)), zh);
 }
 // helloao：chapter.content = [{type:"verse", number, content:[ "文字" | {text, poem} | {noteId} | {lineBreak} | {wordsOfJesus:true, text}… ]}, {type:"heading"}…]
@@ -95,7 +96,7 @@ function helloaoText(items){
 }
 async function fromHelloao(p, id, zh){
   const j = await getJSON(`https://bible.helloao.org/api/${id}/${p.usfm}/${p.chapter}.json`);
-  const vs = ((j.chapter && j.chapter.content) || []).filter(c => c.type === "verse" && inRange(p, c.number)); if (!vs.length) throw new Error("没有这节经文");
+  const vs = ((j.chapter && j.chapter.content) || []).filter(c => c.type === "verse" && inRange(p, c.number)); if (!vs.length) throw new Error(t("没有这节经文"));
   return joinVerses(vs.map(v => clean(helloaoText(v.content), zh)), zh);
 }
 // NLT：返回 HTML 片段，去掉章节标题、小标题、节号、脚注，只留经文
@@ -105,25 +106,25 @@ async function fromNLT(p){
   const url = `https://api.nlt.to/api/passages?ref=${encodeURIComponent(ref)}&version=NLT`;
   if (!cache.has(url)) { const r = await fetch(url); if (!r.ok) throw new Error(`NLT ${r.status}`); cache.set(url, await r.text()); }
   const doc = new DOMParser().parseFromString(cache.get(url), "text/html");
-  const verses = [...doc.querySelectorAll("verse_export")]; if (!verses.length) throw new Error("没有这节经文");
+  const verses = [...doc.querySelectorAll("verse_export")]; if (!verses.length) throw new Error(t("没有这节经文"));
   for (const v of verses) for (const el of v.querySelectorAll("h2, h3, .subhead, .chapter-number, .vn, .tn, .a-tn, .psa-title, .psa-book")) el.remove();
   return joinVerses(verses.map(v => clean(v.textContent, false)), false);
 }
 async function fromProxy(p, version, proxy){
   const qs = `v=${encodeURIComponent(version)}&q=${encodeURIComponent(p.labelEn)}&pid=${encodeURIComponent(passageId(p))}`;
-  const r = await fetch(`${proxy}${proxy.includes("?") ? "&" : "?"}${qs}`); if (!r.ok) throw new Error(`${version} 代理 ${r.status}`);
+  const r = await fetch(`${proxy}${proxy.includes("?") ? "&" : "?"}${qs}`); if (!r.ok) throw new Error(`${version} ${t("代理")} ${r.status}`);
   const j = await r.json(); const text = clean(j.text || (j.passages && j.passages[0]) || "", false);
-  if (!text) throw new Error(`${version} 没有返回经文${j.error ? "：" + j.error : ""}`); return text;
+  if (!text) throw new Error(`${version} ${t("没有返回经文")}${j.error ? "：" + j.error : ""}`); return text;
 }
 // 取一段经文；返回 { text, version }。版本名就是用户看到的译本标签。
 async function fetchPassage(ref, version, proxy){
-  const p = typeof ref === "string" ? parseRef(ref) : ref; if (!p) throw new Error("看不懂这个出处");
-  const s = SOURCES[version]; if (!s) throw new Error(`不支持自动抓取 ${version}`);
+  const p = typeof ref === "string" ? parseRef(ref) : ref; if (!p) throw new Error(t("看不懂这个出处"));
+  const s = SOURCES[version]; if (!s) throw new Error(`${t("不支持自动抓取")} ${version}`);
   let text;
   if (s.src === "getbible") text = await fromGetBible(p, s.id, !!s.zh);
   else if (s.src === "helloao") text = await fromHelloao(p, s.id, !!s.zh);
   else if (s.src === "nlt") text = await fromNLT(p);
-  else { if (!proxy) throw new Error(`${version} 需要在设置里填代理地址`); text = await fromProxy(p, version, proxy); }
+  else { if (!proxy) throw new Error(`${version} ${t("需要在设置里填代理地址")}`); text = await fromProxy(p, version, proxy); }
   return { text, version };
 }
 
