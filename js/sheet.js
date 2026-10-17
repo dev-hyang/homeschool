@@ -12,26 +12,35 @@ import { VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
 
 /* ============ 整页表单（替换内容区，和小月亮一样的交互） ============ */
+/* 关掉后要回到打开前的位置。坑：pushState 必须在隐藏页面之前——页面一隐藏，文档高度归零，浏览器给旧历史条目
+   记下的滚动位置就是 0，返回时会把我们手动恢复的位置又盖掉。所以先 pushState、再隐藏，并把滚动恢复交给自己（manual）。 */
 let sheetScrollY = 0;
 function showSheet(){
   const d = $("#sheet");
   if (!d.open) {
     sheetScrollY = window.scrollY;
+    try { history.scrollRestoration = "manual"; history.pushState({ sheet: 1 }, ""); } catch (e) {}
     d.show();
     document.body.classList.add("sheet-open");
-    try { history.pushState({ sheet: 1 }, ""); } catch (e) {}
   }
   window.scrollTo(0, 0);
   const first = d.querySelector(".sheet-head h3"); if (first) { first.tabIndex = -1; first.focus({ preventScroll: true }); }
 }
-$("#sheet").addEventListener("close", () => {
+// 先同步滚一次（scrollTo 会强制排版），再在下一帧补一次，防止字体 / 图片晚到把高度顶变
+function restoreScroll(){ const y = sheetScrollY, go = () => window.scrollTo(0, y); go(); setTimeout(go, 0); requestAnimationFrame(() => { go(); requestAnimationFrame(go); }); }
+// 关闭的全部步骤都在这里同步做完，不依赖 dialog 的 close 事件（它是异步派发的，有的环境里还不触发）
+function closeSheet(){
+  const d = $("#sheet");
+  if (!d.open) { render(); return; }
+  d.close();
   document.body.classList.remove("sheet-open");
   render(); // the sheet may have changed data the page underneath shows
-  requestAnimationFrame(() => window.scrollTo(0, sheetScrollY));
+  restoreScroll();
   if (history.state && history.state.sheet) { try { history.back(); } catch (e) {} }
-});
-// close + redraw in one step; the dialog's own close event also redraws, but it is dispatched asynchronously
-function closeSheet(){ const d = $("#sheet"); if (d.open) d.close(); render(); }
+}
+// 其它途径关掉的（如 form method=dialog）：兜底收尾
+$("#sheet").addEventListener("close", () => { if (document.body.classList.contains("sheet-open")) { document.body.classList.remove("sheet-open"); render(); restoreScroll(); } });
+// 浏览器返回手势 / 返回键关掉表单；此时历史已经退回，closeSheet 不会再 back 一次
 window.addEventListener("popstate", () => closeSheet());
 const head = (title, extra = "") => `<div class="sheet-head"><h3 id="sheetTitle">${title}</h3><span>${extra}<button class="iconbtn" data-act="close" aria-label="${esc(t("关闭"))}">${esc(t("关闭"))}</button></span></div>`;
 
