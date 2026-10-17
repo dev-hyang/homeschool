@@ -22,7 +22,7 @@
 
 ```
 index.html        页面骨架
-app.css           样式（与小月亮同一套设计语言）
+app.css           样式（与小月亮同一套组件，但浅蓝底、海军蓝墨色、衬线标题、深蓝渐变 hero，一眼能分清）
 js/
   app.js          入口
   core/config.js  Supabase 地址与公开 key、版本号、小月亮地址
