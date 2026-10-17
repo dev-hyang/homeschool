@@ -140,6 +140,16 @@ async function sbMember(action, uid){
   }
   await loadMembers(); toast(action === "remove" ? t("已移除") : t("已更新")); render(); refreshSettingsIfOpen();
 }
+// 改称呼：本人随时可以改自己；家主还能改其他成员（迁移 010 的 set_member_name，空值服务端回退为“家人”）
+async function sbRename(uid, name){
+  if (!S.members[uid] || (uid !== S.user.id && !isOwner())) return false;
+  const v = (name || "").trim();
+  if (!v) { toast(t("称呼不能为空")); return false; }
+  if (v === memberName(uid)) return true;
+  const { error } = await SB.client.rpc("set_member_name", { p_family: S.family.id, p_user: uid, p_name: v });
+  if (error) { toast(/owner only/.test(error.message || "") ? t("只有家主可以这样做") : t("操作失败，请稍后再试")); return false; }
+  await loadMembers(); toast(t("已更新")); render(); return true;
+}
 function familyHTML(){
   if (!SB.configured) return `<p class="small muted">${t("还没有配置云端：在 js/core/config.js 里填好 Supabase 地址和 key。")}</p>`;
   if (!SB.client) return `<p class="small muted">${t("云端组件还在加载或加载失败。请检查网络后刷新页面。")}</p>`;
@@ -156,14 +166,14 @@ function familyHTML(){
     <div class="btns"><button class="btn" data-act="sb-join">${t("加入家庭")}</button><button class="btn" data-act="sb-logout">${t("退出登录")}</button></div>`;
   const owner = isOwner(), me = S.user.id;
   const rows = Object.entries(S.members).map(([uid, m]) => `<div class="medrow"><div><b>${esc(m.name)}</b>${uid === me ? ` <span class="small muted">${t("（你）")}</span>` : ""}${m.role === "owner" ? ` <span class="pill ok">${t("家主")}</span>` : ""}</div>
-      ${owner && uid !== me ? `<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${m.role === "owner" ? `<button class="chip" data-member="demote" data-uid="${esc(uid)}">${t("转为成员")}</button>` : `<button class="chip" data-member="promote" data-uid="${esc(uid)}">${t("设为家主")}</button>`}<button class="chip" data-member="remove" data-uid="${esc(uid)}" style="color:var(--rose)">${t("移除")}</button></div>` : ""}</div>`).join("");
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">${uid === me || owner ? `<button class="chip" data-member="rename" data-uid="${esc(uid)}">${t("改称呼")}</button>` : ""}${owner && uid !== me ? `${m.role === "owner" ? `<button class="chip" data-member="demote" data-uid="${esc(uid)}">${t("转为成员")}</button>` : `<button class="chip" data-member="promote" data-uid="${esc(uid)}">${t("设为家主")}</button>`}<button class="chip" data-member="remove" data-uid="${esc(uid)}" style="color:var(--rose)">${t("移除")}</button>` : ""}</div></div>`).join("");
   return `
     <p class="small muted" style="margin-bottom:0">${t("家庭成员")}</p>
     <div class="panel" style="padding:0 14px">${rows || `<div class="medrow"><span class="muted">${t("只有你")}</span></div>`}</div>
     <p style="margin-top:12px">${t("邀请码")} <b class="num" style="font-size:20px;letter-spacing:.12em">${esc(S.family.invite_code)}</b> <button class="chip" data-copy="${esc(S.family.invite_code)}">${t("复制")}</button>${owner ? ` <button class="chip" data-act="sb-reset-code">${t("重置邀请码")}</button>` : ""}</p>
     <p class="small muted">${t("家人用同一个邀请码加入后，小月亮和家庭学堂都能一起用。邀请码相当于家门钥匙，只发给信任的人。")}</p>
-    ${owner ? `<p class="small muted">${t("你是家主：可以重置邀请码、把家人设为家主或移出家庭（比如有人误加入）。")}</p>` : ""}
+    ${owner ? `<p class="small muted">${t("你是家主：可以重置邀请码、改家人的称呼、把家人设为家主或移出家庭（比如有人误加入）。")}</p>` : ""}
     <div class="btns"><button class="btn" data-act="sb-logout">${t("退出登录")}</button></div>`;
 }
 
-export { SB, isOwner, memberName, initSupabase, afterAuth, enterFamily, loadChildren, sbAuth, sbFamily, sbLogout, sbResetCode, sbMember, familyHTML };
+export { SB, isOwner, memberName, initSupabase, afterAuth, enterFamily, loadChildren, sbAuth, sbFamily, sbLogout, sbResetCode, sbMember, sbRename, familyHTML };

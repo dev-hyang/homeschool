@@ -1,4 +1,4 @@
-import { loadChildren, sbAuth, sbFamily, sbLogout, sbMember, sbResetCode } from "./core/auth.js";
+import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
 import { S, childName, setChild } from "./core/state.js";
@@ -39,6 +39,7 @@ document.addEventListener("click", async ev => {
   if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
+  if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
   try {
