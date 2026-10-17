@@ -13,7 +13,7 @@ import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
 import { openPrint } from "./print.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
-import { render, toggleKids } from "./views.js";
+import { render, toggleKids, toggleMenu } from "./views.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -22,6 +22,8 @@ const back = (fn) => { close(); fn && fn(); };
 
 document.addEventListener("click", async ev => {
   if (!$("#kids").hidden && !ev.target.closest("#bname")) toggleKids(false);
+  // 右上角菜单：点菜单外关掉；点菜单里的项先关掉再往下处理
+  if (!$("#hmenu").hidden && !ev.target.closest('[data-act="print-menu"], [data-act="more-menu"]')) toggleMenu(false);
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
@@ -74,9 +76,11 @@ document.addEventListener("click", async ev => {
       case "scr-start-next": await hs.setProgress(d.sid, S.childId, "start"); render(); break;
       case "learn-swap": { btn.disabled = true; const s = await hs.swapVerse(d.sid, S.childId); render(); toast(s ? t("换成了 {ref}", { ref: s.ref }) : t("卡库里没有别的可换了，去经文卡库加几张")); break; }
       case "autoverse-toggle": await hs.saveSettings({ autoVerse: S.hs.settings.autoVerse === false }); if (S.hs.settings.autoVerse !== false) await hs.autoAssignVerses(); openSettings(); render(); break;
-      case "print-day": openPrint("day"); break;
-      case "print-week": openPrint("week"); break;
-      case "print-month": openPrint("month", d.ym || undefined); break;
+      case "print-menu": toggleMenu("print"); break;
+      case "more-menu": toggleMenu("more"); break;
+      case "print-day": case "print-week": case "print-month":
+        if (!S.hs.loaded) { toast(t("登录并进入家庭后才能打印")); break; }
+        openPrint(d.act.slice(6), d.ym || undefined); break;
       case "scr-pause": await hs.setProgress(d.sid, S.childId, "pause"); openScriptures(); break;
       case "scr-resume": await hs.setProgress(d.sid, S.childId, "resume"); openScriptures(); break;
       case "scriptures": openScriptures(); break;
@@ -211,6 +215,7 @@ function routineFields(){
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (!$("#kids").hidden) { toggleKids(false); $("#bname").focus(); }
+  else if (!$("#hmenu").hidden) { toggleMenu(false); const o = $('header [data-act="more-menu"]:not([style*="none"])'); (o || $('header [data-act="print-menu"]')).focus(); }
   else if ($("#sheet").open) closeSheet();
 });
 document.addEventListener("visibilitychange", async () => {

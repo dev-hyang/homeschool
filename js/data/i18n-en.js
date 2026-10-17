@@ -52,7 +52,7 @@ const EN = {
   "每天 8 点如果还没有在学的经文，会从卡库随机挑一节；不合适就点“换一个”。可在设置里关闭。": "At 8 a.m., if nothing is in learning, one card is picked at random from the library; tap “Swap” if it doesn't fit. Turn off in Settings.",
   "已关闭：": "Off: ", "开启自动安排": "Turn on auto-pick", "关闭自动安排": "Turn off auto-pick",
   "每天 8 点，哪个孩子还没有在学的经文，就从卡库里还没背过的卡中随机挑一节开始背；家长 8 点前手动点了“开始背”就不再加。卡库都背过了，自动从成套经文里按顺序抓下一批 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。": "At 8 a.m., any child with nothing in learning gets one unstarted card picked at random; if a parent starts one before 8, nothing is added. When the library is exhausted, the next 5 verses are fetched from the verse sets in order. Daily caps by age: toddler 1+1, pre-K 1+2, school 2+3.",
-  "打印": "Print", "今日页": "Today sheet", "本周": "This week", "本月": "This month",
+  "打印": "Print", "今日页": "Today sheet", "本周": "This week", "本月": "This month", "更多": "More", "竖版一页": "one portrait page", "横版表格": "landscape grid", "月历 + 周例行": "calendar + routine", "登录并进入家庭后才能打印": "Sign in and join a family before printing",
   "不想一直看手机：打一张贴在冰箱上。今日页竖版一页（敬拜、背诵经文全文、任务、备注）；本周横版一张表，每格一个勾；本月一张月历加周例行。晚上或周末再把勾补回手机。": "For families who'd rather not live on the phone: print a sheet for the fridge. The day sheet is one portrait page (worship, full verse texts, tasks, notes); the week is one landscape grid with a box per item; the month is a calendar plus the weekly routine. Copy the ticks back into the phone in the evening or at the weekend.",
   "第 {w} 周 · 第 {term} 学期": "Week {w} · Term {term}", "今天 {n} 节": "{n} today", "今天没有到期的复习。": "No reviews due today.", "休息日不生成任务。": "No tasks on a rest day.",
   "打勾后晚上在手机上补一下，或者周末一起补；复习间隔是按手机里的记录排的。": "Tick on paper, then copy into the phone in the evening or at the weekend; review spacing follows the phone's record.",

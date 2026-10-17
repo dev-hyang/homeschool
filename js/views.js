@@ -29,8 +29,10 @@ function renderStatus(){
     apps.setAttribute("aria-label", t("切换姊妹应用"));
     apps.innerHTML = `<a class="badge app" href="${prev.url}" title="${esc(t("切到{name}", { name: t(prev.name) }))}" aria-label="${esc(t("切到{name}", { name: t(prev.name) }))}">‹ ${esc(t(prev.short))}</a><a class="badge app" href="${next.url}" title="${esc(t("切到{name}", { name: t(next.name) }))}" aria-label="${esc(t("切到{name}", { name: t(next.name) }))}">${esc(t(next.short))} ›</a>`;
   }
-  // 框架文字：介绍徽章、设置按钮、底部页签
-  const about = $('header .badge[data-act="about"]'); if (about) about.textContent = t("介绍");
+  // 框架文字：右上角按钮、底部页签
+  const about = $('header [data-act="about"]'); if (about) about.textContent = t("介绍");
+  const pm = $('header [data-act="print-menu"]'); if (pm) pm.textContent = t("打印");
+  const more = $('header [data-act="more-menu"]'); if (more) more.setAttribute("aria-label", t("更多"));
   const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("设置"); set.setAttribute("aria-label", t("设置")); }
   document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
@@ -38,6 +40,25 @@ function toggleKids(open = $("#kids").hidden){
   $("#kids").hidden = !open;
   $("#bname").setAttribute("aria-expanded", String(open));
   if (open) { const cur = $("#kids [aria-checked='true']"); cur && cur.focus(); }
+}
+/* 右上角菜单：kind = "print"（宽屏“打印”下拉：今日页 / 本周 / 本月）| "more"（窄屏 ⋯：介绍、打印、姊妹应用）| false 关闭 */
+function toggleMenu(kind){
+  const m = $("#hmenu");
+  document.querySelectorAll('header [data-act="print-menu"], header [data-act="more-menu"]').forEach(b => b.setAttribute("aria-expanded", "false"));
+  if (!kind || (!m.hidden && m.dataset.kind === kind)) { m.hidden = true; m.dataset.kind = ""; return; }
+  const printItems = `<div class="lab">${t("打印")}</div>
+    <button role="menuitem" data-act="print-day">${t("今日页")}<small>${t("竖版一页")}</small></button>
+    <button role="menuitem" data-act="print-week">${t("本周")}<small>${t("横版表格")}</small></button>
+    <button role="menuitem" data-act="print-month">${t("本月")}<small>${t("月历 + 周例行")}</small></button>`;
+  const others = SISTER_APPS.filter(a => a.id !== THIS_APP);
+  m.innerHTML = kind === "print" ? printItems : `
+    <button role="menuitem" data-act="about">${t("介绍")}</button>
+    <div class="sep"></div>${printItems}<div class="sep"></div>
+    <div class="lab">${t("姊妹应用")}</div>
+    ${others.map(a => `<a role="menuitem" href="${a.url}">${esc(t(a.name))}<small>›</small></a>`).join("")}`;
+  m.dataset.kind = kind; m.hidden = false;
+  const opener = $(`header [data-act="${kind === "print" ? "print-menu" : "more-menu"}"]`); if (opener) opener.setAttribute("aria-expanded", "true");
+  const first = m.querySelector("[role=menuitem]"); first && first.focus();
 }
 function render(){
   renderStatus();
@@ -60,4 +81,4 @@ function gateHTML(){
   return "";
 }
 
-export { renderStatus, toggleKids, render, refreshSettingsIfOpen };
+export { renderStatus, toggleKids, toggleMenu, render, refreshSettingsIfOpen };
