@@ -39,6 +39,8 @@ document.addEventListener("click", async ev => {
   if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
+  if (d.sf) { S.scrFilter.f = d.sf; openScriptures(); return; }
+  if (d.ss) { S.scrFilter.sort = d.ss; openScriptures(); return; }
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
@@ -62,9 +64,15 @@ document.addEventListener("click", async ev => {
       case "devo-verse": openScriptures(); break;
 
       /* 背诵 */
-      case "review-remember": await hs.setProgress(d.sid, S.childId, "remember"); render(); toast(t("下次复习已排好")); break;
-      case "review-again": await hs.setProgress(d.sid, S.childId, "again"); render(); break;
+      case "review-remember": await hs.setProgress(d.sid, S.childId, "remember"); render(); toast(t("{name}背出来了 ✓", { name: childName() })); break;
+      case "review-again": await hs.setProgress(d.sid, S.childId, "again"); render(); toast(t("记下了，明天再练")); break;
       case "learn-done": await hs.setProgress(d.sid, S.childId, "learned"); render(); toast(t("{name}会背了，3 天后复习", { name: childName() })); break;
+      case "learn-practice": await hs.setProgress(d.sid, S.childId, "practice"); render(); break;
+      case "review-undo": await hs.setProgress(d.sid, S.childId, "undo"); render(); break;
+      case "review-pause": await hs.setProgress(d.sid, S.childId, "pause"); render(); toast(t("先放一放了，卡库的“放一放”里能找回来")); break;
+      case "scr-start-next": await hs.setProgress(d.sid, S.childId, "start"); render(); break;
+      case "scr-pause": await hs.setProgress(d.sid, S.childId, "pause"); openScriptures(); break;
+      case "scr-resume": await hs.setProgress(d.sid, S.childId, "resume"); openScriptures(); break;
       case "scriptures": openScriptures(); break;
       case "seed-scriptures": { const n = await hs.importSeedScriptures(); toast(n ? t("已导入 {n} 张经文卡", { n }) : t("起步经文卡都已经在库里了")); openScriptures(); break; }
       case "scr-start": await hs.setProgress(d.sid, S.childId, "start"); openScriptures(); break;

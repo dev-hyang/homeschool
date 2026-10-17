@@ -3,7 +3,7 @@ import { S, ageText, childName, stageOf } from "./core/state.js";
 import { dayKey, esc } from "./core/util.js";
 import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
-import { devotionDraft, dueReviews, learnedCount, learningCards, routine, scripture, tasksFor, todayPassage } from "./hs.js";
+import { devotionDraft, learnedCount, nextToStart, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
 function viewToday(){
@@ -35,15 +35,32 @@ function devotionHTML(){
   </div>`;
 }
 
+/* 今日背诵：像任务一样的清单。到期复习和在学的卡自动进来，做过的留在原位（✓ 背出来了 / ↻ 练过了），可撤销。
+   只有 ✓ 和 ↻，没有 ✗：“再练练”只是记一次，明天再来。连续三次再练练时给家长一行提示和“先放一放”。 */
 function reviewHTML(){
-  const cid = S.childId, due = dueReviews(cid), learning = learningCards(cid), learned = learnedCount(cid);
-  const card = (s, actions) => `<div class="card"><b>${esc(s.ref)}</b><div>${esc(s.text_zh)}<span class="small muted">${esc(vz(s))}</span></div><div class="small muted">${esc(s.text_en)}${esc(ve(s))}</div><div class="btns" style="margin-top:8px">${actions}</div></div>`;
-  return `<h2>${t("经文背诵")} · ${esc(childName())}</h2>
+  const cid = S.childId, plan = todayPlan(cid), learned = learnedCount(cid), color = subject("bible").color, next = nextToStart(cid);
+  const row = ({ s, p, kind, done }) => {
+    const ok = done && p.last_result === "ok";
+    const meta = kind === "learn"
+      ? (done ? (ok ? t("今天会背了 ✓ · 3 天后复习") : t("今天练过了 · 明天继续")) : t("在学"))
+      : (done ? (ok ? t("今天背出来了 ✓ · 下次 {d}", { d: p.next_review || "" }) : t("今天练过了 · 明天再来")) : t("复习 · 第 {n} 次", { n: (p.reviews || 0) + 1 }));
+    const acts = done
+      ? `<button class="chip" data-act="review-undo" data-sid="${esc(s.id)}">${t("撤销")}</button>`
+      : kind === "learn"
+        ? `<button class="iconbtn ok" data-act="learn-done" data-sid="${esc(s.id)}" aria-label="${t("会背了")}">✓</button><button class="iconbtn redo" data-act="learn-practice" data-sid="${esc(s.id)}" aria-label="${t("今天练过了")}">↻</button>`
+        : `<button class="iconbtn ok" data-act="review-remember" data-sid="${esc(s.id)}" aria-label="${t("背出来了")}">✓</button><button class="iconbtn redo" data-act="review-again" data-sid="${esc(s.id)}" aria-label="${t("再练练")}">↻</button>`;
+    const hint = (p.again_streak || 0) >= 3 ? `<div class="small muted" style="grid-column:2/4;padding-bottom:6px">${t("这节对{name}有点长：可以先只背前半句，或者先放一放，过几周再来。", { name: esc(childName()) })} <button class="chip" data-act="review-pause" data-sid="${esc(s.id)}">${t("先放一放")}</button></div>` : "";
+    return `<div class="task ${done ? (ok ? "done" : "again") : ""}"><span class="bar" style="background:${color}"></span>
+      <div class="main"><span class="title"><b>${esc(s.ref)}</b></span><span class="verse">${esc(s.text_zh)}<span class="small muted"> ${esc(vz(s))}</span></span><span class="verse small muted">${esc(s.text_en)}${esc(ve(s))}</span><span class="meta">${meta}</span></div>
+      <span class="acts">${acts}</span>${hint}</div>`; };
+  const pending = plan.total - plan.done;
+  return `<h2>${t("经文背诵")} · ${esc(childName())}${pending ? ` <span class="pill ok">${t("今日 {n} 节", { n: pending })}</span>` : ""}</h2>
   <div class="panel">
-    ${due.length ? `<h3 class="small muted">${t("今天复习 {n} 节", { n: due.length })}</h3>${due.map(({ s }) => card(s, `<button class="btn primary" data-act="review-remember" data-sid="${esc(s.id)}">${t("记得")}</button><button class="btn" data-act="review-again" data-sid="${esc(s.id)}">${t("再练一天")}</button>`)).join("")}` : ""}
-    ${learning.length ? `<h3 class="small muted" style="margin-top:${due.length ? 14 : 0}px">${t("在学 {n} 节", { n: learning.length })}</h3>${learning.map(({ s }) => card(s, `<button class="btn" data-act="learn-done" data-sid="${esc(s.id)}">${t("会背了")}</button>`)).join("")}` : ""}
-    ${!due.length && !learning.length ? `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>` : `<p class="small muted" style="margin-top:8px">${t("已会背 {n} 节。会背后按 3、7、30、90 天自动安排复习。", { n: learned })}</p>`}
-    <div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>
+    ${plan.rows.length ? `<div class="tasks">${plan.rows.map(row).join("")}</div>
+      <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90 天自动安排复习，到期的会自动出现在这里。")}</p>`
+      : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
+    ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`
+      : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`}
   </div>`;
 }
 

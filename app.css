@@ -139,6 +139,12 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .task .acts{display:flex;gap:4px;align-items:center}
 .task .acts .iconbtn{min-width:40px;height:40px;padding:0;font-size:16px}
 .task .acts .iconbtn.ok{color:var(--sage);font-weight:700}
+.task .acts .iconbtn.redo{color:var(--sky);font-weight:700}
+/* 经文背诵的清单行：经文正文要能读，不截断；“练过了”不划线，只是变淡 */
+.task .verse{font-size:14px;line-height:1.5;white-space:normal}
+.task.again .title,.task.again .verse{color:var(--muted)}
+.task.again .bar,.task.done .bar{opacity:.45}
+.task.done .verse{color:var(--muted)}
 
 /* 周例行 */
 .routine{all:unset;cursor:pointer;display:grid;grid-template-columns:48px 4px 1fr;gap:10px;align-items:center;width:100%;padding:8px 4px;border-bottom:1px solid var(--line);box-sizing:border-box}

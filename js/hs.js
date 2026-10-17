@@ -196,28 +196,60 @@ async function importCatechism(text, lang){
   return { added, updated, total: items.length };
 }
 
-/* ---- 背诵进度：在学 → 会背了 → 3 天、7 天、30 天、90 天复习 ---- */
+/* ---- 背诵进度：在学 → 会背了 → 3 天、7 天、30 天、90 天复习，之后一直 90 天一次 ----
+   reviews 是已通过的复习次数，决定下一档间隔。“再练练”不是失败：记一次，明天再来，并退一档间隔重新巩固。
+   迁移 011 加了 last_on / last_result / again_streak / undo_to 和 paused 状态；今天页据此把做过的卡留在原位，并支持撤销。 */
 const INTERVALS = [3, 7, 30, 90];
+const tier = n => INTERVALS[Math.min(n, INTERVALS.length - 1)];
 const progressOf = (sid, cid) => S.hs.progress.find(p => p.scripture_id === sid && p.child_id === cid) || null;
+const snapshot = p => p ? { status: p.status, learned_on: p.learned_on, next_review: p.next_review, reviews: p.reviews || 0, again_streak: p.again_streak || 0, last_on: p.last_on || null, last_result: p.last_result || null } : null;
 async function setProgress(sid, cid, action){
   const cur = progressOf(sid, cid), t = today(), plus = n => dayKey(Date.now() + n * D);
   if (action === "reset") {
     await run(SB.client.from("hs_scripture_progress").delete().eq("family_id", fid()).eq("scripture_id", sid).eq("child_id", cid));
     S.hs.progress = S.hs.progress.filter(p => !(p.scripture_id === sid && p.child_id === cid)); return;
   }
+  const base = { ...snapshot(cur), undo_to: null }, reviews = (cur && cur.reviews) || 0, streak = (cur && cur.again_streak) || 0;
+  const wasAgain = cur && cur.last_result === "again";
   let row;
-  if (action === "start") row = { status: "learning", learned_on: null, next_review: null, reviews: 0 };
-  else if (action === "learned") row = { status: "learned", learned_on: t, next_review: plus(INTERVALS[0]), reviews: 0 };
-  else if (action === "remember") { const n = ((cur && cur.reviews) || 0) + 1; row = { status: "learned", learned_on: (cur && cur.learned_on) || t, next_review: plus(INTERVALS[Math.min(n, INTERVALS.length - 1)]), reviews: n }; }
-  else if (action === "again") row = { status: "learned", learned_on: (cur && cur.learned_on) || t, next_review: plus(1), reviews: (cur && cur.reviews) || 0 };
+  if (action === "start") row = { status: "learning", learned_on: null, next_review: null, reviews: 0, again_streak: 0, last_on: null, last_result: null };
+  // 在学卡今天练过了，还没到会背：只记日期，卡留在今天页
+  else if (action === "practice") row = { ...base, status: "learning", last_on: t, last_result: "practice", undo_to: snapshot(cur) };
+  else if (action === "learned") row = { status: "learned", learned_on: t, next_review: plus(tier(0)), reviews: 0, again_streak: 0, last_on: t, last_result: "ok", undo_to: snapshot(cur) };
+  // 上次是“再练练”的话，这次记得只是把退掉的那一档重新挣回来，不再往前跳
+  else if (action === "remember") { const n = wasAgain ? reviews : reviews + 1; row = { ...base, status: "learned", learned_on: (cur && cur.learned_on) || t, next_review: plus(tier(n)), reviews: n, again_streak: 0, last_on: t, last_result: "ok", undo_to: snapshot(cur) }; }
+  // 退一档：刚过的那一档是 tier(min(reviews,3))，明天记得后落到它的前一档；连续再练不重复退
+  else if (action === "again") row = { ...base, status: "learned", learned_on: (cur && cur.learned_on) || t, next_review: plus(1), reviews: wasAgain ? reviews : Math.max(0, Math.min(reviews, INTERVALS.length - 1) - 1), again_streak: streak + 1, last_on: t, last_result: "again", undo_to: snapshot(cur) };
+  else if (action === "pause") row = { ...base, status: "paused", next_review: null, again_streak: 0, last_on: null, last_result: null, undo_to: null };
+  else if (action === "resume") row = { ...base, status: cur && cur.learned_on ? "learned" : "learning", next_review: cur && cur.learned_on ? t : null, again_streak: 0, last_on: null, last_result: null, undo_to: null };
+  else if (action === "undo") { if (!cur || !cur.undo_to) return; row = { ...cur.undo_to, undo_to: null }; }
   else return;
-  const data = await run(SB.client.from("hs_scripture_progress").upsert({ family_id: fid(), scripture_id: sid, child_id: cid, ...row }).select().single());
+  let data;
+  try { data = await run(SB.client.from("hs_scripture_progress").upsert({ family_id: fid(), scripture_id: sid, child_id: cid, ...row }).select().single()); }
+  catch (e) { if (/last_on|last_result|again_streak|undo_to|paused|status_check/.test(e.message || "")) toast(t("背诵记录的新字段还没建：请先执行迁移 011")); throw e; }
   const i = S.hs.progress.findIndex(p => p.scripture_id === sid && p.child_id === cid); if (i >= 0) S.hs.progress[i] = data; else S.hs.progress.push(data);
 }
 const withCard = list => list.map(p => ({ p, s: scripture(p.scripture_id) })).filter(x => x.s);
 const dueReviews = cid => withCard(S.hs.progress.filter(p => p.child_id === cid && p.status === "learned" && p.next_review && p.next_review <= today()));
 const learningCards = cid => withCard(S.hs.progress.filter(p => p.child_id === cid && p.status === "learning"));
 const learnedCount = cid => S.hs.progress.filter(p => p.child_id === cid && p.status === "learned").length;
+/* 今日背诵清单：按阶段封顶（幼儿 1+1、学前 1+2、学龄 2+3），今天做过的卡留在原位并计入封顶；超出的自动排到明天。
+   写死不做设置项；两岁前按幼儿算。 */
+const DAILY_CAP = { baby: { learn: 1, review: 1 }, toddler: { learn: 1, review: 1 }, prek: { learn: 1, review: 2 }, school: { learn: 2, review: 3 } };
+function todayPlan(cid){
+  const d = today(), cap = DAILY_CAP[stageOf(cid).key] || DAILY_CAP.prek, order = new Map(S.hs.scriptures.map((s, i) => [s.id, i]));
+  const mine = withCard(S.hs.progress.filter(p => p.child_id === cid && p.status !== "paused"));
+  const isLearn = x => x.p.status === "learning" || (x.p.last_result === "ok" && x.p.learned_on === d && !x.p.reviews);
+  const done = mine.filter(x => x.p.last_on === d).map(x => ({ ...x, kind: isLearn(x) ? "learn" : "review", done: true }));
+  const dueAll = mine.filter(x => x.p.last_on !== d && x.p.status === "learned" && x.p.next_review && x.p.next_review <= d).sort((a, b) => a.p.next_review < b.p.next_review ? -1 : 1);
+  const learnAll = mine.filter(x => x.p.last_on !== d && x.p.status === "learning").sort((a, b) => (order.get(a.s.id) || 0) - (order.get(b.s.id) || 0));
+  const roomR = Math.max(0, cap.review - done.filter(x => x.kind === "review").length), roomL = Math.max(0, cap.learn - done.filter(x => x.kind === "learn").length);
+  const due = dueAll.slice(0, roomR).map(x => ({ ...x, kind: "review", done: false })), learn = learnAll.slice(0, roomL).map(x => ({ ...x, kind: "learn", done: false }));
+  const rows = [...due, ...done.filter(x => x.kind === "review"), ...learn, ...done.filter(x => x.kind === "learn")];
+  return { rows, done: done.length, total: rows.length, later: (dueAll.length - due.length) + (learnAll.length - learn.length), cap };
+}
+// 当前孩子还没开始背的第一张卡（卡库顺序），用于“开始下一节”
+const nextToStart = cid => S.hs.scriptures.find(s => !progressOf(s.id, cid)) || null;
 
 /* ---- 周例行 ---- */
 async function upsertRoutine(r){
@@ -452,7 +484,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
