@@ -47,7 +47,7 @@ function viewIdeas(){
     <div class="v"><b>${tc(esc(x.t))}</b> <a class="small" href="${searchUrl(x)}" target="_blank" rel="noopener">${t("搜详情")}</a><div class="small">${tc(esc(x.h))}</div>${x.f ? `<div class="small muted">✝ ${tc(esc(x.f))}</div>` : ""}</div>
     <button class="chip" data-act="idea-add" data-band="${band.id}" data-cat="${f.cat}" data-i="${i}" title="${t("加到{name}今天的任务", { name: esc(childName()) })}">${t("加到今天")}</button></div>`;
   return `<h2>${t("日常点子")}</h2>
-  <div class="chips" role="group" aria-label="${t("来源")}">${chip("mode", "feed", t("每日新鲜（博客）"), feed ? "feed" : "list")}${chip("mode", "list", t("精选清单"), feed ? "feed" : "list")}${feed ? `<span style="flex-basis:100%"></span>${chip("lang", "en", t("English 博客"), f.lang)}${chip("lang", "zh", t("中文（吹号者）"), f.lang)}` : ""}</div>
+  <div class="chips" role="group" aria-label="${t("来源")}">${chip("mode", "feed", t("每日新鲜（博客）"), feed ? "feed" : "list")}${chip("mode", "list", t("精选清单"), feed ? "feed" : "list")}${feed ? `<span style="flex-basis:100%"></span>${chip("lang", "en", t("English 博客"), f.lang)}${chip("lang", "zh", t("中文博客（在家教育 · 亲子）"), f.lang)}` : ""}</div>
   <div class="chips" role="group" aria-label="${t("年龄段")}" style="margin-top:0">${BANDS.map(b => chip("band", b.id, t(b.name) + (b.id === auto.id ? `（${childName()}）` : ""), band.id)).join("")}</div>
   <div class="chips" role="group" aria-label="${t("类别")}" style="margin-top:0">${Object.entries(CATS).map(([k, c]) => chip("cat", k, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</div>
   <div class="panel">${feed ? feedHTML(f, band.id, color) : `${f.cat === "chore" ? `<p class="small muted" style="margin-top:0">${t("家务按年龄逐级加码：前一档会做的继续做，这里只列本档新加的。先一起做，再放手。")}</p>` : ""}${shown.map(item).join("")}`}
@@ -56,6 +56,7 @@ function viewIdeas(){
 const ideaSourcesHTML = () => `<p class="small muted">${t("<b>每日新鲜</b>直接读下面博客的 WordPress 公开接口（和经文抓取用 getBible 一个道理：无密钥、浏览器直取），每条都链接到原文；<b>精选清单</b>是内置的固定清单，每条带一个“搜详情”。年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 没有公开接口，抓不到，看到好的可以手动加进资源库。")}</p>
   <h2>${t("每日新鲜读的博客")}</h2>
   ${FEEDS.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="https://${esc(s.host)}/" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${s.lang === "zh" ? t("中文") : t("英文")} · ${s.cats.map(c => t(CATS[c].name)).join(" / ")}</div></div><span></span></div>`).join("")}
+  <p class="small muted">${t("中文站少：吹号者（纽约华人在家教育事工）、在基督裡自學（台湾基督徒自学家庭，WordPress.com）、舉目（海外校园的亲子与教养文章）。它们的文章偏信仰与教养，手工类不多。知道别的开着公开接口的中文博客，告诉我们就能加。")}</p>
   <h2>${t("精选清单参考")}</h2>
   ${IDEA_SOURCES.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${tc(esc(s.note))}</div></div><span></span></div>`).join("")}`;
 

@@ -93,7 +93,7 @@ const EN = {
   "法律依据": "Legal basis", "对我们家的含义": "What it means for us", "来源": "Sources", "五州一览": "Five states at a glance", "州": "State", "报备": "Notice", "义务教育年龄": "Compulsory ages", "家长资质": "Parent qualification", "考试": "Testing",
 
   // ---- 资源 / 日常点子 ----
-  "日常点子": "Daily Ideas", "每日新鲜（博客）": "Fresh daily (blogs)", "精选清单": "Curated list", "English 博客": "English blogs", "中文（吹号者）": "Chinese (Trumpeter)",
+  "日常点子": "Daily Ideas", "每日新鲜（博客）": "Fresh daily (blogs)", "精选清单": "Curated list", "English 博客": "English blogs", "中文博客（在家教育 · 亲子）": "Chinese blogs (homeschool · family)",
   "年龄段": "Age band", "类别": "Category", "2–3 岁": "Ages 2–3", "4–5 岁": "Ages 4–5", "6–8 岁": "Ages 6–8", "手工": "Crafts", "户外": "Outdoors", "家务": "Chores",
   "正在从博客取今天的点子…": "Fetching today’s ideas from the blogs…", "这一批没取到": "Nothing came back for this batch", "点“换一批”，或切到精选清单。": "Try “Another batch” or switch to the curated list.",
   "点标题看原文": "tap the title for the full post", "加到{name}今天的任务": "Add to {name}’s tasks today", "加到今天": "Add to today",
@@ -102,7 +102,8 @@ const EN = {
   "换一批": "Another batch", "只看几条": "Show fewer", "看全部 {n} 条": "Show all {n}", "参考来源": "Sources",
   "<b>每日新鲜</b>直接读下面博客的 WordPress 公开接口（和经文抓取用 getBible 一个道理：无密钥、浏览器直取），每条都链接到原文；<b>精选清单</b>是内置的固定清单，每条带一个“搜详情”。年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 没有公开接口，抓不到，看到好的可以手动加进资源库。":
     "<b>Fresh daily</b> reads the public WordPress API of the blogs below straight from the browser (no key, like getBible for scripture); every item links to the original post. The <b>curated list</b> is built in, each item with a search link. Ages are a guide only. WeChat and Facebook have no public API; add favourites to the resource library by hand.",
-  "每日新鲜读的博客": "Blogs read by Fresh daily", "精选清单参考": "Curated list references", "中文": "Chinese", "英文": "English", "双语": "Bilingual",
+  "每日新鲜读的博客": "Blogs read by Fresh daily",
+  "中文站少：吹号者（纽约华人在家教育事工）、在基督裡自學（台湾基督徒自学家庭，WordPress.com）、舉目（海外校园的亲子与教养文章）。它们的文章偏信仰与教养，手工类不多。知道别的开着公开接口的中文博客，告诉我们就能加。": "Chinese sources are few: Trumpeter (a Chinese homeschool ministry in New York), Homeschooling in Christ (a Taiwanese Christian homeschooling family on WordPress.com) and Behold (family and parenting articles from Overseas Campus). They lean toward faith and parenting rather than crafts. Know another Chinese blog with a public API? Tell us and it can be added.", "精选清单参考": "Curated list references", "中文": "Chinese", "英文": "English", "双语": "Bilingual",
   "资源库": "Resource Library", "资源库需要数据库迁移 004。": "The resource library needs database migration 004.", "岁": "y", "起": "+", "全部": "All", "语言与类型": "Language & type",
   "所有语言": "All languages", "所有类型": "All types", "链接": "Link", "书": "Book", "视频": "Video", "打印件": "Printable", "机构": "Organization",
   "没有符合筛选的资源。": "No resources match the filter.", "资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。": "The library is empty. Import the starter set (the vetted Chinese and English list) or add your own.",
