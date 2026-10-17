@@ -202,7 +202,7 @@ const breakFields = [
 function themePref(){ try { return localStorage.getItem(LS_PREFIX + ".theme") || ""; } catch (e) { return ""; } }
 function openSettings(){
   const kids = S.children;
-  $("#sheetIn").innerHTML = `${head(esc(t("设置")), `<button class="iconbtn" data-act="about">${esc(t("介绍"))}</button> `)}
+  $("#sheetIn").innerHTML = `${head(esc(t("设置")))}
   <h2>${t("家庭")}</h2>
   ${familyHTML()}
 
