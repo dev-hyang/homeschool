@@ -11,6 +11,7 @@ import { RES_LANGS, RES_TYPES, feedItem, ideaSourcesHTML } from "./resources.js"
 import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
+import { openPrint } from "./print.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
@@ -71,6 +72,11 @@ document.addEventListener("click", async ev => {
       case "review-undo": await hs.setProgress(d.sid, S.childId, "undo"); render(); break;
       case "review-pause": await hs.setProgress(d.sid, S.childId, "pause"); render(); toast(t("先放一放了，卡库的“放一放”里能找回来")); break;
       case "scr-start-next": await hs.setProgress(d.sid, S.childId, "start"); render(); break;
+      case "learn-swap": { btn.disabled = true; const s = await hs.swapVerse(d.sid, S.childId); render(); toast(s ? t("换成了 {ref}", { ref: s.ref }) : t("卡库里没有别的可换了，去经文卡库加几张")); break; }
+      case "autoverse-toggle": await hs.saveSettings({ autoVerse: S.hs.settings.autoVerse === false }); if (S.hs.settings.autoVerse !== false) await hs.autoAssignVerses(); openSettings(); render(); break;
+      case "print-day": openPrint("day"); break;
+      case "print-week": openPrint("week"); break;
+      case "print-month": openPrint("month", d.ym || undefined); break;
       case "scr-pause": await hs.setProgress(d.sid, S.childId, "pause"); openScriptures(); break;
       case "scr-resume": await hs.setProgress(d.sid, S.childId, "resume"); openScriptures(); break;
       case "scriptures": openScriptures(); break;

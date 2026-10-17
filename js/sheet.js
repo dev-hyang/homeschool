@@ -199,6 +199,10 @@ function openSettings(){
 
   ${S.hs.loaded ? `<h2>${t("读经计划")}</h2><div class="panel">${planHTML()}</div>
   <h2>${t("本月诗歌")}</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">${t("还没填")}</span>`}</p><div class="btns" style="margin-top:0"><button class="btn" data-act="devo-hymn">${t("修改")}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div></div>
+  <h2>${t("经文背诵")}</h2><div class="panel"><p class="small">${S.hs.settings.autoVerse === false ? t("已关闭：") : t("已开启：")}${t("每天 8 点，哪个孩子还没有在学的经文，就从卡库里还没背过的卡中随机挑一节开始背；家长 8 点前手动点了“开始背”就不再加。卡库都背过了，自动从成套经文里按顺序抓下一批 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。")}</p>
+    <div class="btns" style="margin-top:0"><button class="btn ${S.hs.settings.autoVerse === false ? "primary" : ""}" data-act="autoverse-toggle">${S.hs.settings.autoVerse === false ? t("开启自动安排") : t("关闭自动安排")}</button></div></div>
+  <h2>${t("打印")}</h2><div class="panel"><p class="small">${t("不想一直看手机：打一张贴在冰箱上。今日页竖版一页（敬拜、背诵经文全文、任务、备注）；本周横版一张表，每格一个勾；本月一张月历加周例行。晚上或周末再把勾补回手机。")}</p>
+    <div class="btns" style="margin-top:0"><button class="btn primary" data-act="print-day">${t("今日页")}</button><button class="btn" data-act="print-week">${t("本周")}</button><button class="btn" data-act="print-month">${t("本月")}</button></div></div>
   <h2>${t("经文译本")}</h2><div class="panel"><p>${t("手写卡的默认标注：中文 <b>{zh}</b>，英文 <b>{en}</b>。", { zh: esc(defaultVersions().zh), en: esc(defaultVersions().en) })}</p>
     <p class="small">${t("自动抓取用：中文 <b>{zh}</b>，英文 <b>{en}</b>{fb}。免费直取：和合本、新译本、当代译本；BSB、NLT、WEB、KJV、ASV。有版权的 ESV、NASB、NIV、CSB、NKJV 要经一个 Supabase Edge Function 代理（持 Crossway / API.Bible 的免费非商业密钥），在这里填地址。", { zh: esc(fetchVersions().zh), en: esc(fetchVersions().en), fb: fetchVersions().enFallback ? t("（{v} 需要代理，暂时回退到公有领域的 BSB）", { v: esc(fetchVersions().wanted.en) }) : "" })}</p>
     <div class="btns" style="margin-top:0"><button class="btn" data-act="versions-edit">${t("手写卡默认译本")}</button><button class="btn" data-act="fetch-settings">${t("抓取译本与代理")}</button></div></div>

@@ -13,6 +13,7 @@ function viewToday(){
     <div class="lbl">${day} · ${esc(weekdayLabel(new Date(now).getDay()))}</div>
     <div class="big">${esc(childName())}</div>
     <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span></div></section>
+  ${printHTML()}
   ${devotionHTML()}
   ${reviewHTML()}
   ${tasksHTML(day)}`;
@@ -47,7 +48,7 @@ function reviewHTML(){
     const acts = done
       ? `<button class="chip" data-act="review-undo" data-sid="${esc(s.id)}">${t("撤销")}</button>`
       : kind === "learn"
-        ? `<button class="iconbtn ok" data-act="learn-done" data-sid="${esc(s.id)}" aria-label="${t("会背了")}">✓</button><button class="iconbtn redo" data-act="learn-practice" data-sid="${esc(s.id)}" aria-label="${t("今天练过了")}">↻</button>`
+        ? `${p.last_on ? "" : `<button class="chip" data-act="learn-swap" data-sid="${esc(s.id)}" title="${t("这节不合适，随机换一节")}">${t("换一个")}</button>`}<button class="iconbtn ok" data-act="learn-done" data-sid="${esc(s.id)}" aria-label="${t("会背了")}">✓</button><button class="iconbtn redo" data-act="learn-practice" data-sid="${esc(s.id)}" aria-label="${t("今天练过了")}">↻</button>`
         : `<button class="iconbtn ok" data-act="review-remember" data-sid="${esc(s.id)}" aria-label="${t("背出来了")}">✓</button><button class="iconbtn redo" data-act="review-again" data-sid="${esc(s.id)}" aria-label="${t("再练练")}">↻</button>`;
     const hint = (p.again_streak || 0) >= 3 ? `<div class="small muted" style="grid-column:2/4;padding-bottom:6px">${t("这节对{name}有点长：可以先只背前半句，或者先放一放，过几周再来。", { name: esc(childName()) })} <button class="chip" data-act="review-pause" data-sid="${esc(s.id)}">${t("先放一放")}</button></div>` : "";
     return `<div class="task ${done ? (ok ? "done" : "again") : ""}"><span class="bar" style="background:${color}"></span>
@@ -61,7 +62,13 @@ function reviewHTML(){
       : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
     ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`
       : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`}
+    ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("每天 8 点如果还没有在学的经文，会从卡库随机挑一节；不合适就点“换一个”。可在设置里关闭。")}</p>`}
   </div>`;
+}
+
+/* 打印：给不想一直看手机的家庭。今日页 / 本周 / 本月三种纸 */
+function printHTML(){
+  return `<div class="chips" style="margin:0 0 4px;justify-content:flex-end"><span class="small muted" style="align-self:center">${t("打印")}</span><button class="chip" data-act="print-day">${t("今日页")}</button><button class="chip" data-act="print-week">${t("本周")}</button><button class="chip" data-act="print-month">${t("本月")}</button></div>`;
 }
 
 function tasksHTML(day){

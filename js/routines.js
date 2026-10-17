@@ -30,6 +30,7 @@ function monthHTML(){
   const status = x => x.status === "done" ? `${t("完成")}${x.minutes ? ` ${t("{n} 分钟", { n: x.minutes })}` : ""}` : x.status === "skip" ? t("跳过") : t("待做");
   return `<h2>${t("日历")} · ${esc(childName())}</h2>
   <div class="daynav"><button class="iconbtn" data-act="cal-prev" aria-label="${t("上个月")}">‹</button><b>${t("{y} 年 {m} 月", { y, m })}</b><button class="iconbtn" data-act="cal-next" aria-label="${t("下个月")}">›</button></div>
+  <div class="chips" style="margin:0 0 6px;justify-content:flex-end"><span class="small muted" style="align-self:center">${t("打印")}</span><button class="chip" data-act="print-week">${t("本周")}</button><button class="chip" data-act="print-month" data-ym="${ym}">${t("{y} 年 {m} 月", { y, m })}</button></div>
   <div class="panel" style="padding:10px">
     <div class="month">${WEEKDAYS.map(w => `<span class="wd">${t("周" + w).replace(/^周/, "")}</span>`).join("")}${cells.join("")}</div>
     ${md ? "" : `<p class="small muted">${t("正在读取…")}</p>`}

@@ -146,6 +146,48 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .task.again .bar,.task.done .bar{opacity:.45}
 .task.done .verse{color:var(--muted)}
 
+/* ============ 打印（js/print.js）：屏幕上不显示 #print；打印时只显示它 ============ */
+#print{display:none}
+@media print{
+  @page{margin:12mm}
+  body.printing{background:#fff!important;color:#000!important}
+  body.printing .wrap,body.printing nav.tabs,body.printing #sheet,body.printing #toast{display:none!important}
+  body.printing #print{display:block;font:12pt/1.45 "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#000}
+  #print .ppage{page-break-after:always}
+  #print .ppage:last-child{page-break-after:auto}
+  #print .pweek{page:week}
+  @page week{size:landscape;margin:10mm}
+  #print h3{font-size:12.5pt;margin:12pt 0 4pt;padding-bottom:2pt;border-bottom:1.5px solid #000}
+  #print .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:6pt}
+  #print .ptitle{font-size:18pt;font-weight:700}
+  #print .psub{font-size:10.5pt;color:#333}
+  #print .pright{font-size:10pt;color:#333;text-align:right}
+  #print .pmuted{color:#555;font-size:9.5pt}
+  #print .small{font-size:9.5pt}
+  #print .pbox{display:inline-block;width:12pt;height:12pt;border:1.5px solid #000;border-radius:2pt;vertical-align:-2pt;margin-right:4pt;flex:none}
+  #print .pline{border-bottom:1px solid #999;height:18pt}
+  #print .prow{display:flex;align-items:flex-start;gap:6pt;padding:4pt 0;border-bottom:1px dotted #bbb;break-inside:avoid}
+  #print .pverse{break-inside:avoid}
+  #print .pverse div{margin-top:1pt}
+  #print table{width:100%;border-collapse:collapse}
+  #print .pkv th{text-align:left;font-weight:500;width:14%;padding:4pt 6pt 4pt 0;vertical-align:top;color:#333;font-size:10.5pt}
+  #print .pkv td{padding:4pt 0;vertical-align:top;border-bottom:1px dotted #bbb}
+  #print .pgrid th,#print .pgrid td{border:1px solid #000;padding:4pt 5pt;font-size:10pt;vertical-align:top;text-align:center}
+  #print .pgrid th.first{text-align:left;width:22%;font-weight:500}
+  #print .pgrid thead th{background:#eee;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pgrid th.today{text-decoration:underline}
+  #print .pgrid td.off,#print .pgrid td.na{background:#e6e6e6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pgrid td.c{height:26pt}
+  #print .pdot{display:inline-block;width:7pt;height:7pt;border-radius:50%;margin-right:4pt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pcal th{border:1px solid #000;padding:3pt;font-size:10pt;font-weight:500;background:#eee;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pcal td{border:1px solid #000;height:62pt;width:14.28%;padding:3pt 4pt;vertical-align:top;font-size:9.5pt}
+  #print .pcal td.pad{background:#f4f4f4;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pcal td.off{background:#e6e6e6;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #print .pcal td.today .pd{text-decoration:underline;font-weight:700}
+  #print .pcal .pd{font-weight:600;font-size:11pt}
+  #print .pfoot{margin-top:10pt;font-size:9pt;color:#555;border-top:1px solid #999;padding-top:4pt}
+}
+
 /* 周例行 */
 .routine{all:unset;cursor:pointer;display:grid;grid-template-columns:48px 4px 1fr;gap:10px;align-items:center;width:100%;padding:8px 4px;border-bottom:1px solid var(--line);box-sizing:border-box}
 .routine:last-child{border-bottom:0}

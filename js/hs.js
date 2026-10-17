@@ -40,7 +40,9 @@ async function loadAll(){
   const [fam, scr, prog, rout, tasks, devo] = rs.map(r => r.data);
   // 迁移 005 加的译本列：任一行带该字段即视为已迁移；没有卡时写一次探测
   const versions = (scr && scr.length) ? ("version_zh" in scr[0]) : await probeVersions(f);
-  S.hs = { ...S.hs, loaded: true, error: null, day, versions, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
+  // 迁移 011 加的背诵记录列：同样的探测方式
+  const reviewLog = (prog && prog.length) ? ("last_on" in prog[0]) : !(await SB.client.from("hs_scripture_progress").select("last_on").eq("family_id", f).limit(1)).error;
+  S.hs = { ...S.hs, loaded: true, error: null, day, versions, reviewLog, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
   // 阶段 2–4 的表（迁移 004）；还没建时这些页面单独提示，不影响今天页
   const rs2 = await Promise.all([
     SB.client.from("hs_units").select("*").eq("family_id", f).order("sort"),
@@ -57,6 +59,7 @@ async function loadAll(){
     S.hs = { ...S.hs, phase2: true, pacing, tplCol, units: u, lessons: l, goals: g, resources: r };
   }
   await ensureTodayTasks();
+  await autoAssignVerses();
 }
 
 /* ---- 学年：开学日、周数、学期长度、假期（settings.year）---- */
@@ -88,7 +91,8 @@ function unitPace(u){
 async function touchUnitStart(uid){ const u = unit(uid); if (u && S.hs.pacing && !u.start_on) await upsertUnit({ ...u, start_on: today() }); }
 async function probeVersions(f){ const { error } = await SB.client.from("hs_scriptures").select("version_zh").eq("family_id", f).limit(1); return !error; }
 // day rolled over while the page stayed open → reload today's rows
-async function refreshIfNewDay(){ if (S.hs.loaded && S.hs.day !== today()) await loadAll(); }
+// 页面回到前台 / 每分钟：过了午夜就整体重读；到了 8 点就补经文
+async function refreshIfNewDay(){ if (S.hs.loaded && S.hs.day !== today()) await loadAll(); else if (S.hs.loaded) await autoAssignVerses(); }
 
 /* ---- 家庭级设置 ---- */
 async function saveSettings(patch){
@@ -224,6 +228,11 @@ async function setProgress(sid, cid, action){
   else if (action === "resume") row = { ...base, status: cur && cur.learned_on ? "learned" : "learning", next_review: cur && cur.learned_on ? t : null, again_streak: 0, last_on: null, last_result: null, undo_to: null };
   else if (action === "undo") { if (!cur || !cur.undo_to) return; row = { ...cur.undo_to, undo_to: null }; }
   else return;
+  // 迁移 011 还没跑：老的四个动作退回旧写法（只写旧列），新动作提示先跑迁移
+  if (!S.hs.reviewLog) {
+    if (!["start", "learned", "remember", "again"].includes(action)) { toast(t("背诵记录的新字段还没建：请先执行迁移 011")); return; }
+    row = { status: row.status, learned_on: row.learned_on, next_review: row.next_review, reviews: row.reviews };
+  }
   let data;
   try { data = await run(SB.client.from("hs_scripture_progress").upsert({ family_id: fid(), scripture_id: sid, child_id: cid, ...row }).select().single()); }
   catch (e) { if (/last_on|last_result|again_streak|undo_to|paused|status_check/.test(e.message || "")) toast(t("背诵记录的新字段还没建：请先执行迁移 011")); throw e; }
@@ -250,6 +259,47 @@ function todayPlan(cid){
 }
 // 当前孩子还没开始背的第一张卡（卡库顺序），用于“开始下一节”
 const nextToStart = cid => S.hs.scriptures.find(s => !progressOf(s.id, cid)) || null;
+const unstarted = (cid, except) => S.hs.scriptures.filter(s => s.id !== except && !progressOf(s.id, cid));
+
+/* ---- 8 点自动安排：在学为空的孩子，从卡库里还没背过的卡中随机挑一节开始背；
+   卡库都背过了，就从成套经文里抓下一批（每次 5 节，按套的顺序，已有的跳过），再挑。
+   家长手动点了“开始背”就不会再加；设置里可以关（settings.autoVerse = false）。两岁前不安排。 ---- */
+const AUTO_HOUR = 8, AUTO_BATCH = 5;
+async function fetchNextBatch(){
+  const have = new Set(S.hs.scriptures.map(s => refKey(s.ref)));
+  for (const set of VERSE_SETS) {
+    const refs = set.refs.filter(r => { const p = parseRef(r); return p && !have.has(refKey(p.label)); }).slice(0, AUTO_BATCH);
+    if (!refs.length) continue;
+    const r = await generateCards(refs);
+    if (r.added) { toast(t("卡库背完了，已从「{set}」自动抓来 {n} 节", { set: set.name, n: r.added })); return r.added; }
+  }
+  return 0;
+}
+async function pickRandom(cid, except){
+  let pool = unstarted(cid, except);
+  if (!pool.length) { if (!(await fetchNextBatch())) return null; pool = unstarted(cid, except); }
+  if (!pool.length) return null;
+  const s = pool[Math.floor(Math.random() * pool.length)];
+  await setProgress(s.id, cid, "start"); return s;
+}
+async function autoAssignVerses(){
+  if (!S.hs.loaded || !S.hs.reviewLog || S.hs.settings.autoVerse === false || !S.hs.scriptures.length) return 0;
+  const day = today();
+  if (new Date().getHours() < AUTO_HOUR || S.hs.autoDay === day || isOffDay(day)) return 0;
+  S.hs.autoDay = day; let n = 0;
+  for (const c of S.children) {
+    if (stageOf(c.id).key === "baby") continue;
+    const plan = todayPlan(c.id);
+    if (plan.rows.some(x => x.kind === "learn")) continue; // 已经有在学的（手动加的或昨天剩下的）
+    try { if (await pickRandom(c.id)) n++; } catch (e) { /* run() 已提示 */ }
+  }
+  return n;
+}
+// 觉得这节不合适：清掉它，再随机换一节
+async function swapVerse(sid, cid){
+  await setProgress(sid, cid, "reset");
+  return pickRandom(cid, sid);
+}
 
 /* ---- 周例行 ---- */
 async function upsertRoutine(r){
@@ -484,7 +534,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
