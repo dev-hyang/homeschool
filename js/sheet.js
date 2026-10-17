@@ -1,5 +1,5 @@
 import { familyHTML } from "./core/auth.js";
-import { APP_VERSION, BABY_LOG_URL, LS_PREFIX } from "./core/config.js";
+import { APP_VERSION, BABY_LOG_URL, LS_PREFIX, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { LOCALES, locale, t, tc } from "./core/i18n.js";
 import { S, ageText, childName, stageOf } from "./core/state.js";
 import { $, dayKey, esc } from "./core/util.js";
@@ -218,6 +218,12 @@ function openSettings(){
     : `<p class="muted">${S.cloud === "ready" ? t("家庭里还没有孩子。") : t("登录并进入家庭后，这里会显示孩子。")}</p>`}
     <p class="small muted" style="margin-top:8px">${t("孩子的名字和生日在")}<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">${t("小月亮")}</a>${t("的设置里维护，两个应用共用同一份。")}${S.childrenSource === "settings" ? t("（当前读取的是旧格式；数据库迁移 002 执行后会自动切到 children 表。）") : ""}</p>
   </div>
+
+  <h2>${t("姊妹应用")}</h2>
+  <div class="panel" style="padding:4px 14px">
+    ${SISTER_APPS.map(a => `<div class="medrow"><div><b>${a.id === THIS_APP ? esc(t(a.name)) : `<a href="${a.url}">${esc(t(a.name))}</a>`}</b>${a.id === THIS_APP ? ` <span class="small muted">${t("（当前）")}</span>` : ""}<div class="small muted">${tc(esc(a.desc))}</div></div>${a.id === THIS_APP ? "" : `<a class="chip" href="${a.url}" style="text-decoration:none">${t("打开")}</a>`}</div>`).join("")}
+  </div>
+  <p class="small muted">${t("同一个账号、同一个家庭，三个站点互通；标题旁的左右箭头也能切换。")}</p>
 
   <h2>${t("界面语言")}</h2>
   <div class="seg" role="group" aria-label="${t("界面语言")}">${LOCALES.map(([v, l]) => `<button data-locale-set="${v}" aria-pressed="${locale() === v}" lang="${v}">${l}</button>`).join("")}</div>

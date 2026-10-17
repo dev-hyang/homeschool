@@ -4,6 +4,10 @@
 
 纯静态网页，无构建步骤，托管在 GitHub Pages：`https://dev-hyang.github.io/homeschool/`。
 
+## 姊妹应用
+
+小月亮（`baby-log`）、家庭学堂（本仓库）、家庭妈妈小助手（`home-pantry`）三个站点同一个账号同一个家庭。站点列表在 `js/core/config.js` 的 `SISTER_APPS`；标题旁的左右箭头按这个顺序环绕切换，设置页也有一组链接。
+
 ## 与小月亮的关系
 
 - 同一个 Supabase 项目、同一个账号、同一个家庭、同一份孩子列表。两个站点都在 `dev-hyang.github.io` 下，登录会话通过浏览器自动共享。

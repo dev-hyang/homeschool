@@ -45,6 +45,8 @@ const EN = {
   "继续背": "Resume", "放一放": "Set aside", "没开始": "Not started", "进行中": "Active", "按复习时间": "By review date", "按卡库顺序": "Library order", "今天 ✓": "Today ✓", "今天 ↻": "Today ↻",
   "会背 · 下次复习 {d} · 已复习 {n} 次": "Memorized · next review {d} · reviewed {n}×", "{name}现在没有在背的经文。到“没开始”里挑一张开始背。": "{name} has no verses in progress. Pick one under “Not started”.", "这个筛选下没有卡。": "No cards match this filter.",
   "背诵记录的新字段还没建：请先执行迁移 011": "The review-log columns are missing: run migration 011 first",
+  "家庭妈妈小助手": "Home Helper", "学堂": "School", "小助手": "Helper", "切到{name}": "Switch to {name}", "切换姊妹应用": "Switch sister app", "姊妹应用": "Sister apps", "（当前）": "(this one)", "打开": "Open",
+  "同一个账号、同一个家庭，三个站点互通；标题旁的左右箭头也能切换。": "One account, one family, three sites; the arrows beside the title switch between them too.",
   "换一个": "Swap", "这节不合适，随机换一节": "Not a good fit; pick another at random", "换成了 {ref}": "Swapped to {ref}", "卡库里没有别的可换了，去经文卡库加几张": "Nothing left to swap to; add cards in the library",
   "卡库背完了，已从「{set}」自动抓来 {n} 节": "Library exhausted; fetched {n} more from “{set}”",
   "每天 8 点如果还没有在学的经文，会从卡库随机挑一节；不合适就点“换一个”。可在设置里关闭。": "At 8 a.m., if nothing is in learning, one card is picked at random from the library; tap “Swap” if it doesn't fit. Turn off in Settings.",

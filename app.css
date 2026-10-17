@@ -28,7 +28,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 0 8px}
 .brand{display:flex;flex-direction:column;position:relative}
 .brand > span{font-size:13px;color:var(--muted)}
-.brand-row{display:flex;align-items:center;gap:8px}
+.brand-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.apps{display:inline-flex;gap:4px}
+.apps .badge.app{text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
 /* 介绍 badge：新手随时能点开 */
 .badge{border:1px solid var(--line);background:var(--slate-soft);color:var(--slate);border-radius:999px;padding:2px 9px;font-size:12px;line-height:18px;cursor:pointer;min-height:24px}
 .badge:hover{background:var(--slate);color:#fff}

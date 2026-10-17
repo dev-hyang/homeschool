@@ -1,4 +1,4 @@
-import { APP_VERSION, BABY_LOG_URL } from "./core/config.js";
+import { APP_VERSION, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
 import { $, esc } from "./core/util.js";
 import { ABOUT } from "./data/about.js";
@@ -21,7 +21,7 @@ function openAbout(){
     <ul class="plain">${A.pacing.signals.map(s => `<li>${c(s)}</li>`).join("")}</ul>
     <p class="small" style="margin-top:10px">${c(A.pacing.how)}</p></div>
   <h2>${t("数据与隐私")}</h2>
-  <div class="panel"><p class="small">${c(A.data)}</p><p class="small muted">${t("姊妹应用：")}<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">${t("小月亮")}</a> · ${t("版本")} ${APP_VERSION}</p></div>`;
+  <div class="panel"><p class="small">${c(A.data)}</p><p class="small muted">${t("姊妹应用：")}${SISTER_APPS.filter(a => a.id !== THIS_APP).map(a => `<a href="${a.url}">${esc(t(a.name))}</a>`).join(" · ")} · ${t("版本")} ${APP_VERSION}</p></div>`;
   showSheet();
 }
 

@@ -1,4 +1,4 @@
-import { BABY_LOG_URL } from "./core/config.js";
+import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
@@ -21,6 +21,14 @@ function renderStatus(){
   $("#kids").setAttribute("aria-label", t("切换孩子"));
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
     + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
+  // 标题旁的姊妹应用切换：左箭头去上一个站点，右箭头去下一个（环绕）。同一个账号，登录状态自动共享
+  const apps = $("#apps");
+  if (apps) {
+    const i = SISTER_APPS.findIndex(a => a.id === THIS_APP), n = SISTER_APPS.length;
+    const prev = SISTER_APPS[(i - 1 + n) % n], next = SISTER_APPS[(i + 1) % n];
+    apps.setAttribute("aria-label", t("切换姊妹应用"));
+    apps.innerHTML = `<a class="badge app" href="${prev.url}" title="${esc(t("切到{name}", { name: t(prev.name) }))}" aria-label="${esc(t("切到{name}", { name: t(prev.name) }))}">‹ ${esc(t(prev.short))}</a><a class="badge app" href="${next.url}" title="${esc(t("切到{name}", { name: t(next.name) }))}" aria-label="${esc(t("切到{name}", { name: t(next.name) }))}">${esc(t(next.short))} ›</a>`;
+  }
   // 框架文字：介绍徽章、设置按钮、底部页签
   const about = $('header .badge[data-act="about"]'); if (about) about.textContent = t("介绍");
   const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("设置"); set.setAttribute("aria-label", t("设置")); }
