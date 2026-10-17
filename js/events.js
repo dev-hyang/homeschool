@@ -1,4 +1,4 @@
-import { loadChildren, sbAuth, sbFamily, sbLogout } from "./core/auth.js";
+import { loadChildren, sbAuth, sbFamily, sbLogout, sbMember, sbResetCode } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
 import { S, childName, setChild } from "./core/state.js";
@@ -39,6 +39,7 @@ document.addEventListener("click", async ev => {
   if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
+  if (d.member) { await sbMember(d.member, d.uid); return; }
 
   try {
     switch (d.act) {
@@ -49,6 +50,7 @@ document.addEventListener("click", async ev => {
       case "sb-create": await sbFamily("create"); break;
       case "sb-join": await sbFamily("join"); break;
       case "sb-logout": await sbLogout(); break;
+      case "sb-reset-code": await sbResetCode(); break;
 
       /* 敬拜 */
       case "devo-done": await hs.saveDevotion({ done: true }); render(); toast(t("今日敬拜已记录")); break;

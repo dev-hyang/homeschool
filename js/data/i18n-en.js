@@ -187,7 +187,14 @@ const EN = {
   "邮箱": "Email", "密码（至少 6 位）": "Password (6+ characters)", "登录": "Sign in", "注册新账号": "Create account",
   "已登录 {email}。建议先在": "Signed in as {email}. Best to create the family and add children in ", "里创建家庭并填好孩子；也可以在这里创建或用邀请码加入。": " first; you can also create one here or join with an invite code.",
   "你在家里的称呼": "What the family calls you", "妈妈 / 爸爸 / 外婆": "Mom / Dad / Grandma", "创建家庭": "Create family", "或者输入邀请码": "Or enter an invite code", "加入家庭": "Join family", "退出登录": "Sign out",
-  "家庭成员：": "Members: ", "只有你": "just you", "邀请码": "Invite code", "复制": "Copy", "家人用同一个邀请码加入后，小月亮和家庭学堂都能一起用。": "Family members who join with this code can use both Little Moon and Family Homeschool.",
+  "家庭成员": "Family members", "只有你": "Just you", "邀请码": "Invite code", "复制": "Copy", "家人用同一个邀请码加入后，小月亮和家庭学堂都能一起用。邀请码相当于家门钥匙，只发给信任的人。": "Family members who join with this code can use both Little Moon and Family Homeschool. The code is the key to your home; share it only with people you trust.",
+  "（你）": "(you)", "家主": "Owner", "设为家主": "Make owner", "转为成员": "Make member", "移除": "Remove", "重置邀请码": "Reset invite code",
+  "你是家主：可以重置邀请码、把家人设为家主或移出家庭（比如有人误加入）。": "You're an owner: you can reset the invite code, make a family member an owner, or remove someone (for example, if they joined by mistake).",
+  "重置后旧邀请码立即失效，已加入的家人不受影响。继续吗？": "The old invite code stops working immediately; members who already joined are not affected. Continue?",
+  "把 {name} 移出家庭？对方将看不到这个家庭的数据；已写的记录保留。如果不想让对方再加入，之后请重置邀请码。": "Remove {name} from the family? They will no longer see this family's data; records they wrote are kept. Reset the invite code afterwards if you don't want them to rejoin.",
+  "把 {name} 设为家主？家主可以重置邀请码、管理成员。": "Make {name} an owner? Owners can reset the invite code and manage members.",
+  "家庭至少要保留一位家主": "The family needs at least one owner", "只有家主可以这样做": "Only an owner can do that", "操作失败，请稍后再试": "Something went wrong; try again later",
+  "邀请码已重置": "Invite code reset", "已移除": "Removed", "已更新": "Updated", "你已不在这个家庭里": "You are no longer in this family",
   "已复制：": "Copied: ", "请手动复制：": "Please copy manually: ",
 
   // ---- 表单 ----
