@@ -5,12 +5,18 @@ import { ROUTINE_TEMPLATES } from "./data/seeds.js";
 import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
 import { ensureMonth, monthData, monthRange, routine } from "./hs.js";
 import { render } from "./views.js";
+import { mrow } from "./me.js";
 
-/* ============ 日历页：月历（敬拜与任务完成情况、休息日）+ 周例行 ============ */
+/* ============ 日历：入口页 = 月历（敬拜与任务完成情况、休息日）+ 周例行入口；子页 = 周例行 ============ */
 S.calMonth = S.calMonth || dayKey(Date.now()).slice(0, 7);
 S.calDay = S.calDay || null;
 
-function viewRoutines(){ return monthHTML() + routinesHTML(); }
+function viewRoutines(){
+  const cid = S.childId, mine = S.hs.routines.filter(r => r.child_id == null || r.child_id === cid), on = mine.filter(r => r.active);
+  const wd = new Date().getDay(), todayN = on.filter(r => (r.weekdays || []).includes(wd)).length;
+  return monthHTML() + `<div class="panel mlist" style="margin-top:12px">${mrow('data-tab="cal-routines"', t("周例行"), on.length ? t("{a} 项启用 · 今天 {b} 项", { a: on.length, b: todayN }) + (mine.length > on.length ? ` · ${t("停用 {n}", { n: mine.length - on.length })}` : "") : t("还没有例行安排，进去套用一个模板"), "▦")}</div>`;
+}
+function viewCalRoutines(){ return routinesHTML(); }
 
 function monthHTML(){
   const ym = S.calMonth, cid = S.childId, today = dayKey(Date.now());
@@ -57,4 +63,4 @@ function routinesHTML(){
   <p class="small muted" style="margin-top:8px">${t("模板套用到当前孩子（{name}），全家项只加一次，重复套用不会重复。", { name: esc(childName()) })}</p>`;
 }
 
-export { viewRoutines };
+export { viewRoutines, viewCalRoutines };

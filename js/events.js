@@ -119,6 +119,7 @@ document.addEventListener("click", async ev => {
       case "template-apply": { const n = await hs.applyTemplate(d.tpl, S.childId); render(); toast(n ? t("已套用 {n} 条例行到{name}", { n, name: childName() }) : t("模板里的内容都已经有了")); break; }
 
       /* 课程 */
+      case "unit-toggle": S.openUnits.has(d.uid) ? S.openUnits.delete(d.uid) : S.openUnits.add(d.uid); render(); break;
       case "gen-round": { const n = await hs.generateRound(S.childId); render(); toast(n ? t("已生成 {n} 个单元", { n }) : t("每个领域都已有进行中的单元")); break; }
       case "gen-next": { const u = await hs.generateNext(d.sj, S.childId, d.track ?? null); render(); toast(u ? t("已生成「{title}」", { title: u.title }) : t("这条链已走完")); break; }
       case "outline-import": openForm("粘贴教材目录", outlineFields(), { subject: S.courseSubject, title: "", weeks: 12, child_id: S.childId, text: "" }, async f => { const r = await hs.importOutline(f); if (!r) { toast(t("请填单元名，并至少贴一行课时")); return; } S.courseSubject = f.subject; back(); toast(t("已生成「{title}」，{n} 节课时", { title: r.unit.title, n: r.count })); }); break;

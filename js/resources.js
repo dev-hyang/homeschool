@@ -5,6 +5,10 @@ import { SUBJECTS, subject } from "./data/subjects.js";
 import { BANDS, CATS, IDEA_SOURCES, bandFor, ideas } from "./data/ideas.js";
 import { FEEDS, dailyPicks } from "./data/feeds.js";
 import { render } from "./views.js";
+import { mrow } from "./me.js";
+
+/* ============ 资源：入口页（日常点子 / 资源库 / 参考来源 三个入口带摘要）→ 子页 ============ */
+const missing = () => `<div class="empty">${t("资源库需要数据库迁移 004。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/004_homeschool_phase2_4.sql</code>${t("，然后刷新。")}</div>`;
 
 /* ============ 日常点子：手工 / 户外 / 家务，按孩子年龄段 ============
    两种来源：每日新鲜 = 直接读几家博客的公开接口，每条链接到原文；精选清单 = 内置的固定清单（离线也能用）。 */
@@ -17,8 +21,8 @@ function ensureFeed(f, band){
   if (feedCache.has(key)) return feedCache.get(key);
   feedCache.set(key, "loading");
   dailyPicks({ band, cat: f.cat, lang: f.lang, seed: f.seed })
-    .then(r => { feedCache.set(key, r); if (S.tab === "resources") render(); })
-    .catch(e => { feedCache.set(key, { items: [], errors: [e.message], feeds: [] }); if (S.tab === "resources") render(); });
+    .then(r => { feedCache.set(key, r); if (S.tab === "res-ideas") render(); })
+    .catch(e => { feedCache.set(key, { items: [], errors: [e.message], feeds: [] }); if (S.tab === "res-ideas") render(); });
   return "loading";
 }
 const searchUrl = x => `https://www.google.com/search?q=${encodeURIComponent(`${x.t} ${x.q || "幼儿 活动"}`)}`;
@@ -65,8 +69,23 @@ S.resFilter = S.resFilter || { subject: "", lang: "", type: "" };
 const TYPES = { link: "链接", book: "书", video: "视频", print: "打印件", course: "课程", org: "机构" };
 const LANGS = { zh: "中文", en: "英文", bi: "双语" };
 
+/* 入口页 */
 function viewResources(){
-  if (!S.hs.phase2) return `<div class="empty">${t("资源库需要数据库迁移 004。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/004_homeschool_phase2_4.sql</code>${t("，然后刷新。")}</div>`;
+  if (!S.hs.phase2) return missing();
+  const f = S.ideaFilter, auto = bandFor(ageMonths()), band = BANDS.find(b => b.id === f.band) || auto, n = S.hs.resources.length;
+  const kinds = {}; S.hs.resources.forEach(r => { kinds[r.type] = (kinds[r.type] || 0) + 1; });
+  const kindLine = Object.entries(kinds).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${TYPES[k] ? t(TYPES[k]) : k} ${v}`).join(" · ");
+  return `<h2>${t("资源")}</h2>
+  <div class="panel mlist">
+    ${mrow('data-tab="res-ideas"', t("日常点子"), `${CATS[f.cat].icon} ${t(CATS[f.cat].name)} · ${t(band.name)}${band.id === auto.id ? `（${esc(childName())}）` : ""} · ${f.mode === "list" ? t("精选清单") : t("每日新鲜（博客）")}`, "✦")}
+    ${mrow('data-tab="res-library"', t("资源库"), n ? t("{n} 条", { n }) + (kindLine ? ` · ${kindLine}` : "") : t("还是空的，进去导入起步资源"), "▤")}
+    ${mrow('data-act="idea-sources"', t("参考来源"), t("每日新鲜读的博客、精选清单的出处"), "↗")}
+  </div>`;
+}
+
+/* 子页：资源库 */
+function viewLibrary(){
+  if (!S.hs.phase2) return missing();
   const f = S.resFilter;
   const list = S.hs.resources.filter(r => (!f.subject || r.subject === f.subject) && (!f.lang || r.lang === f.lang) && (!f.type || r.type === f.type)).sort((a, b) => a.sort - b.sort);
   const chip = (attr, val, label, cur) => `<button class="chip" data-rf="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
@@ -76,7 +95,7 @@ function viewResources(){
       <div class="meta small muted">${TYPES[r.type] ? t(TYPES[r.type]) : esc(r.type)} · ${LANGS[r.lang] ? t(LANGS[r.lang]) : esc(r.lang)}${r.subject ? ` · ${esc(subject(r.subject).short)}` : ""}${age(r)}${r.source ? ` · ${esc(r.source)}` : ""}${(r.tags || []).length ? ` · ${r.tags.map(esc).join(" / ")}` : ""}</div>
       ${r.note ? `<div class="small">${esc(r.note)}</div>` : ""}</div>
     <button class="chip" data-act="res-edit" data-rid="${esc(r.id)}">${t("编辑")}</button></div>`;
-  return `${viewIdeas()}<h2>${t("资源库")}</h2>
+  return `<h2>${t("资源库")}</h2>
   <div class="chips" role="group" aria-label="${t("领域")}">${chip("subject", "", t("全部"), f.subject)}${Object.keys(SUBJECTS).map(k => chip("subject", k, SUBJECTS[k].short, f.subject)).join("")}</div>
   <div class="chips" role="group" aria-label="${t("语言与类型")}" style="margin-top:0">${chip("lang", "", t("所有语言"), f.lang)}${Object.entries(LANGS).map(([k, l]) => chip("lang", k, t(l), f.lang)).join("")}<span style="flex-basis:100%"></span>${chip("type", "", t("所有类型"), f.type)}${Object.entries(TYPES).map(([k, l]) => chip("type", k, t(l), f.type)).join("")}</div>
   <div class="panel">${list.length ? list.map(row).join("") : `<p class="muted">${S.hs.resources.length ? t("没有符合筛选的资源。") : t("资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。")}</p>`}
@@ -84,4 +103,4 @@ function viewResources(){
   <p class="small muted" style="margin-top:8px">${t("资源属于全家。链接随时会失效，发现了就点编辑改掉。")}</p>`;
 }
 
-export { viewResources, ideaSourcesHTML, feedItem, TYPES as RES_TYPES, LANGS as RES_LANGS };
+export { viewResources, viewIdeas, viewLibrary, ideaSourcesHTML, feedItem, TYPES as RES_TYPES, LANGS as RES_LANGS };

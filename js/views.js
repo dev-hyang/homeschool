@@ -3,18 +3,19 @@ import { viewMe } from "./me.js";
 import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
-import { viewCourse } from "./course.js";
+import { viewCourse, viewGoals, viewScope, viewUnits } from "./course.js";
 import { viewLaw } from "./law.js";
 import { viewReports } from "./reports.js";
-import { viewResources } from "./resources.js";
-import { viewRoutines } from "./routines.js";
+import { viewIdeas, viewLibrary, viewResources } from "./resources.js";
+import { viewCalRoutines, viewRoutines } from "./routines.js";
 import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
 
 /* ============ 渲染 ============ */
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
-// 报告、法规从“我的”进入，底部页签仍高亮“我的”
-const ME_SUB = { reports: "报告", law: "法规" };
+// 子页 → 所属的底部页签：子页顶上有“‹ 所属页”返回，底部仍高亮所属页
+const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me" };
+const VIEWS = { today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
@@ -34,11 +35,11 @@ function toggleKids(open = $("#kids").hidden){
 }
 function render(){
   renderStatus();
-  const cur = ME_SUB[S.tab] ? "me" : S.tab;
+  const parent = PARENT[S.tab], cur = parent || S.tab;
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { today: viewToday, course: viewCourse, resources: viewResources, calendar: viewRoutines, law: viewLaw, reports: viewReports, me: viewMe }[S.tab] || viewToday;
-  // 法规和“我的”不需要登录也能看；报告等要先进家庭。从“我的”进来的子页顶上有返回
-  const back = ME_SUB[S.tab] ? `<div style="margin-top:12px"><button class="chip" data-tab="me">‹ ${t("我的")}</button></div>` : "";
+  const v = VIEWS[S.tab] || viewToday;
+  // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
+  const back = parent ? `<div style="margin-top:12px"><button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button></div>` : "";
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me") ? back + v() : back + (gateHTML() || v());
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
