@@ -1,4 +1,4 @@
-import { BABY_LOG_URL } from "./core/config.js";
+import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { viewMe } from "./me.js";
 import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
@@ -25,6 +25,11 @@ function renderStatus(){
   $("#kids").setAttribute("aria-label", t("切换孩子"));
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
     + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
+  // 右上角姊妹应用：‹ 上一个站点、下一个站点 ›（环绕）。同一个账号，登录状态自动共享
+  const i = SISTER_APPS.findIndex(a => a.id === THIS_APP), n = SISTER_APPS.length, prev = SISTER_APPS[(i - 1 + n) % n], next = SISTER_APPS[(i + 1) % n];
+  const badge = (a, label) => `<a class="badge" href="${a.url}" title="${esc(t("切到{name}", { name: t(a.name) }))}" aria-label="${esc(t("切到{name}", { name: t(a.name) }))}">${label}</a>`;
+  $("#apps").setAttribute("aria-label", t("切换姊妹应用"));
+  $("#apps").innerHTML = badge(prev, `‹ ${esc(t(prev.short))}`) + badge(next, `${esc(t(next.short))} ›`);
   // 底部页签文字
   document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }

@@ -32,6 +32,10 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .brand{display:flex;flex-direction:column;position:relative}
 .brand > span{font-size:13px;color:var(--muted)}
 .brand-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 右上角：姊妹应用 ‹ 上一个 / 下一个 › 两枚小标签在上，连接状态在下（和小月亮一致） */
+.hdr{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none;padding-top:4px}
+.apps{display:inline-flex;gap:4px}
+.apps .badge{text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
 /* “我的”页的入口列表：一行一个，图标 + 标题 + 一句说明 + › */
 .mlist{padding:4px 6px}
 .mrow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:12px;width:100%;min-height:56px;padding:10px 10px;border-radius:var(--radius-sm);color:var(--ink);border-bottom:1px solid var(--line)}
