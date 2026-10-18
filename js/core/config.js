@@ -13,7 +13,7 @@ const PANTRY_URL = "https://dev-hyang.github.io/home-pantry/";
 const SISTER_APPS = [
   { id: "baby-log", name: "小月亮", short: "小月亮", url: BABY_LOG_URL, desc: "宝宝记录：喂奶、睡眠、尿布、成长曲线。孩子的名字和生日在这里维护。" },
   { id: "homeschool", name: "家庭学堂", short: "学堂", url: "https://dev-hyang.github.io/homeschool/", desc: "在家教育：每日敬拜、经文背诵、课程、任务与报告。" },
-  { id: "home-pantry", name: "家庭妈妈小助手", short: "小助手", url: PANTRY_URL, desc: "家庭库存与采购清单、按库存推荐三餐、房屋维护与装备清单。" }
+  { id: "home-pantry", name: "爱家小助手", short: "小助手", url: PANTRY_URL, desc: "家庭库存与采购清单、按库存推荐三餐、房屋维护与装备清单。" }
 ];
 const THIS_APP = "homeschool";
 
