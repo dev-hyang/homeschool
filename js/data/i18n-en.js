@@ -14,7 +14,7 @@ const EN = {
   "单元与课时": "Units & lessons", "年度范围（Pre-K 建议）": "Year scope (Pre-K suggestion)", "36 周的单元地图 · 已加 {a}/{b}": "36-week unit map · {a}/{b} added", "{a} 个领域 · 进行中 {b} 个单元 · 共 {c} 个": "{a} subjects · {b} units in progress · {c} total",
   "下一课": "Next lesson", "还没有单元": "No units yet", "还没有目标": "No goals yet", "达成 {a}/{b}": "{a}/{b} achieved", "收起": "Collapse", "展开 {n} 节": "Show all {n}", "课时都完成了。": "All lessons done.", "「{s}」没有 Pre-K 年度范围表。": "No Pre-K scope table for “{s}”.",
   "{n} 条": "{n} items", "还是空的，进去导入起步资源": "Empty so far; open it to import the starter list", "每日新鲜读的博客、精选清单的出处": "Blogs behind Daily Fresh, and where the curated list comes from",
-  "{a} 项启用 · 今天 {b} 项": "{a} active · {b} today", "停用 {n}": "{n} paused", "还没有例行安排，进去套用一个模板": "No routine yet; open it and apply a template",
+  "{a} 项启用 · 今天 {b} 项": "{a} active · {b} today", "星期": "Weekday", "整周": "Whole week", "前一天": "Previous day", "后一天": "Next day", "{n} 项": "{n} items", "{n} 项 · 约 {m} 分钟": "{n} items · about {m} min", "这天没有安排，休息。": "Nothing scheduled; a rest day.", "停用 {n}": "{n} paused", "还没有例行安排，进去套用一个模板": "No routine yet; open it and apply a template",
   "介绍": "About", "设置": "Settings", "关闭": "Close", "保存": "Save", "删除": "Delete", "编辑": "Edit", "修改": "Change", "改": "Edit", "选": "Pick", "填": "Fill", "写": "Write",
   "连接中": "Connecting", "云端不可用": "Cloud unavailable", "未登录": "Signed out", "还没加入家庭": "No family yet", "家庭 · {n} 人": "Family · {n}",
   "家庭里还没有孩子": "No children in the family yet", "登录后显示孩子": "Sign in to see your children", "家庭与孩子…": "Family & children…", "切换孩子": "Switch child",

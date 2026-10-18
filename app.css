@@ -208,6 +208,13 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 }
 
 /* 周例行 */
+/* 周例行的星期条：七个片 + 整周，每片带条数，今天有个小点 */
+.wdstrip{gap:4px;margin:12px 0 8px}
+.wdstrip .chip{position:relative;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:4px 0;min-width:40px;flex:1;line-height:1.2}
+.wdstrip .chip small{font-size:11px;color:var(--muted);font-family:var(--f-num)}
+.wdstrip .chip[aria-pressed="true"] small{color:inherit;opacity:.8}
+.wdstrip .chip i{position:absolute;top:4px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--sage)}
+.wdstrip .chip[data-rday="week"]{flex:1.3}
 .routine{all:unset;cursor:pointer;display:grid;grid-template-columns:48px 4px 1fr;gap:10px;align-items:center;width:100%;padding:8px 4px;border-bottom:1px solid var(--line);box-sizing:border-box}
 .routine:last-child{border-bottom:0}
 .routine .t{font-size:13px;color:var(--muted)}

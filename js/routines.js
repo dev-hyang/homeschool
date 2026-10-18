@@ -55,11 +55,20 @@ function routinesHTML(){
   const row = r => `<button class="routine ${r.active ? "" : "off"}" data-act="routine-edit" data-rid="${esc(r.id)}">
     <span class="t num">${esc(r.start || "—")}</span><span class="bar" style="background:${subject(r.subject).color}"></span>
     <span><span class="title">${esc(r.title)}</span><span class="meta">${esc(subject(r.subject).short)} · ${t("{n} 分钟", { n: r.minutes })}${r.child_id == null ? ` · ${t("全家")}` : ""}${r.active ? "" : ` · ${t("已停用")}`}</span></span></button>`;
-  // 操作置顶：一周七块列表很长，添加 / 套用放底下的话要滚过整周才看得到
+  // 一次看一天：默认今天，‹ › 翻到前后一天，七个星期片直接跳（带条数），“整周”才把七天都铺开
+  const today = new Date().getDay(), sel = S.routineDay == null ? today : S.routineDay, week = sel === "week";
+  const idx = order.indexOf(week ? today : sel), prev = order[(idx + 6) % 7], next = order[(idx + 1) % 7];
+  const dayBlock = d => { const rs = byDay(d); return rs.length ? `<div class="panel" style="padding:4px 8px">${rs.map(row).join("")}</div>` : `<div class="panel"><p class="muted" style="margin:0">${t("这天没有安排，休息。")}</p></div>`; };
+  const total = rs => rs.reduce((a, r) => a + (r.active ? +r.minutes || 0 : 0), 0);
+  // 操作置顶：添加 / 套用放底下的话要滚过整周才看得到
   return `<h2>${t("周例行")} · ${esc(childName())}</h2>
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="btn" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("每天早上按这张表自动生成今日任务（休息日除外）。全家项（如家庭敬拜）对每个孩子都显示。")}${t("模板套用到当前孩子（{name}），全家项只加一次，重复套用不会重复。", { name: esc(childName()) })}</p>
-  ${mine.length ? order.map(d => { const rs = byDay(d); return `<h3 class="small muted" style="margin-top:14px">${esc(weekdayLabel(d))}${rs.length ? "" : ` · ${t("休息")}`}</h3>${rs.length ? `<div class="panel" style="padding:4px 8px">${rs.map(row).join("")}</div>` : ""}`; }).join("")
+  ${mine.length ? `
+  <div class="chips wdstrip" role="group" aria-label="${t("星期")}">${order.map(d => { const n = byDay(d).length; return `<button class="chip" data-rday="${d}" aria-pressed="${!week && d === sel}" aria-label="${esc(weekdayLabel(d))}${n ? `，${t("{n} 项", { n })}` : ""}${d === today ? `，${t("今天")}` : ""}"><span>${esc(weekdayLabel(d).replace(/^周/, ""))}</span><small>${n || "·"}</small>${d === today ? `<i aria-hidden="true"></i>` : ""}</button>`; }).join("")}<button class="chip" data-rday="week" aria-pressed="${week}">${t("整周")}</button></div>
+  ${week
+    ? order.map(d => { const rs = byDay(d); return `<h3 class="small muted" style="margin-top:14px">${esc(weekdayLabel(d))}${d === today ? ` · ${t("今天")}` : ""}${rs.length ? ` · ${t("约 {n} 分钟", { n: total(rs) })}` : ` · ${t("休息")}`}</h3>${rs.length ? `<div class="panel" style="padding:4px 8px">${rs.map(row).join("")}</div>` : ""}`; }).join("")
+    : `<div class="daynav" style="margin-top:4px"><button class="iconbtn" data-rday="${prev}" aria-label="${t("前一天")}">‹</button><b>${esc(weekdayLabel(sel))}${sel === today ? ` <span class="small muted">${t("今天")}</span>` : ""}${byDay(sel).length ? ` <span class="small muted">· ${t("{n} 项 · 约 {m} 分钟", { n: byDay(sel).length, m: total(byDay(sel)) })}</span>` : ""}</b><button class="iconbtn" data-rday="${next}" aria-label="${t("后一天")}">›</button></div>${dayBlock(sel)}`}`
     : `<div class="empty">${t("还没有例行安排。套用一个模板最快，之后再按自家情况改。")}</div>`}`;
 }
 
