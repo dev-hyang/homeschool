@@ -165,18 +165,23 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .task.again .bar,.task.done .bar{opacity:.45}
 .task.done .verse{color:var(--muted)}
 
-/* ============ 打印（js/print.js）：屏幕上不显示 #print；打印时只显示它 ============ */
+/* ============ 打印（js/print.js） ============
+   正常走法：把纸张 HTML 开到一个只含它的新标签页里打印（页面里只有这张纸，浏览器什么时候生成预览都不会打错）。
+   后备走法（弹窗被拦时）：在本页里 #print 装纸张，body.printing 时隐藏应用、只显示它。
+   纸张本身的样式不放在 @media print 里，新标签页屏幕上也要能看。 */
 #print{display:none}
 @media print{
   @page{margin:12mm}
+  @page week{size:landscape;margin:10mm}
   body.printing{background:#fff!important;color:#000!important}
   body.printing .wrap,body.printing nav.tabs,body.printing #sheet,body.printing #toast{display:none!important}
-  body.printing #print{display:block;font:12pt/1.45 "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#000}
+  body.printing #print{display:block}
   #print .ppage{page-break-after:always}
   #print .ppage:last-child{page-break-after:auto}
   #print .pweek{page:week}
-  @page week{size:landscape;margin:10mm}
-  #print h3{font-size:12.5pt;margin:12pt 0 4pt;padding-bottom:2pt;border-bottom:1.5px solid #000}
+}
+  #print{font:12pt/1.45 "Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;color:#000;background:#fff}
+  #print h3{font-family:inherit;font-size:12.5pt;margin:12pt 0 4pt;padding-bottom:2pt;border-bottom:1.5px solid #000}
   #print .phead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #000;padding-bottom:6pt}
   #print .ptitle{font-size:18pt;font-weight:700}
   #print .psub{font-size:10.5pt;color:#333}
@@ -205,7 +210,6 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
   #print .pcal td.today .pd{text-decoration:underline;font-weight:700}
   #print .pcal .pd{font-weight:600;font-size:11pt}
   #print .pfoot{margin-top:10pt;font-size:9pt;color:#555;border-top:1px solid #999;padding-top:4pt}
-}
 
 /* 周例行 */
 /* 周例行的星期条：七个片 + 整周，每片带条数，今天有个小点 */
