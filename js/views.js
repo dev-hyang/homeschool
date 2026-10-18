@@ -1,4 +1,5 @@
-import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
+import { BABY_LOG_URL } from "./core/config.js";
+import { viewMe } from "./me.js";
 import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
@@ -11,7 +12,9 @@ import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
 
 /* ============ 渲染 ============ */
-const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", reports: "报告", law: "法规" };
+const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
+// 报告、法规从“我的”进入，底部页签仍高亮“我的”
+const ME_SUB = { reports: "报告", law: "法规" };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
@@ -21,19 +24,7 @@ function renderStatus(){
   $("#kids").setAttribute("aria-label", t("切换孩子"));
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
     + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
-  // 标题旁的姊妹应用切换：左箭头去上一个站点，右箭头去下一个（环绕）。同一个账号，登录状态自动共享
-  const apps = $("#apps");
-  if (apps) {
-    const i = SISTER_APPS.findIndex(a => a.id === THIS_APP), n = SISTER_APPS.length;
-    const prev = SISTER_APPS[(i - 1 + n) % n], next = SISTER_APPS[(i + 1) % n];
-    apps.setAttribute("aria-label", t("切换姊妹应用"));
-    apps.innerHTML = `<a class="badge app" href="${prev.url}" title="${esc(t("切到{name}", { name: t(prev.name) }))}" aria-label="${esc(t("切到{name}", { name: t(prev.name) }))}">‹ ${esc(t(prev.short))}</a><a class="badge app" href="${next.url}" title="${esc(t("切到{name}", { name: t(next.name) }))}" aria-label="${esc(t("切到{name}", { name: t(next.name) }))}">${esc(t(next.short))} ›</a>`;
-  }
-  // 框架文字：右上角按钮、底部页签
-  const about = $('header [data-act="about"]'); if (about) about.textContent = t("介绍");
-  const pm = $('header [data-act="print-menu"]'); if (pm) pm.textContent = t("打印");
-  const more = $('header [data-act="more-menu"]'); if (more) more.setAttribute("aria-label", t("更多"));
-  const set = $('header [data-act="settings"]'); if (set) { set.textContent = t("设置"); set.setAttribute("aria-label", t("设置")); }
+  // 底部页签文字
   document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
 function toggleKids(open = $("#kids").hidden){
@@ -41,30 +32,14 @@ function toggleKids(open = $("#kids").hidden){
   $("#bname").setAttribute("aria-expanded", String(open));
   if (open) { const cur = $("#kids [aria-checked='true']"); cur && cur.focus(); }
 }
-/* 右上角菜单：kind = "print"（宽屏“打印”下拉：今日页 / 本周 / 本月）| "more"（窄屏 ⋯：介绍、打印、姊妹应用）| false 关闭 */
-function toggleMenu(kind){
-  const m = $("#hmenu");
-  document.querySelectorAll('header [data-act="print-menu"], header [data-act="more-menu"]').forEach(b => b.setAttribute("aria-expanded", "false"));
-  if (!kind || (!m.hidden && m.dataset.kind === kind)) { m.hidden = true; m.dataset.kind = ""; return; }
-  const printItems = `<div class="lab">${t("打印")}</div>
-    <button role="menuitem" data-act="print-day">${t("今日页")}<small>${t("竖版一页")}</small></button>
-    <button role="menuitem" data-act="print-week">${t("本周")}<small>${t("横版表格")}</small></button>
-    <button role="menuitem" data-act="print-month">${t("本月")}<small>${t("月历 + 周例行")}</small></button>`;
-  const others = SISTER_APPS.filter(a => a.id !== THIS_APP);
-  m.innerHTML = kind === "print" ? printItems : `
-    <button role="menuitem" data-act="about">${t("介绍")}</button>
-    <div class="sep"></div>${printItems}<div class="sep"></div>
-    <div class="lab">${t("姊妹应用")}</div>
-    ${others.map(a => `<a role="menuitem" href="${a.url}">${esc(t(a.name))}<small>›</small></a>`).join("")}`;
-  m.dataset.kind = kind; m.hidden = false;
-  const opener = $(`header [data-act="${kind === "print" ? "print-menu" : "more-menu"}"]`); if (opener) opener.setAttribute("aria-expanded", "true");
-  const first = m.querySelector("[role=menuitem]"); first && first.focus();
-}
 function render(){
   renderStatus();
-  document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === S.tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const v = { today: viewToday, course: viewCourse, resources: viewResources, calendar: viewRoutines, law: viewLaw, reports: viewReports }[S.tab] || viewToday;
-  $("#main").innerHTML = S.tab === "law" ? v() : (gateHTML() || v());
+  const cur = ME_SUB[S.tab] ? "me" : S.tab;
+  document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
+  const v = { today: viewToday, course: viewCourse, resources: viewResources, calendar: viewRoutines, law: viewLaw, reports: viewReports, me: viewMe }[S.tab] || viewToday;
+  // 法规和“我的”不需要登录也能看；报告等要先进家庭。从“我的”进来的子页顶上有返回
+  const back = ME_SUB[S.tab] ? `<div style="margin-top:12px"><button class="chip" data-tab="me">‹ ${t("我的")}</button></div>` : "";
+  $("#main").innerHTML = (S.tab === "law" || S.tab === "me") ? back + v() : back + (gateHTML() || v());
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
 
@@ -81,4 +56,4 @@ function gateHTML(){
   return "";
 }
 
-export { renderStatus, toggleKids, toggleMenu, render, refreshSettingsIfOpen };
+export { renderStatus, toggleKids, render, refreshSettingsIfOpen };

@@ -5,7 +5,12 @@
 const EN = {
   // ---- 框架 ----
   "家庭学堂": "Family Homeschool", "在家教育": "Homeschool", "{name}的学堂": "{name}’s School", "宝宝": "Baby",
-  "今天": "Today", "课程": "Courses", "资源": "Resources", "日历": "Calendar", "报告": "Reports", "法规": "Laws",
+  "今天": "Today", "课程": "Courses", "资源": "Resources", "日历": "Calendar", "报告": "Reports", "法规": "Laws", "我的": "Me",
+  "{name} · {age}": "{name} · {age}", "还没登录": "Not signed in", "按月出勤、每科时长、敬拜、经文、课时、目标，CSV 导出": "Monthly attendance, time per subject, worship, verses, lessons, goals; CSV export",
+  "各州在家教育法规摘要": "State homeschool law summaries", "家庭与成员、读经计划、译本、学年与假期、语言、显示": "Family and members, reading plan, Bible versions, school year and breaks, language, appearance",
+  "设计思路、每页用法、节奏怎么把握": "Design ideas, how each page works, pacing", "竖版一页：敬拜、背诵经文全文、任务、备注": "One portrait page: worship, full verse texts, tasks, notes",
+  "横版一张表，每格一个勾": "One landscape grid, a box per item", "月历加周例行": "Calendar plus the weekly routine", "不想一直看手机：打一张贴在冰箱上，晚上或周末再把勾补回手机。": "Rather not live on the phone? Print a sheet for the fridge and copy the ticks back in the evening or at the weekend.",
+  "同一个账号、同一个家庭，三个站点互通。": "One account, one family, three sites.",
   "介绍": "About", "设置": "Settings", "关闭": "Close", "保存": "Save", "删除": "Delete", "编辑": "Edit", "修改": "Change", "改": "Edit", "选": "Pick", "填": "Fill", "写": "Write",
   "连接中": "Connecting", "云端不可用": "Cloud unavailable", "未登录": "Signed out", "还没加入家庭": "No family yet", "家庭 · {n} 人": "Family · {n}",
   "家庭里还没有孩子": "No children in the family yet", "登录后显示孩子": "Sign in to see your children", "家庭与孩子…": "Family & children…", "切换孩子": "Switch child",
