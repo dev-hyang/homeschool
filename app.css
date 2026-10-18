@@ -165,17 +165,21 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .task.again .bar,.task.done .bar{opacity:.45}
 .task.done .verse{color:var(--muted)}
 
-/* ============ 打印（js/print.js） ============
-   正常走法：藏一个只含这张纸的同源 iframe，由它打印（文档里只有纸，浏览器什么时候生成预览都不会打错）。
-   iOS 走法：在本页里 #print 装纸张，body.printing 时隐藏应用、只显示它，直到打印真正结束。
-   纸张本身的样式不放在 @media print 里，iframe 文档里才拿得到。 */
-#print{display:none}
+/* ============ 打印视图（js/print.js） ============
+   按下打印后整页变成那张纸：头部、底栏收起，正文 = 工具栏（返回 / 打印）+ #print。手机浏览器打印的永远是顶层页面，
+   页面本身就是纸就不会打错。打印介质下工具栏和外框再去掉。 */
+body.printview header.top,body.printview nav.tabs{display:none}
+body.printview .wrap{padding-bottom:40px}
+.pbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0 6px;position:sticky;top:0;background:var(--bg);z-index:2}
+.pbar .btn{flex:none}
+body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;box-shadow:0 6px 20px rgba(21,36,58,.10)}
 @media print{
   @page{margin:12mm}
   @page week{size:landscape;margin:10mm}
-  body.printing{background:#fff!important;color:#000!important}
-  body.printing .wrap,body.printing nav.tabs,body.printing #sheet,body.printing #toast{display:none!important}
-  body.printing #print{display:block}
+  body.printview{background:#fff!important;color:#000!important}
+  body.printview .pbar,body.printview #sheet,body.printview #toast{display:none!important}
+  body.printview .wrap{max-width:none;padding:0;margin:0}
+  body.printview #print{border-radius:0;padding:0;margin:0;box-shadow:none}
   #print .ppage{page-break-after:always}
   #print .ppage:last-child{page-break-after:auto}
   #print .pweek{page:week}

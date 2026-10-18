@@ -4,6 +4,7 @@ import { D, dayKey, esc } from "./core/util.js";
 import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { currentPlan, devotionDraft, isOffDay, monthRange, planState, scripture, tasksFor, todayPlan, yearInfo } from "./hs.js";
+import { render } from "./views.js";
 
 /* ============ 打印：日 / 周 / 月 ============
    目的：不想一直看手机的家庭，早上打一张贴在冰箱上，晚上再把勾补回手机（或周末一起补）。
@@ -100,66 +101,39 @@ function monthPage(ym){
 }
 
 const renderPrint = (kind, ym) => kind === "week" ? weekPage() : kind === "month" ? monthPage(ym || dayKey(Date.now()).slice(0, 7)) : dayPage();
-const sheetTitle = (kind, ym) => `${t("家庭学堂")} · ${kind === "week" ? t("本周") : kind === "month" ? (ym || dayKey(Date.now()).slice(0, 7)) : dayKey(Date.now())} · ${esc(childName())}`;
-/* 只含这张纸的小文档：样式沿用本站的 app.css（纸张规则不在 @media print 里，所以在任何文档里都生效）。 */
-function sheetDocument(kind, ym){
-  const css = [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => `<link rel="stylesheet" href="${l.href}">`).join("");
-  return `<!doctype html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8"><title>${sheetTitle(kind, ym)}</title>${css}
-<style>html,body{margin:0;background:#fff;color:#000}#print{display:block}</style></head>
-<body><div id="print">${renderPrint(kind, ym)}</div></body></html>`;
-}
-const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-let printing = false;
+
+/* ---- 打印视图：整个页面变成这张纸 ----
+   手机浏览器（Android Chrome、iOS Safari）打印的永远是顶层页面，而且什么时候生成预览、要不要理会 @media print 都因机而异：
+   藏 iframe 会打成父页面，靠打印专用 CSS 隐藏应用又碰运气。唯一稳的办法是：按下打印时，屏幕上这一页本身就是纸。
+   所以进入打印视图：头部、底栏都收起，正文只剩这张纸和一条工具栏（返回 / 打印），然后弹打印。
+   打印结束（afterprint / 打印媒体查询退出）自动回到原来的页面；没有这些事件的浏览器点“返回”。 */
 function openPrint(kind, ym){
-  if (printing || !S.hs.loaded) return;
-  // 首选：藏一个只装这张纸的同源 iframe，让它自己打印。文档里只有纸，浏览器什么时候生成预览都不会打错，
-  // 也不用开新标签页。iOS Safari 对 iframe 打印不可靠（会打成父页面），走下面的本页方案。
-  if (!isIOS()) {
-    try {
-      const old = document.getElementById("printframe"); if (old) old.remove();
-      const f = document.createElement("iframe");
-      f.id = "printframe"; f.setAttribute("aria-hidden", "true"); f.tabIndex = -1;
-      f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none";
-      f.srcdoc = sheetDocument(kind, ym);
-      printing = true;
-      const release = () => { printing = false; setTimeout(() => f.remove(), 1000); };
-      f.onload = () => {
-        const w = f.contentWindow;
-        if (!w) { release(); return; }
-        w.addEventListener("afterprint", release, { once: true });
-        setTimeout(() => { try { w.focus(); w.print(); } catch (e) { release(); } }, 350); // 等样式表装好
-        setTimeout(release, 60000); // 没有 afterprint 的浏览器：一分钟后收走，不影响已经打开的预览
-      };
-      document.body.appendChild(f);
-      return;
-    } catch (e) { printing = false; }
-  }
-  // 本页方案：把纸装进 #print，body.printing 时只显示它
-  let host = document.getElementById("print");
-  if (!host) { host = document.createElement("div"); host.id = "print"; document.body.appendChild(host); }
-  host.innerHTML = renderPrint(kind, ym);
-  host.lang = document.documentElement.lang;
-  document.body.classList.add("printing"); printing = true;
-  /* 什么时候退出打印模式：手机上 window.print() 立刻返回、预览是之后才生成的，所以不能用定时器收尾——
-     定时器一到把 printing 摘掉，预览抓到的就是普通页面（这就是“打印内容不对”的来历）。
-     打印模式只影响 @media print，屏幕上看不出来，所以可以放心等到真正结束再退出：
-     afterprint / 打印媒体查询退出 / 页面从后台回来（手机的打印面板会把页面切到后台）/ 用户下一次点击。 */
-  const mq = window.matchMedia ? window.matchMedia("print") : null;
-  const done = () => {
-    if (!printing) return;
-    document.body.classList.remove("printing"); printing = false;
-    window.removeEventListener("afterprint", done);
-    if (mq) mq.removeEventListener("change", onMq);
-    document.removeEventListener("visibilitychange", onVis);
-    document.removeEventListener("pointerdown", done, true);
-  };
-  const onMq = e => { if (!e.matches) done(); };
-  const onVis = () => { if (document.visibilityState === "visible") done(); };
-  window.addEventListener("afterprint", done);
+  if (!S.hs.loaded) return;
+  S.printView = { kind, ym: ym || null, back: S.tab };
+  try { history.pushState({ print: 1 }, ""); } catch (e) {}
+  render(); window.scrollTo(0, 0);
+  window.addEventListener("afterprint", autoBack);
   if (mq) mq.addEventListener("change", onMq);
-  document.addEventListener("visibilitychange", onVis);
-  setTimeout(() => { if (printing) document.addEventListener("pointerdown", done, true); }, 800); // 不抓本次点击本身
-  try { window.print(); } catch (e) { done(); }
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 400); // 等字体和排版
+}
+function closePrint(){
+  if (!S.printView) return;
+  window.removeEventListener("afterprint", autoBack);
+  if (mq) mq.removeEventListener("change", onMq);
+  const back = S.printView.back; S.printView = null;
+  if (back) S.tab = back;
+  if (history.state && history.state.print) { try { history.back(); return; } catch (e) {} } // popstate 里再 render
+  render();
+}
+const mq = window.matchMedia ? window.matchMedia("print") : null;
+// 打印结束后稍等再退：预览还在用这一页时就切回去，会把切回去的页面打出来
+const autoBack = () => setTimeout(closePrint, 300);
+const onMq = e => { if (!e.matches) autoBack(); };
+window.addEventListener("popstate", () => { if (S.printView) { S.printView = null; render(); } });
+function printViewHTML(){
+  const { kind, ym } = S.printView;
+  return `<div class="pbar"><button class="btn" data-act="print-back">‹ ${t("返回")}</button><button class="btn primary" data-act="print-now">${t("打印")}</button><span class="small muted">${t("这一页就是要打印的纸。没有弹出打印窗口就点“打印”；打印完会自动返回。")}</span></div>
+  <div id="print" lang="${document.documentElement.lang}">${renderPrint(kind, ym)}</div>`;
 }
 
-export { openPrint, renderPrint, sheetDocument };
+export { openPrint, closePrint, printViewHTML, renderPrint };

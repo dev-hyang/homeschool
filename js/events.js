@@ -11,7 +11,7 @@ import { RES_LANGS, RES_TYPES, feedItem, ideaSourcesHTML } from "./resources.js"
 import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
-import { openPrint } from "./print.js";
+import { closePrint, openPrint } from "./print.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { render, toggleKids } from "./views.js";
 
@@ -25,7 +25,7 @@ document.addEventListener("click", async ev => {
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
-  if (d.tab) { close(); S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.tab) { close(); S.printView = null; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
   if (d.kidsel) { setChild(d.kidsel); render(); $("#bname").focus(); return; }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(t("已复制：") + d.copy); } catch (e) { toast(t("请手动复制：") + d.copy); } return; }
   if (d.themeSet !== undefined) { if (d.themeSet) document.documentElement.dataset.theme = d.themeSet; else delete document.documentElement.dataset.theme; try { localStorage.setItem(LS_PREFIX + ".theme", d.themeSet); } catch (e) {} openSettings(); return; }
@@ -78,6 +78,8 @@ document.addEventListener("click", async ev => {
       case "print-day": case "print-week": case "print-month":
         if (!S.hs.loaded) { toast(t("登录并进入家庭后才能打印")); break; }
         openPrint(d.act.slice(6), d.ym || undefined); break;
+      case "print-back": closePrint(); break;
+      case "print-now": try { window.print(); } catch (e) {} break;
       case "scr-pause": await hs.setProgress(d.sid, S.childId, "pause"); openScriptures(); break;
       case "scr-resume": await hs.setProgress(d.sid, S.childId, "resume"); openScriptures(); break;
       case "scriptures": openScriptures(); break;
@@ -213,6 +215,7 @@ function routineFields(){
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (!$("#kids").hidden) { toggleKids(false); $("#bname").focus(); }
+  else if (S.printView) closePrint();
   else if ($("#sheet").open) closeSheet();
 });
 document.addEventListener("visibilitychange", async () => {

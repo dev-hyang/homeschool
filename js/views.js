@@ -1,5 +1,6 @@
 import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { viewMe } from "./me.js";
+import { printViewHTML } from "./print.js";
 import { t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
@@ -40,6 +41,9 @@ function toggleKids(open = $("#kids").hidden){
 }
 function render(){
   renderStatus();
+  // 打印视图：整页就是那张纸（头部、底栏由 body.printview 收起）
+  document.body.classList.toggle("printview", !!S.printView);
+  if (S.printView) { $("#main").innerHTML = printViewHTML(); return; }
   const parent = PARENT[S.tab], cur = parent || S.tab;
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const v = VIEWS[S.tab] || viewToday;
