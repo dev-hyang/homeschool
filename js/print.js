@@ -108,9 +108,26 @@ function openPrint(kind, ym){
   host.innerHTML = renderPrint(kind, ym);
   host.lang = document.documentElement.lang;
   document.body.classList.add("printing"); printing = true;
-  const done = () => { document.body.classList.remove("printing"); printing = false; };
-  window.addEventListener("afterprint", done, { once: true });
-  setTimeout(() => { try { window.print(); } finally { setTimeout(done, 1500); } }, 50); // 有些浏览器不发 afterprint
+  /* 什么时候退出打印模式：手机上 window.print() 立刻返回、预览是之后才生成的，所以不能用定时器收尾——
+     定时器一到把 printing 摘掉，预览抓到的就是普通页面（这就是“打印内容不对”的来历）。
+     打印模式只影响 @media print，屏幕上看不出来，所以可以放心等到真正结束再退出：
+     afterprint / 打印媒体查询退出 / 页面从后台回来（手机的打印面板会把页面切到后台）/ 用户下一次点击。 */
+  const mq = window.matchMedia ? window.matchMedia("print") : null;
+  const done = () => {
+    if (!printing) return;
+    document.body.classList.remove("printing"); printing = false;
+    window.removeEventListener("afterprint", done);
+    if (mq) mq.removeEventListener("change", onMq);
+    document.removeEventListener("visibilitychange", onVis);
+    document.removeEventListener("pointerdown", done, true);
+  };
+  const onMq = e => { if (!e.matches) done(); };
+  const onVis = () => { if (document.visibilityState === "visible") done(); };
+  window.addEventListener("afterprint", done);
+  if (mq) mq.addEventListener("change", onMq);
+  document.addEventListener("visibilitychange", onVis);
+  setTimeout(() => { if (printing) document.addEventListener("pointerdown", done, true); }, 800); // 不抓本次点击本身
+  try { window.print(); } catch (e) { done(); }
 }
 
 export { openPrint, renderPrint };
