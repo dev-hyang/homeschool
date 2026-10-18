@@ -166,9 +166,9 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 .task.done .verse{color:var(--muted)}
 
 /* ============ 打印（js/print.js） ============
-   正常走法：把纸张 HTML 开到一个只含它的新标签页里打印（页面里只有这张纸，浏览器什么时候生成预览都不会打错）。
-   后备走法（弹窗被拦时）：在本页里 #print 装纸张，body.printing 时隐藏应用、只显示它。
-   纸张本身的样式不放在 @media print 里，新标签页屏幕上也要能看。 */
+   正常走法：藏一个只含这张纸的同源 iframe，由它打印（文档里只有纸，浏览器什么时候生成预览都不会打错）。
+   iOS 走法：在本页里 #print 装纸张，body.printing 时隐藏应用、只显示它，直到打印真正结束。
+   纸张本身的样式不放在 @media print 里，iframe 文档里才拿得到。 */
 #print{display:none}
 @media print{
   @page{margin:12mm}

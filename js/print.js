@@ -101,29 +101,40 @@ function monthPage(ym){
 
 const renderPrint = (kind, ym) => kind === "week" ? weekPage() : kind === "month" ? monthPage(ym || dayKey(Date.now()).slice(0, 7)) : dayPage();
 const sheetTitle = (kind, ym) => `${t("家庭学堂")} · ${kind === "week" ? t("本周") : kind === "month" ? (ym || dayKey(Date.now()).slice(0, 7)) : dayKey(Date.now())} · ${esc(childName())}`;
-/* 独立的打印文档：只有这张纸。样式沿用本站的 app.css（纸张规则不在 @media print 里，屏幕上也显示），
-   顶上一条小工具栏（打印时隐藏）。加载完自动弹打印；没弹的话点工具栏按钮。 */
+/* 只含这张纸的小文档：样式沿用本站的 app.css（纸张规则不在 @media print 里，所以在任何文档里都生效）。 */
 function sheetDocument(kind, ym){
   const css = [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => `<link rel="stylesheet" href="${l.href}">`).join("");
-  return `<!doctype html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${sheetTitle(kind, ym)}</title>${css}
-<style>html,body{margin:0;background:#fff;color:#000}#print{display:block;max-width:820px;margin:0 auto;padding:16px}
-.pbar{position:sticky;top:0;display:flex;gap:10px;align-items:center;padding:10px 16px;background:#f3f6fa;border-bottom:1px solid #d0dcea;font:14px system-ui,sans-serif;color:#333}
-.pbar button{font:inherit;padding:8px 16px;border-radius:999px;border:1px solid #2e5c98;background:#2e5c98;color:#fff;cursor:pointer}
-@media print{.pbar{display:none}#print{max-width:none;padding:0}}</style></head>
-<body><div class="pbar"><button onclick="window.print()">${t("打印")}</button><span>${t("没有自动弹出打印窗口的话，点左边的按钮。打印完关掉这个标签页即可。")}</span></div>
-<div id="print">${renderPrint(kind, ym)}</div>
-<script>window.addEventListener("load",function(){setTimeout(function(){try{window.print()}catch(e){}},300)});</script></body></html>`;
+  return `<!doctype html><html lang="${document.documentElement.lang}"><head><meta charset="utf-8"><title>${sheetTitle(kind, ym)}</title>${css}
+<style>html,body{margin:0;background:#fff;color:#000}#print{display:block}</style></head>
+<body><div id="print">${renderPrint(kind, ym)}</div></body></html>`;
 }
+const isIOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 let printing = false;
 function openPrint(kind, ym){
   if (printing || !S.hs.loaded) return;
-  // 首选：新标签页里只放这张纸（手机浏览器 print() 的时机不可控，页面里只有纸就不会打错）
-  let w = null;
-  try { w = window.open("", "_blank"); } catch (e) { w = null; }
-  if (w && w.document) {
-    try { w.document.open(); w.document.write(sheetDocument(kind, ym)); w.document.close(); return; } catch (e) { try { w.close(); } catch (e2) {} }
+  // 首选：藏一个只装这张纸的同源 iframe，让它自己打印。文档里只有纸，浏览器什么时候生成预览都不会打错，
+  // 也不用开新标签页。iOS Safari 对 iframe 打印不可靠（会打成父页面），走下面的本页方案。
+  if (!isIOS()) {
+    try {
+      const old = document.getElementById("printframe"); if (old) old.remove();
+      const f = document.createElement("iframe");
+      f.id = "printframe"; f.setAttribute("aria-hidden", "true"); f.tabIndex = -1;
+      f.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none";
+      f.srcdoc = sheetDocument(kind, ym);
+      printing = true;
+      const release = () => { printing = false; setTimeout(() => f.remove(), 1000); };
+      f.onload = () => {
+        const w = f.contentWindow;
+        if (!w) { release(); return; }
+        w.addEventListener("afterprint", release, { once: true });
+        setTimeout(() => { try { w.focus(); w.print(); } catch (e) { release(); } }, 350); // 等样式表装好
+        setTimeout(release, 60000); // 没有 afterprint 的浏览器：一分钟后收走，不影响已经打开的预览
+      };
+      document.body.appendChild(f);
+      return;
+    } catch (e) { printing = false; }
   }
-  // 后备：弹窗被拦时在本页里打印
+  // 本页方案：把纸装进 #print，body.printing 时只显示它
   let host = document.getElementById("print");
   if (!host) { host = document.createElement("div"); host.id = "print"; document.body.appendChild(host); }
   host.innerHTML = renderPrint(kind, ym);
