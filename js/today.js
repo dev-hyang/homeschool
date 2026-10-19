@@ -57,8 +57,9 @@ function reviewHTML(){
   return `<h2>${t("经文背诵")} · ${esc(childName())}${pending ? ` <span class="pill ok">${t("今日 {n} 节", { n: pending })}</span>` : ""}</h2>
   <div class="panel">
     ${plan.rows.length ? `<div class="tasks">${plan.rows.map(row).join("")}</div>
-      <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90 天自动安排复习，到期的会自动出现在这里。")}</p>`
+      <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90、180 天自动安排复习，到期的会自动出现在这里。")}</p>`
       : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
+    ${plan.backlog ? `<div class="small" style="margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft)">${t("复习排队了 {n} 节，最久的已拖 {d} 天。可以周末多复习几节，也可以今天先多做几节。", { n: plan.backlog.queued, d: plan.backlog.oldest })} <button class="chip" data-act="review-more">${t("今天多复习 3 节")}</button></div>` : ""}
     ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`
       : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`}
     ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("每天 8 点如果还没有在学的经文，会从卡库随机挑一节；不合适就点“换一个”。可在设置里关闭。")}</p>`}

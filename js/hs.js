@@ -203,7 +203,8 @@ async function importCatechism(text, lang){
 /* ---- 背诵进度：在学 → 会背了 → 3 天、7 天、30 天、90 天复习，之后一直 90 天一次 ----
    reviews 是已通过的复习次数，决定下一档间隔。“再练练”不是失败：记一次，明天再来，并退一档间隔重新巩固。
    迁移 011 加了 last_on / last_result / again_streak / undo_to 和 paused 状态；今天页据此把做过的卡留在原位，并支持撤销。 */
-const INTERVALS = [3, 7, 30, 90];
+// 通过第 5 次复习后拉长到 180 天：稳定期复习量减半，积压不再随背诵量线性增长（已在 90 天档的卡下次通过后才升档）
+const INTERVALS = [3, 7, 30, 90, 180];
 const tier = n => INTERVALS[Math.min(n, INTERVALS.length - 1)];
 const progressOf = (sid, cid) => S.hs.progress.find(p => p.scripture_id === sid && p.child_id === cid) || null;
 const snapshot = p => p ? { status: p.status, learned_on: p.learned_on, next_review: p.next_review, reviews: p.reviews || 0, again_streak: p.again_streak || 0, last_on: p.last_on || null, last_result: p.last_result || null } : null;
@@ -246,7 +247,9 @@ const learnedCount = cid => S.hs.progress.filter(p => p.child_id === cid && p.st
    写死不做设置项；两岁前按幼儿算。 */
 const DAILY_CAP = { baby: { learn: 1, review: 1 }, toddler: { learn: 1, review: 1 }, prek: { learn: 1, review: 2 }, school: { learn: 2, review: 3 } };
 function todayPlan(cid){
-  const d = today(), cap = DAILY_CAP[stageOf(cid).key] || DAILY_CAP.prek, order = new Map(S.hs.scriptures.map((s, i) => [s.id, i]));
+  const d = today(), base = DAILY_CAP[stageOf(cid).key] || DAILY_CAP.prek, order = new Map(S.hs.scriptures.map((s, i) => [s.id, i]));
+  // 家长点了“今天多复习”：只放宽当天的复习配额，次日恢复
+  const extra = S.hs.extraReview && S.hs.extraReview.day === d ? S.hs.extraReview.n : 0, cap = { ...base, review: base.review + extra };
   const mine = withCard(S.hs.progress.filter(p => p.child_id === cid && p.status !== "paused"));
   const isLearn = x => x.p.status === "learning" || (x.p.last_result === "ok" && x.p.learned_on === d && !x.p.reviews);
   const done = mine.filter(x => x.p.last_on === d).map(x => ({ ...x, kind: isLearn(x) ? "learn" : "review", done: true }));
@@ -255,8 +258,12 @@ function todayPlan(cid){
   const roomR = Math.max(0, cap.review - done.filter(x => x.kind === "review").length), roomL = Math.max(0, cap.learn - done.filter(x => x.kind === "learn").length);
   const due = dueAll.slice(0, roomR).map(x => ({ ...x, kind: "review", done: false })), learn = learnAll.slice(0, roomL).map(x => ({ ...x, kind: "learn", done: false }));
   const rows = [...due, ...done.filter(x => x.kind === "review"), ...learn, ...done.filter(x => x.kind === "learn")];
-  return { rows, done: done.length, total: rows.length, later: (dueAll.length - due.length) + (learnAll.length - learn.length), cap };
+  // 复习积压：到期但排不进今天的节数，和最久拖了几天。超过配额两倍或有拖满一周的，今天页提示家长
+  const queued = dueAll.length - due.length, firstQueued = dueAll[due.length], oldest = firstQueued ? Math.round((new Date(d) - new Date(firstQueued.p.next_review)) / D) : 0;
+  const backlog = queued > 0 && (queued >= base.review * 2 || oldest >= 7) ? { queued, oldest } : null;
+  return { rows, done: done.length, total: rows.length, later: queued + (learnAll.length - learn.length), cap, backlog };
 }
+const addExtraReview = (n = 3) => { const d = today(), cur = S.hs.extraReview && S.hs.extraReview.day === d ? S.hs.extraReview.n : 0; S.hs.extraReview = { day: d, n: cur + n }; };
 // 当前孩子还没开始背的第一张卡（卡库顺序），用于“开始下一节”
 const nextToStart = cid => S.hs.scriptures.find(s => !progressOf(s.id, cid)) || null;
 const unstarted = (cid, except) => S.hs.scriptures.filter(s => s.id !== except && !progressOf(s.id, cid));
@@ -534,7 +541,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse, addExtraReview,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,

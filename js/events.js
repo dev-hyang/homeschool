@@ -69,6 +69,7 @@ document.addEventListener("click", async ev => {
       case "review-remember": await hs.setProgress(d.sid, S.childId, "remember"); render(); toast(t("{name}背出来了 ✓", { name: childName() })); break;
       case "review-again": await hs.setProgress(d.sid, S.childId, "again"); render(); toast(t("记下了，明天再练")); break;
       case "learn-done": await hs.setProgress(d.sid, S.childId, "learned"); render(); toast(t("{name}会背了，3 天后复习", { name: childName() })); break;
+      case "review-more": hs.addExtraReview(3); render(); break;
       case "learn-practice": await hs.setProgress(d.sid, S.childId, "practice"); render(); break;
       case "review-undo": await hs.setProgress(d.sid, S.childId, "undo"); render(); break;
       case "review-pause": await hs.setProgress(d.sid, S.childId, "pause"); render(); toast(t("先放一放了，卡库的“放一放”里能找回来")); break;
