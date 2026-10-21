@@ -1,7 +1,7 @@
 import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { viewMe } from "./me.js";
 import { printViewHTML } from "./print.js";
-import { locale, t } from "./core/i18n.js";
+import { LOCALES, locale, t } from "./core/i18n.js";
 import { S, ageText, child } from "./core/state.js";
 import { $, esc } from "./core/util.js";
 import { viewCourse, viewGoals, viewScope, viewUnits } from "./course.js";
@@ -27,6 +27,7 @@ function renderStatus(){
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
     + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
   renderAppSwitch();
+  renderLangSwitch();
   // 底部页签文字
   document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
@@ -34,6 +35,19 @@ function renderStatus(){
 // 组件放在 home-pantry/shared；首次离线加载不到时，先用原来的 ‹ 上一个 / 下一个 › 胶囊，切换不受影响。
 const SWITCHER_URL = "https://dev-hyang.github.io/home-pantry/shared/app-switcher.js";
 let switcherMod = null, switcherTried = false;
+// 语言切换（四个姊妹站点共用）：地球按钮 + 列表，以后加语言只要在 LOCALES 里加一项
+const LANG_URL = "https://dev-hyang.github.io/home-pantry/shared/lang-switcher.js";
+let langMod = null, langTried = false;
+function renderLangSwitch(){
+  const host = $("#langsw"); if (!host) return;
+  if (langMod) {
+    const cur = locale();
+    langMod.mountLangSwitcher({ host, current: cur, ui: cur === "en" ? "en" : cur === "zh-TW" ? "tw" : "zh", languages: LOCALES.map(([code]) => ({ code })),
+      onSelect: code => document.dispatchEvent(new CustomEvent("eco-set-lang", { detail: code })) });
+    return;
+  }
+  if (!langTried) { langTried = true; import(LANG_URL).then(m => { langMod = m; renderLangSwitch(); }).catch(() => {}); }
+}
 function renderAppSwitch(){
   const host = $("#apps");
   if (switcherMod) { switcherMod.mountAppSwitcher({ host, current: THIS_APP, lang: locale() }); return; }
@@ -57,7 +71,7 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
-  const back = parent ? `<div style="margin-top:12px"><button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button></div>` : "";
+  const back = parent ? `<div class="backbar"><button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button></div>` : "";
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me") ? back + v() : back + (gateHTML() || v());
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }

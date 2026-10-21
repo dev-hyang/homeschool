@@ -222,3 +222,6 @@ document.addEventListener("keydown", e => {
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && S.cloud === "ready") { await loadChildren(); await hs.refreshIfNewDay(); render(); }
 });
+
+// 顶栏语言切换器（共用组件）选了语言
+document.addEventListener("eco-set-lang", e => { setLocale(e.detail); render(); });
