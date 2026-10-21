@@ -32,7 +32,7 @@ function viewMe(){
 
   <h2>${t("姊妹应用")}</h2>
   <div class="panel mlist">${SISTER_APPS.filter(a => a.id !== THIS_APP).map(link).join("")}</div>
-  <p class="small muted">${t("同一个账号、同一个家庭，三个站点互通。")}</p>
+  <p class="small muted">${t("同一个账号、同一个家庭，四个站点互通。")}</p>
   <p class="small muted" style="margin-top:24px">${t("家庭学堂")} · ${t("版本")} ${APP_VERSION}</p>`;
 }
 

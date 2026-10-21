@@ -6,14 +6,15 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
 
 const LS_PREFIX = "homeschool.v1";            // 本设备偏好的 localStorage 前缀，与小月亮的 xiaoyueliang.v1 分开
-const APP_VERSION = "2026-10-19.1";
+const APP_VERSION = "2026-10-21.1";
 const BABY_LOG_URL = "https://dev-hyang.github.io/baby-log/";
 const PANTRY_URL = "https://dev-hyang.github.io/home-pantry/";
-// 三个姊妹站点同一个账号同一个家庭；标题旁的左右箭头在它们之间切换（按这里的顺序环绕）
+// 四个姊妹站点同一个账号同一个家庭；标题旁的左右箭头在它们之间切换（按这里的顺序环绕）
 const SISTER_APPS = [
   { id: "baby-log", name: "小月亮", short: "小月亮", url: BABY_LOG_URL, desc: "宝宝记录：喂奶、睡眠、尿布、成长曲线。孩子的名字和生日在这里维护。" },
   { id: "homeschool", name: "家庭学堂", short: "学堂", url: "https://dev-hyang.github.io/homeschool/", desc: "在家教育：每日敬拜、经文背诵、课程、任务与报告。" },
-  { id: "home-pantry", name: "爱家小助手", short: "小助手", url: PANTRY_URL, desc: "家庭库存与采购清单、按库存推荐三餐、房屋维护与装备清单。" }
+  { id: "home-pantry", name: "爱家小助手", short: "小助手", url: PANTRY_URL, desc: "家庭库存与采购清单、按库存推荐三餐、房屋维护与装备清单。" },
+  { id: "shepherd", name: "牧羊人", short: "牧羊人", url: "https://dev-hyang.github.io/shepherd/", desc: "大人自己的身心灵记录：读经、祷告、锻炼、饮食、屏幕时长、用药与保健品。" }
 ];
 const THIS_APP = "homeschool";
 
