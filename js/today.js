@@ -12,7 +12,7 @@ function viewToday(){
   <section class="hero"><div class="moon"></div>
     <div class="lbl">${day} · ${esc(weekdayLabel(new Date(now).getDay()))}</div>
     <div class="big">${esc(childName())}</div>
-    <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span></div></section>
+    <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>
   ${devotionHTML()}
   ${reviewHTML()}
   ${tasksHTML(day)}`;
@@ -66,7 +66,7 @@ function reviewHTML(){
   </div>`;
 }
 
-// 打印入口在右上角（宽屏“打印”下拉，窄屏 ⋯ 菜单），今天页不再重复放
+// 打印：今天页头部有“打印今日页”（只打这一天那张纸）；本周 / 本月在“我的”页
 
 function tasksHTML(day){
   const cid = S.childId, list = tasksFor(day, cid);

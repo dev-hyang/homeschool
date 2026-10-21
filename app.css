@@ -293,3 +293,6 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .hdr-tools{display:inline-flex;align-items:center;gap:2px;margin:-4px -6px -2px 0}   /* 语言、应用两个 44px 触控按钮并排，顶栏保持紧凑 */
 /* 子页“‹ 所属页”路径条：页面往下滑时固定在顶部（刘海下面），随时能回上一层 */
 .backbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;margin:0 -16px 8px;padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+/* 今天页头里的“打印今日页”：白字透明底，和深蓝渐变搭 */
+.hero .hero-chip{margin-left:auto;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.45);color:#fff;min-height:30px;padding:3px 10px;font-size:13px}
+.hero .hero-chip:hover{background:rgba(255,255,255,.28)}
