@@ -158,7 +158,7 @@ function planHTML(){
 /* ---- 学年（设置页里） ---- */
 function yearHTML(){
   const yi = yearInfo(), y = S.hs.settings.year || {};
-  const breaks = (y.breaks || []).map((b, i) => `<div class="medrow"><span>${esc(b.name || t("假期"))} <span class="small muted">${esc(b.from)} ${t("到")} ${esc(b.to)}</span></span><button class="chip" data-act="break-del" data-i="${i}">${t("删除")}</button></div>`).join("");
+  const breaks = (y.breaks || []).map((b, i) => `<div class="medrow" data-swipe><span>${esc(b.name || t("假期"))} <span class="small muted">${esc(b.from)} ${t("到")} ${esc(b.to)}</span></span><button class="chip swipe-src" data-act="break-del" data-i="${i}">${t("删除")}</button></div>`).join("");
   return `${yi ? `<p>${t("开学 <b>{start}</b>，共 <b>{weeks}</b> 周，每学期 {tw} 周，预计 {end} 结束。", { start: esc(yi.start), weeks: yi.weeks, tw: yi.termWeeks, end: yi.endOn })}${yi.before ? t("还没开学。") : yi.ended ? t("学年已结束。") : t("现在是第 {w} 周、第 {term} 学期。", { w: yi.week, term: yi.term })}</p>` : `<p class="muted">${t("还没设置学年。填了开学日期和周数，课程页和报告页才能判断“按计划 / 快 / 慢”。美国惯例 36 周、3 个学期各 12 周。")}</p>`}
   <div class="btns" style="margin-top:0"><button class="btn ${yi ? "" : "primary"}" data-act="year-edit">${yi ? t("修改学年") : t("设置学年")}</button><button class="btn" data-act="break-add">＋ ${t("假期")}</button></div>
   ${breaks ? `<div style="margin-top:8px">${breaks}</div>` : ""}

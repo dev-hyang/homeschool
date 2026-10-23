@@ -5,7 +5,7 @@
 const EN = {
   // ---- 框架 ----
   "家庭学堂": "Family Homeschool", "在家教育": "Homeschool", "{name}的学堂": "{name}’s School", "宝宝": "Baby",
-  "回到顶部": "Back to top", "今天": "Today", "课程": "Courses", "资源": "Resources", "日历": "Calendar", "报告": "Reports", "法规": "Laws", "我的": "Me",
+  "回到顶部": "Back to top", "松手删除": "Release to delete", "今天": "Today", "课程": "Courses", "资源": "Resources", "日历": "Calendar", "报告": "Reports", "法规": "Laws", "我的": "Me",
   "{name} · {age}": "{name} · {age}", "还没登录": "Not signed in", "按月出勤、每科时长、敬拜、经文、课时、目标，CSV 导出": "Monthly attendance, time per subject, worship, verses, lessons, goals; CSV export",
   "各州在家教育法规摘要": "State homeschool law summaries", "家庭与成员、读经计划、译本、学年与假期、语言、显示": "Family and members, reading plan, Bible versions, school year and breaks, language, appearance",
   "设计思路、每页用法、节奏怎么把握": "Design ideas, how each page works, pacing", "竖版一页：敬拜、背诵经文全文、任务、备注": "One portrait page: worship, full verse texts, tasks, notes",
