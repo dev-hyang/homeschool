@@ -350,3 +350,6 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .lib-menu{margin:0 0 12px}
 .lib-menu h3{margin:0 0 4px;font-size:15px}
 .lib-filters{margin:0 0 6px}
+/* app version next to the sync status (the same line in all four sister apps), so an update can be checked without scrolling to the About page */
+.hdr-line{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:2px 8px}
+.appver{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
