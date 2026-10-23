@@ -5,6 +5,7 @@ import { bars, curve, donut, stack } from "./charts.js";
 import { vz, ve } from "./data/versions.js";
 import { INTERVALS, fetchVersions, poolCfg, poolOf, progressOf } from "./hs.js";
 import { head, showSheet } from "./sheet.js";
+import { mrow } from "./me.js";
 
 /* ============ 经文卡库：总览（图表）+ 列表（按类型分层）============
    筛选集成在一行：类型 / 状态 / 排序 / 搜索，都是下拉和输入框，没有标签条。
@@ -135,24 +136,51 @@ function renderLibList(){
 }
 
 const opt = (v, l, cur) => `<option value="${esc(v)}" ${cur === v ? "selected" : ""}>${esc(l)}</option>`;
+/* 抬头只留三样：一行概况、视图切换 + “添加 / 设置”两个按钮、（点开才出现的）面板。
+   添加：五种来源收成一个列表；设置：本批和译本放一起。面板同一时间只开一个，状态记在 S.scrFilter.menu。 */
+function summaryLine(all, cid, day){
+  const c = { learning: 0, learned: 0, paused: 0, none: 0 };
+  all.forEach(s => { c[statusOf(s, cid)]++; });
+  const due = all.filter(s => { const p = progressOf(s.id, cid); return !!p && p.status === "learned" && !!p.next_review && p.next_review <= day && p.last_on !== day; }).length;   // 到期还没做的复习
+  return `<b>${esc(childName())}</b> · ${t("共 {n} 张", { n: all.length })} · ${t("新学")} ${c.learning} · ${t("复习中")} ${c.learned}${due ? ` · <span class="lib-late">${t("今天复习 {n}", { n: due })}</span>` : ""}${c.paused ? ` · ${t("放一放")} ${c.paused}` : ""}`;
+}
+function menuHTML(menu, cfg, pool, fv){
+  if (menu === "add") {
+    const row = (act, icon, title, desc) => mrow(`data-act="${act}"`, title, desc, icon);
+    return `<div class="panel mlist lib-menu" role="region" aria-label="${t("添加经文卡")}">
+      ${row("scr-add", "✎", t("手写一张"), t("自己输入出处和经文"))}
+      ${row("scr-gen", "⌕", t("按出处生成"), t("贴几行出处，中英文经文自动抓取"))}
+      ${row("scr-set", "▤", t("成套导入"), t("按主题的整套经文，只给出处，自动抓取"))}
+      ${row("ncc-import", "？", t("新城要理问答"), t("粘贴官方全文，生成 52 问"))}
+      ${row("seed-scriptures", "★", t("起步经文卡"), t("补充导入和合本 / ESV 的起步卡"))}</div>`;
+  }
+  if (menu === "cfg") {
+    return `<div class="panel lib-menu" role="region" aria-label="${t("设置")}">
+      <h3>${t("本批")}</h3>
+      <p class="small muted">${pool ? t("现在 {a}/{b} 节已会背。", { a: pool.done, b: pool.total }) : t("还没有本批，8 点会自动拉一批。")}${t("会背完自动拉下一批，下一批起按这里的设置。")}</p>
+      <div class="lib-pool-cfg"><label>${t("每批")} <select id="poolBatch" aria-label="${t("每批节数")}">${Array.from({ length: 12 }, (_, i) => opt(String(i + 1), t("{n} 节", { n: i + 1 }), String(cfg.batch))).join("")}</select></label>
+        <label>${t("问答占")} <select id="poolCat" aria-label="${t("问答占比")}">${[...new Set([0, 10, 20, 30, 40, 50, 70, 100, cfg.catShare])].sort((a, b) => a - b).map(v => opt(String(v), `${v}%`, String(cfg.catShare))).join("")}</select></label></div>
+      <h3 style="margin-top:14px">${t("自动抓取经文")}</h3>
+      <p class="small">${t("中文 {zh} · 英文 {en}", { zh: esc(fv.zh) + (fv.zhFallback ? t("（已回退）") : ""), en: esc(fv.en) + (fv.enFallback ? t("（{v} 需代理，已回退）", { v: esc(fv.wanted.en) }) : "") })}${S.hs.versions ? "" : `<br><span class="muted">${t("译本字段需要迁移 005")}</span>`}</p>
+      <div class="btns" style="margin-top:0"><button class="btn" data-act="fetch-settings">${t("改译本与代理")}</button></div></div>`;
+  }
+  return "";
+}
 function openScriptures(){
-  const cid = S.childId, all = S.hs.scriptures, fv = fetchVersions(), day = dayKey(Date.now()), name = esc(childName()), f = S.scrFilter, cfg = poolCfg(), pool = poolOf(cid);
-  const view = all.length ? f.view : "list";
+  const cid = S.childId, all = S.hs.scriptures, fv = fetchVersions(), day = dayKey(Date.now()), f = S.scrFilter, cfg = poolCfg(), pool = poolOf(cid);
+  const view = all.length ? f.view : "list", menu = f.menu || "";
+  const tb = (key, icon, label) => `<button class="chip lib-tool" data-lm="${key}" aria-expanded="${menu === key}" aria-pressed="${menu === key}"><span aria-hidden="true">${icon}</span> ${label}</button>`;
   $("#sheetIn").innerHTML = `${head(t("经文卡库"))}
-  <p class="small muted">${t("经文卡属于全家，背诵进度按孩子分开。当前孩子：{name}。", { name })}</p>
-  <div class="panel lib-pool"><p class="small" style="margin:0 0 6px"><b>${t("本批")}</b> ${pool ? t("{a}/{b} 节已会背", { a: pool.done, b: pool.total }) : `<span class="muted">${t("还没有本批；8 点会自动拉一批")}</span>`} · ${t("会背完自动拉下一批")}</p>
-    <div class="lib-pool-cfg"><label>${t("每批")} <select id="poolBatch" aria-label="${t("每批节数")}">${Array.from({ length: 12 }, (_, i) => opt(String(i + 1), t("{n} 节", { n: i + 1 }), String(cfg.batch))).join("")}</select></label>
-      <label>${t("问答占")} <select id="poolCat" aria-label="${t("问答占比")}">${[...new Set([0, 10, 20, 30, 40, 50, 70, 100, cfg.catShare])].sort((a, b) => a - b).map(v => opt(String(v), `${v}%`, String(cfg.catShare))).join("")}</select></label></div></div>
-  <p class="small muted">${t("自动抓取用：中文 {zh} · 英文 {en}", { zh: esc(fv.zh) + (fv.zhFallback ? t("（已回退）") : ""), en: esc(fv.en) + (fv.enFallback ? t("（{v} 需代理，已回退）", { v: esc(fv.wanted.en) }) : "") })} <button class="chip" data-act="fetch-settings">${t("改")}</button>${S.hs.versions ? "" : " · " + t("译本字段需要迁移 005")}</p>
-  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="scr-gen">${t("按出处生成")}</button><button class="btn" data-act="scr-set">${t("成套导入")}</button><button class="btn" data-act="ncc-import">${t("新城要理问答")}</button><button class="btn" data-act="scr-add">${t("手写一张")}</button></div>
-  ${all.length ? "" : `<p class="small muted">${t("“按出处生成”：贴几行出处（如 约翰福音 3:16），中英文经文自动抓取。或先")}<button class="chip" data-act="seed-scriptures">${t("导入起步经文卡（和合本 / ESV）")}</button>。</p>`}
-  ${all.length ? `<div class="lib-bar"><div class="seg" role="group" aria-label="${t("视图")}"><button data-lv="chart" aria-pressed="${view === "chart"}">${t("总览")}</button><button data-lv="list" aria-pressed="${view === "list"}">${t("列表")}</button></div>
-    <div class="lib-filters"><label>${t("类型")} <select id="libKind">${opt("all", t("全部"), f.kind)}${KINDS.map(([k, n]) => opt(k, t(n), f.kind)).join("")}</select></label>
+  ${all.length ? `<p class="lib-summary small">${summaryLine(all, cid, day)}</p>` : ""}
+  <div class="lib-toolbar">${all.length ? `<div class="seg" role="group" aria-label="${t("视图")}"><button data-lv="chart" aria-pressed="${view === "chart"}">${t("总览")}</button><button data-lv="list" aria-pressed="${view === "list"}">${t("列表")}</button></div>` : ""}
+    <span class="lib-tools">${tb("add", "＋", t("添加"))}${tb("cfg", "⚙", t("设置"))}</span></div>
+  ${menuHTML(menu, cfg, pool, fv)}
+  ${all.length ? "" : `<div class="empty">${t("还没有经文卡。点“添加”导入起步卡，或者加你们自己选的经文。")}</div>`}
+  ${all.length ? `<div class="lib-filters"><label>${t("类型")} <select id="libKind">${opt("all", t("全部"), f.kind)}${KINDS.map(([k, n]) => opt(k, t(n), f.kind)).join("")}</select></label>
       ${view === "list" ? `<label>${t("状态")} <select id="libSt">${STATUS_OPTS.map(([v, l]) => opt(v, t(l), f.st)).join("")}</select></label>
       <label>${t("排序")} <select id="libSort">${SORT_OPTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></label>
-      <input type="search" id="libQ" value="${esc(f.q)}" placeholder="${t("搜索出处或经文")}" aria-label="${t("搜索")}">` : ""}</div></div>` : ""}
-  ${all.length ? (view === "chart" ? overviewHTML(all, cid, day, f) : `<p class="small muted" id="libCount" style="margin:8px 0 0"></p><div id="libList"></div>`) : `<div class="empty">${t("还没有经文卡。导入起步卡，或者添加你们自己选的经文。")}</div>`}
-  ${all.length ? `<div class="btns"><button class="btn" data-act="seed-scriptures">${t("补充导入起步经文卡（和合本 / ESV）")}</button></div>` : ""}`;
+      <input type="search" id="libQ" value="${esc(f.q)}" placeholder="${t("搜索出处或经文")}" aria-label="${t("搜索")}">` : ""}</div>` : ""}
+  ${all.length ? (view === "chart" ? overviewHTML(all, cid, day, f) : `<p class="small muted" id="libCount" style="margin:8px 0 0"></p><div id="libList"></div>`) : ""}`;
   showSheet();
   if (all.length && view === "list") renderLibList();
 }

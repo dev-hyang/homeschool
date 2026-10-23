@@ -6,6 +6,7 @@ import { BANDS, CATS, IDEA_SOURCES, bandFor, ideas } from "./data/ideas.js";
 import { FEEDS, dailyPicks } from "./data/feeds.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
+import { learnedCount, poolOf } from "./hs.js";
 
 /* ============ 资源：入口页（日常点子 / 资源库 / 参考来源 三个入口带摘要）→ 子页 ============ */
 const missing = () => `<div class="empty">${t("资源库需要数据库迁移 004。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/004_homeschool_phase2_4.sql</code>${t("，然后刷新。")}</div>`;
@@ -70,8 +71,14 @@ const TYPES = { link: "链接", book: "书", video: "视频", print: "打印件"
 const LANGS = { zh: "中文", en: "英文", bi: "双语" };
 
 /* 入口页 */
+/** 经文卡库入口：几张卡、会背几节、本批进度；点进去是经文卡库（总览图表 / 列表 / 添加 / 设置） */
+function scriptureEntry(){
+  const cid = S.childId, n = S.hs.scriptures.length, pool = S.hs.loaded ? poolOf(cid) : null;
+  const desc = n ? `${t("{n} 张", { n })} · ${t("已会背 {n} 节", { n: learnedCount(cid) })}${pool ? ` · ${t("本批 {a}/{b} 节已会背", { a: pool.done, b: pool.total })}` : ""}` : t("还是空的，进去导入起步经文卡");
+  return mrow('data-act="scriptures"', t("经文卡库"), desc, "📖");
+}
 function viewResources(){
-  if (!S.hs.phase2) return missing();
+  if (!S.hs.phase2) return `<h2>${t("资源")}</h2><div class="panel mlist">${scriptureEntry()}</div>${missing()}`;
   const f = S.ideaFilter, auto = bandFor(ageMonths()), band = BANDS.find(b => b.id === f.band) || auto, n = S.hs.resources.length;
   const kinds = {}; S.hs.resources.forEach(r => { kinds[r.type] = (kinds[r.type] || 0) + 1; });
   const kindLine = Object.entries(kinds).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${TYPES[k] ? t(TYPES[k]) : k} ${v}`).join(" · ");
@@ -79,6 +86,7 @@ function viewResources(){
   <div class="panel mlist">
     ${mrow('data-tab="res-ideas"', t("日常点子"), `${CATS[f.cat].icon} ${t(CATS[f.cat].name)} · ${t(band.name)}${band.id === auto.id ? `（${esc(childName())}）` : ""} · ${f.mode === "list" ? t("精选清单") : t("每日新鲜（博客）")}`, "✦")}
     ${mrow('data-tab="res-library"', t("资源库"), n ? t("{n} 条", { n }) + (kindLine ? ` · ${kindLine}` : "") : t("还是空的，进去导入起步资源"), "▤")}
+    ${scriptureEntry()}
     ${mrow('data-act="idea-sources"', t("参考来源"), t("每日新鲜读的博客、精选清单的出处"), "↗")}
   </div>`;
 }

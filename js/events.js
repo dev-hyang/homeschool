@@ -43,6 +43,7 @@ document.addEventListener("click", async ev => {
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
   if (d.tab) { close(); S.printView = null; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
   if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
+  if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
   if (d.kidsel) { setChild(d.kidsel); render(); $("#bname").focus(); return; }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(t("已复制：") + d.copy); } catch (e) { toast(t("请手动复制：") + d.copy); } return; }
@@ -62,6 +63,7 @@ document.addEventListener("click", async ev => {
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
+  if (["scr-gen", "scr-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   try {
     switch (d.act) {
       case "settings": openSettings(); break;

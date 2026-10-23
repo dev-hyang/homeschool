@@ -341,3 +341,12 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .cal-task{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .cal-acts{display:inline-flex;gap:6px;margin-left:auto}
 @media (min-width:640px){.lib-grid{grid-template-columns:1fr 1fr}.lib-grid .panel:first-child{grid-column:1 / -1}}
+
+/* ── 经文卡库抬头：概况一行 + 视图切换 / 添加 / 设置 + 点开才出现的面板 ── */
+.lib-summary{margin:2px 0 10px;line-height:1.7}
+.lib-toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin:0 0 10px}
+.lib-tools{display:inline-flex;gap:8px;margin-left:auto}
+.lib-tool{min-height:42px;padding:8px 14px;font-size:15px}
+.lib-menu{margin:0 0 12px}
+.lib-menu h3{margin:0 0 4px;font-size:15px}
+.lib-filters{margin:0 0 6px}

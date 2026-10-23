@@ -274,5 +274,10 @@ const EN = {
   "不用点“开始背”：每天 8 点（或本批全部会背后）自动从卡库拉一批，每批节数和问答占比在经文卡库里调；不合适点“换一个”或“换一批”。可在设置里关闭。": "No need to tap “Start”: every day at 8 AM (or as soon as the batch is memorized) a batch is pulled from the library; set batch size and catechism share in the library. Tap “Swap” or “Swap batch” if it doesn't fit. Turn off in Settings.",
   "补记完成": "Mark done", "按周例行补出这天的任务（{n} 条）": "Create this day's tasks from weekly routines ({n})", "已补出 {n} 条任务，勾上做过的": "Created {n} task(s); tick the ones that were done", "这天的任务都已经有了": "This day's tasks already exist", "补出任务失败": "Could not create tasks",
   "不用点“开始背”：每天 8 点，哪个孩子没有在学的经文，就自动从卡库拉一批（每批节数、问答占比在经文卡库里调；问答按顺序、经文随机）；本批全部会背后马上拉下一批。卡库背完了，自动从成套经文里按顺序抓 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。": "No need to tap “Start”: every day at 8 AM, any child with no verse in progress gets a batch pulled from the library (set batch size and catechism share in the library; catechism in order, verses random); the next batch is pulled as soon as the current one is memorized. When the library runs out, 5 more are fetched from the verse sets in order. Daily cap by age: toddler 1+1, preschool 1+2, school age 2+3."
+,
+  "添加": "Add", "中文 {zh} · 英文 {en}": "Chinese {zh} · English {en}", "今天复习 {n}": "{n} to review today", "添加经文卡": "Add cards", "自己输入出处和经文": "Type the reference and text yourself", "贴几行出处，中英文经文自动抓取": "Paste a few references; Chinese and English text is fetched automatically",
+  "按主题的整套经文，只给出处，自动抓取": "A whole themed set; only references, text is fetched", "粘贴官方全文，生成 52 问": "Paste the official text to create the 52 questions", "起步经文卡": "Starter cards", "补充导入和合本 / ESV 的起步卡": "Add the starter cards (CUV / ESV)",
+  "现在 {a}/{b} 节已会背。": "{a}/{b} memorized so far.", "还没有本批，8 点会自动拉一批。": "No batch yet; one is pulled automatically at 8 AM.", "会背完自动拉下一批，下一批起按这里的设置。": "The next batch is pulled when this one is done, using these settings.",
+  "自动抓取经文": "Auto-fetch text", "改译本与代理": "Change versions and proxy", "还没有经文卡。点“添加”导入起步卡，或者加你们自己选的经文。": "No cards yet. Tap “Add” to import starter cards or add your own verses.", "还是空的，进去导入起步经文卡": "Empty; open it to import starter cards"
 };
 export { EN };
