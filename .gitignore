@@ -1,2 +1,5 @@
-# Supabase SQL lives locally in the baby-log checkout (supabase/), not in git
-supabase/
+# Supabase SQL scripts stay local, not in git (other supabase/ files are committed)
+supabase/**/*.sql
+
+# Local cross-repo context for Claude Code: not committed
+.code-context
