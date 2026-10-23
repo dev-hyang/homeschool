@@ -1,3 +1,4 @@
+import { updateMiniBar } from "./minibar.js";
 import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { viewMe } from "./me.js";
 import { printViewHTML } from "./print.js";
@@ -73,6 +74,7 @@ function render(){
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   const back = parent ? `<div class="backbar"><button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button></div>` : "";
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me") ? back + v() : back + (gateHTML() || v());
+  updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button>` : "", t("回到顶部"));
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
 
