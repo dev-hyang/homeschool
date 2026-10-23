@@ -296,3 +296,48 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 /* 今天页头里的“打印今日页”：白字透明底，和深蓝渐变搭 */
 .hero .hero-chip{margin-left:auto;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.45);color:#fff;min-height:30px;padding:3px 10px;font-size:13px}
 .hero .hero-chip:hover{background:rgba(255,255,255,.28)}
+
+/* ── 经文卡库：总览图表 / 分层列表 / 一行筛选；今天页的本批与新学·复习筛选 ── */
+.lib-pool{margin:10px 0}
+.lib-pool-cfg{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.lib-pool-cfg label,.lib-filters label{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--muted)}
+.lib-bar{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
+.lib-filters{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.lib-filters select,.lib-filters input[type=search],.lib-pool-cfg select{border:1px solid var(--line);background:var(--field);color:var(--ink);border-radius:var(--radius-sm);padding:7px 10px;min-height:40px;max-width:100%}
+.lib-filters input[type=search]{flex:1 1 160px;min-width:0}
+.lib-grid{display:grid;gap:10px;grid-template-columns:1fr;margin-top:10px}
+.lib-grid .panel + .panel{margin-top:0}
+.lib-grid h3{margin:0 0 8px;font-size:15px}
+.lib-chart{margin:0}
+.lib-chart svg{width:100%;height:auto;display:block}
+.lib-chart .ch-big{font-family:var(--f-num);font-size:26px;font-weight:700;fill:var(--ink)}
+.lib-chart .ch-sub,.lib-chart .ch-tick{font-size:9px;fill:var(--muted)}
+.lib-chart .ch-val{font-size:10px;font-weight:600;fill:var(--ink)}
+.lib-chart.donut{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.lib-chart.donut svg{width:150px;flex:none}
+.lib-legend{list-style:none;margin:0;padding:0;flex:1 1 140px;display:grid;gap:4px;font-size:14px}
+.lib-legend li{display:grid;grid-template-columns:12px 1fr auto 40px;gap:8px;align-items:center}
+.lib-legend i,.legend-line i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--line)}
+.lib-legend em{font-style:normal;color:var(--muted);text-align:right;font-size:12px}
+.linkbtn{all:unset;cursor:pointer;text-decoration:underline;text-underline-offset:3px;color:var(--ink)}
+.linkbtn:focus-visible{outline:3px solid var(--slate);border-radius:4px}
+.legend-line{display:flex;flex-wrap:wrap;gap:4px 12px;margin:8px 0 0;font-size:13px;color:var(--muted)}
+.legend-line span{display:inline-flex;align-items:center;gap:5px}
+.stack-row{display:grid;grid-template-columns:48px 1fr 32px;gap:8px;align-items:center;margin:6px 0}
+.stack-k{font-size:14px}
+.stack-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;border:1px solid var(--line);min-width:0}
+.stack-seg{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--ink);min-width:0;overflow:hidden}
+.stack-n{font-family:var(--f-num);text-align:right}
+.lib-group{margin-top:10px}
+.lib-group > summary{cursor:pointer;padding:8px 2px;list-style:none;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;border-bottom:1px solid var(--line)}
+.lib-group > summary::-webkit-details-marker{display:none}
+.lib-group > summary::before{content:"▸";color:var(--muted)}
+.lib-group[open] > summary::before{content:"▾"}
+.lib-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;border:1px solid var(--line);vertical-align:baseline}
+.lib-late{color:var(--rose);font-weight:600}
+.pool-line{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.today-filter{margin:0 0 8px}
+.today-filter button{min-height:36px;padding:6px 12px;font-size:14px}
+.cal-task{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.cal-acts{display:inline-flex;gap:6px;margin-left:auto}
+@media (min-width:640px){.lib-grid{grid-template-columns:1fr 1fr}.lib-grid .panel:first-child{grid-column:1 / -1}}

@@ -8,7 +8,7 @@ import { SUBJECTS } from "./data/subjects.js";
 import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
-import { t } from "./core/i18n.js";
+import { t, t as tr } from "./core/i18n.js";
 import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { VERSE_SETS, parseCatechism } from "./data/verse-sets.js";
 
@@ -208,8 +208,9 @@ const INTERVALS = [3, 7, 30, 90, 180];
 const tier = n => INTERVALS[Math.min(n, INTERVALS.length - 1)];
 const progressOf = (sid, cid) => S.hs.progress.find(p => p.scripture_id === sid && p.child_id === cid) || null;
 const snapshot = p => p ? { status: p.status, learned_on: p.learned_on, next_review: p.next_review, reviews: p.reviews || 0, again_streak: p.again_streak || 0, last_on: p.last_on || null, last_result: p.last_result || null } : null;
-async function setProgress(sid, cid, action){
-  const cur = progressOf(sid, cid), t = today(), plus = n => dayKey(Date.now() + n * D);
+// on：补记某一天（YYYY-MM-DD，默认今天）。复习间隔从那一天起算，所以补记不会把下次复习排歪
+async function setProgress(sid, cid, action, on){
+  const cur = progressOf(sid, cid), t = on || today(), plus = n => dayKey(new Date(t + "T12:00:00").getTime() + n * D);   // 注意：这里的 t 是日期串，翻译用 tr
   if (action === "reset") {
     await run(SB.client.from("hs_scripture_progress").delete().eq("family_id", fid()).eq("scripture_id", sid).eq("child_id", cid));
     S.hs.progress = S.hs.progress.filter(p => !(p.scripture_id === sid && p.child_id === cid)); return;
@@ -231,12 +232,12 @@ async function setProgress(sid, cid, action){
   else return;
   // 迁移 011 还没跑：老的四个动作退回旧写法（只写旧列），新动作提示先跑迁移
   if (!S.hs.reviewLog) {
-    if (!["start", "learned", "remember", "again"].includes(action)) { toast(t("背诵记录的新字段还没建：请先执行迁移 011")); return; }
+    if (!["start", "learned", "remember", "again"].includes(action)) { toast(tr("背诵记录的新字段还没建：请先执行迁移 011")); return; }
     row = { status: row.status, learned_on: row.learned_on, next_review: row.next_review, reviews: row.reviews };
   }
   let data;
   try { data = await run(SB.client.from("hs_scripture_progress").upsert({ family_id: fid(), scripture_id: sid, child_id: cid, ...row }).select().single()); }
-  catch (e) { if (/last_on|last_result|again_streak|undo_to|paused|status_check/.test(e.message || "")) toast(t("背诵记录的新字段还没建：请先执行迁移 011")); throw e; }
+  catch (e) { if (/last_on|last_result|again_streak|undo_to|paused|status_check/.test(e.message || "")) toast(tr("背诵记录的新字段还没建：请先执行迁移 011")); throw e; }
   const i = S.hs.progress.findIndex(p => p.scripture_id === sid && p.child_id === cid); if (i >= 0) S.hs.progress[i] = data; else S.hs.progress.push(data);
 }
 const withCard = list => list.map(p => ({ p, s: scripture(p.scripture_id) })).filter(x => x.s);
@@ -268,7 +269,7 @@ const addExtraReview = (n = 3) => { const d = today(), cur = S.hs.extraReview &&
 const nextToStart = cid => S.hs.scriptures.find(s => !progressOf(s.id, cid)) || null;
 const unstarted = (cid, except) => S.hs.scriptures.filter(s => s.id !== except && !progressOf(s.id, cid));
 
-/* ---- 8 点自动安排：在学为空的孩子，从卡库里还没背过的卡中随机挑一节开始背；
+/* ---- 8 点自动安排：在学为空的孩子（本批会背完了），拉下一批（见下面“本批”，pickRandom 只用于单张“换一个”）；
    卡库都背过了，就从成套经文里抓下一批（每次 5 节，按套的顺序，已有的跳过），再挑。
    家长手动点了“开始背”就不会再加；设置里可以关（settings.autoVerse = false）。两岁前不安排。 ---- */
 const AUTO_HOUR = 8, AUTO_BATCH = 5;
@@ -296,9 +297,7 @@ async function autoAssignVerses(){
   S.hs.autoDay = day; let n = 0;
   for (const c of S.children) {
     if (stageOf(c.id).key === "baby") continue;
-    const plan = todayPlan(c.id);
-    if (plan.rows.some(x => x.kind === "learn")) continue; // 已经有在学的（手动加的或昨天剩下的）
-    try { if (await pickRandom(c.id)) n++; } catch (e) { /* run() 已提示 */ }
+    try { n += (await topUpPool(c.id)).length; } catch (e) { /* run() 已提示 */ }   // 本批还有在学的就不动；会背完了才拉下一批
   }
   return n;
 }
@@ -306,6 +305,54 @@ async function autoAssignVerses(){
 async function swapVerse(sid, cid){
   await setProgress(sid, cid, "reset");
   return pickRandom(cid, sid);
+}
+
+/* ---- 本批（pool）：在学的卡 = 本批。本批全部会背后自动拉下一批；每批几节、问答占几成都能调。
+   settings.verseBatch（每批节数，默认 5）、settings.catShare（问答占比 %，默认 20；问答按卡库顺序，经文随机）、
+   settings.pool[孩子id] = { ids, on }（本批有哪些卡，用来显示“本批 2/5”）。今天页的“今日 N 节”仍按年龄封顶，本批是排队的池子。 ---- */
+const POOL_DEFAULT = { batch: 5, catShare: 20 };
+const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
+const poolCfg = () => ({ batch: clampN(+S.hs.settings.verseBatch || POOL_DEFAULT.batch, 1, 12), catShare: clampN(S.hs.settings.catShare == null ? POOL_DEFAULT.catShare : +S.hs.settings.catShare, 0, 100) });
+const isCatechism = s => s.kind === "catechism";
+const shuffle = a => { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; } return r; };
+/** 本批的进度：ids 里已经会背的 / 总数（卡被删、清除进度的不算） */
+function poolOf(cid){
+  const rec = (S.hs.settings.pool || {})[cid]; if (!rec || !rec.ids) return null;
+  const cards = rec.ids.map(id => ({ id, p: progressOf(id, cid) })).filter(x => x.p && scripture(x.id));
+  if (!cards.length) return null;
+  return { total: cards.length, done: cards.filter(x => x.p.status === "learned").length, ids: cards.map(x => x.id) };
+}
+async function savePool(cid, ids){ await saveSettings({ pool: { ...(S.hs.settings.pool || {}), [cid]: { ids, on: today() } } }); }
+/** 拉一批开始背：问答 / 经文按占比，经文不够先抓下一套，再不够用另一类补；返回拉到的卡 */
+async function pullBatch(cid, want, except = new Set()){
+  const cfg = poolCfg(); want = want == null ? cfg.batch : want; if (want <= 0) return [];
+  const free = () => unstarted(cid).filter(s => !except.has(s.id));
+  const nCatWant = Math.round(want * cfg.catShare / 100);
+  let verses = free().filter(s => !isCatechism(s));
+  if (verses.length < want - nCatWant && cfg.catShare < 100 && await fetchNextBatch()) verses = free().filter(s => !isCatechism(s));
+  const cats = free().filter(isCatechism);
+  const nVerse = Math.min(want - Math.min(nCatWant, cats.length), verses.length), nCat = Math.min(cats.length, want - nVerse);
+  const picked = [...shuffle(verses).slice(0, nVerse), ...cats.slice(0, nCat)];
+  for (const s of picked) await setProgress(s.id, cid, "start");
+  return picked;
+}
+/** 本批会背完了（没有在学的卡）就拉下一批；今天页勾“会背了”之后、每天 8 点都会调用 */
+async function topUpPool(cid){
+  if (!S.hs.loaded || !S.hs.reviewLog || S.hs.settings.autoVerse === false || !S.hs.scriptures.length || stageOf(cid).key === "baby") return [];
+  if (learningCards(cid).length) return [];
+  const picked = await pullBatch(cid);
+  if (picked.length) await savePool(cid, picked.map(s => s.id));
+  return picked;
+}
+/** 一键换一批：还没碰过的在学卡整批换掉（练过的留着）。先拉到新的才清旧的，卡库没有别的可换就什么都不动 */
+async function swapBatch(cid){
+  const untouched = learningCards(cid).filter(x => !x.p.last_on), keep = learningCards(cid).filter(x => x.p.last_on);
+  const cfg = poolCfg(), want = Math.max(untouched.length, cfg.batch - keep.length);
+  const picked = await pullBatch(cid, want, new Set(untouched.map(x => x.s.id)));
+  if (!picked.length) return 0;
+  for (const x of untouched) await setProgress(x.s.id, cid, "reset");
+  await savePool(cid, [...keep.map(x => x.s.id), ...picked.map(s => s.id)]);
+  return picked.length;
 }
 
 /* ---- 周例行 ---- */
@@ -346,6 +393,19 @@ async function ensureTodayTasks(){
   if (error) { console.error(error); return 0; }
   (data || []).forEach(t => put(S.hs.tasks, t)); return (data || []).length;
 }
+/** 补记：把过去某一天按周例行该有的任务补出来（忘了开 app 那几天没有生成）。id 是固定的，已有的不会重复；休息日不补；返回新增条数 */
+async function ensureTasksForDay(day){
+  if (isOffDay(day)) return 0;
+  const wd = new Date(day + "T12:00:00").getDay();
+  const rows = S.hs.routines.filter(r => r.active && (r.weekdays || []).includes(wd))
+    .map(r => ({ family_id: fid(), id: `${r.id}@${day}`, child_id: r.child_id, date: day, title: r.title, subject: r.subject, routine_id: r.id, status: "todo", minutes: null, note: "" }));
+  if (!rows.length) return 0;
+  const { data, error } = await SB.client.from("hs_tasks").upsert(rows, { onConflict: "family_id,id", ignoreDuplicates: true }).select();
+  if (error) { console.error(error); toast(tr("补出任务失败")); return 0; }
+  delete S.hs.ranges[day.slice(0, 7)];   // 日历按月缓存：丢掉让它重新读
+  (data || []).forEach(x => put(S.hs.tasks, x));
+  return (data || []).length;
+}
 function tasksFor(day, cid){
   const startOf = t => { const r = t.routine_id && routine(t.routine_id); return (r && r.start) || "99:99"; };
   return S.hs.tasks.filter(t => t.date === day && (t.child_id == null || t.child_id === cid)).sort((a, b) => startOf(a).localeCompare(startOf(b)) || a.title.localeCompare(b.title));
@@ -355,9 +415,11 @@ async function upsertTask(t){
   return put(S.hs.tasks, await run(SB.client.from("hs_tasks").upsert(row).select().single()));
 }
 async function setTaskStatus(id, status){
-  const t = S.hs.tasks.find(x => x.id === id); if (!t) return;
+  const t = S.hs.tasks.find(x => x.id === id) || Object.values(S.hs.ranges).flatMap(r => r.tasks || []).find(x => x.id === id); if (!t) return;   // 超过 7 天的任务只在日历的月数据里
   const r = t.routine_id && routine(t.routine_id);
-  const saved = await upsertTask({ ...t, status, done_at: status === "done" ? new Date().toISOString() : null, minutes: status === "done" && t.minutes == null && r ? r.minutes : t.minutes });
+  // 补记过去某天的任务：完成时间记成那天中午，回写小月亮和报告都落在那一天
+  const doneAt = t.date && t.date < today() ? new Date(t.date + "T12:00:00").toISOString() : new Date().toISOString();
+  const saved = await upsertTask({ ...t, status, done_at: status === "done" ? doneAt : null, minutes: status === "done" && t.minutes == null && r ? r.minutes : t.minutes });
   if (t.lesson_id && lesson(t.lesson_id)) await setLessonStatus(t.lesson_id, status === "done" ? "done" : "planned", { minutes: saved.minutes });
   if (status === "done") await mirrorToBabyLog(saved);
 }
@@ -540,8 +602,8 @@ function attachRealtime(channel, onChange){
     });
 }
 
-export { loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse, addExtraReview,
+export { INTERVALS, ensureTasksForDay, loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse, swapBatch, topUpPool, poolOf, poolCfg, addExtraReview,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,

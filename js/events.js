@@ -12,7 +12,8 @@ import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
 import { closePrint, openPrint } from "./print.js";
-import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openScriptures, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
+import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
+import { openBackfill, openScriptures, renderLibList } from "./library.js";
 import { render, toggleKids } from "./views.js";
 
 /* ============ 事件分发 ============
@@ -20,12 +21,29 @@ import { render, toggleKids } from "./views.js";
 const close = () => closeSheet();
 const back = (fn) => { close(); fn && fn(); };
 
+// 经文卡库：图表 / 图例点一下 = 套用“类型|状态”筛选并切到列表
+const libDrill = v => { const [kind, st] = String(v).split("|"); Object.assign(S.scrFilter, { kind: kind || "all", st: st || "active", view: "list" }); openScriptures(); };
+document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest && ev.target.closest("svg [data-libf]")) { ev.preventDefault(); libDrill(ev.target.closest("[data-libf]").dataset.libf); } });
+// 卡库的下拉 / 搜索：类型和每批设置整页重画（图表跟着变），状态 / 排序 / 搜索只刷新列表
+document.addEventListener("change", async ev => {
+  const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
+  if (id === "libKind") { S.scrFilter.kind = v; openScriptures(); }
+  else if (id === "libSt") { S.scrFilter.st = v; renderLibList(); }
+  else if (id === "libSort") { S.scrFilter.sort = v; renderLibList(); }
+  else if (id === "poolBatch") { await hs.saveSettings({ verseBatch: +v }); toast(t("每批 {n} 节，下一批起生效", { n: +v })); openScriptures(); }
+  else if (id === "poolCat") { await hs.saveSettings({ catShare: +v }); toast(t("问答占 {n}%，下一批起生效", { n: +v })); openScriptures(); }
+});
+document.addEventListener("input", ev => { if (ev.target && ev.target.id === "libQ") { S.scrFilter.q = ev.target.value; renderLibList(); } });
+
 document.addEventListener("click", async ev => {
   if (!$("#kids").hidden && !ev.target.closest("#bname")) toggleKids(false);
+  const lf = ev.target.closest("[data-libf]"); if (lf) { libDrill(lf.dataset.libf); return; }
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
   if (d.tab) { close(); S.printView = null; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
+  if (d.tf) { S.todayFilter = d.tf; render(); return; }
   if (d.kidsel) { setChild(d.kidsel); render(); $("#bname").focus(); return; }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(t("已复制：") + d.copy); } catch (e) { toast(t("请手动复制：") + d.copy); } return; }
   if (d.themeSet !== undefined) { if (d.themeSet) document.documentElement.dataset.theme = d.themeSet; else delete document.documentElement.dataset.theme; try { localStorage.setItem(LS_PREFIX + ".theme", d.themeSet); } catch (e) {} openSettings(); return; }
@@ -41,8 +59,6 @@ document.addEventListener("click", async ev => {
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
   if (d.rday !== undefined) { S.routineDay = d.rday === "week" ? "week" : +d.rday; render(); return; }
-  if (d.sf) { S.scrFilter.f = d.sf; openScriptures(); return; }
-  if (d.ss) { S.scrFilter.sort = d.ss; openScriptures(); return; }
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
@@ -68,7 +84,9 @@ document.addEventListener("click", async ev => {
       /* 背诵 */
       case "review-remember": await hs.setProgress(d.sid, S.childId, "remember"); render(); toast(t("{name}背出来了 ✓", { name: childName() })); break;
       case "review-again": await hs.setProgress(d.sid, S.childId, "again"); render(); toast(t("记下了，明天再练")); break;
-      case "learn-done": await hs.setProgress(d.sid, S.childId, "learned"); render(); toast(t("{name}会背了，3 天后复习", { name: childName() })); break;
+      case "learn-done": { await hs.setProgress(d.sid, S.childId, "learned"); const more = await hs.topUpPool(S.childId); render();   // 本批背完了就自动拉下一批
+        toast(more.length ? t("{name}会背了。本批背完，已自动拉来下一批 {n} 节", { name: childName(), n: more.length }) : t("{name}会背了，3 天后复习", { name: childName() })); break; }
+      case "batch-swap": { btn.disabled = true; const n = await hs.swapBatch(S.childId); render(); toast(n ? t("已换成新的一批（{n} 节）", { n }) : t("卡库里没有别的可换了，去经文卡库加几张")); break; }
       case "review-more": hs.addExtraReview(3); render(); break;
       case "learn-practice": await hs.setProgress(d.sid, S.childId, "practice"); render(); break;
       case "review-undo": await hs.setProgress(d.sid, S.childId, "undo"); render(); break;
@@ -86,7 +104,9 @@ document.addEventListener("click", async ev => {
       case "scriptures": openScriptures(); break;
       case "seed-scriptures": { const n = await hs.importSeedScriptures(); toast(n ? t("已导入 {n} 张经文卡", { n }) : t("起步经文卡都已经在库里了")); openScriptures(); break; }
       case "scr-start": await hs.setProgress(d.sid, S.childId, "start"); openScriptures(); break;
-      case "scr-reset": await hs.setProgress(d.sid, S.childId, "reset"); openScriptures(); break;
+      case "scr-reset": { const p = hs.progressOf(d.sid, S.childId);   // 重新开始：回到“没开始”，复习次数和日期都清掉；已经复习过的先确认
+        if (p && (p.reviews || 0) > 0 && !confirm(t("重新开始会清掉已复习 {n} 次和复习日期，这张卡回到“没开始”。继续吗？", { n: p.reviews }))) break;
+        await hs.setProgress(d.sid, S.childId, "reset"); openScriptures(); break; }
       case "scr-week": await hs.saveSettings({ weekVerse: S.hs.settings.weekVerse === d.sid ? null : d.sid }); openScriptures(); break;
       case "scr-add": { const dv = hs.defaultVersions(); openForm("新经文卡", scriptureFields, { kind: "verse", version_zh: dv.zh, version_en: dv.en, source: "" }, async f => { if (!f.ref) { toast(t("请填出处")); return; } await hs.upsertScripture(f); openScriptures(); }); break; }
       case "versions-edit": { const dv = hs.defaultVersions(); openForm("默认译本", versionFields, dv, async f => { await hs.saveSettings({ versionZh: f.zh || "", versionEn: f.en || "" }); openSettings(); toast(t("默认译本已更新")); }); break; }
@@ -167,6 +187,11 @@ document.addEventListener("click", async ev => {
       case "cal-next": S.calMonth = shiftMonth(S.calMonth, 1); S.calDay = null; render(); break;
       case "cal-day": S.calDay = S.calDay === d.date ? null : d.date; render(); break;
       case "dayoff-toggle": await hs.toggleDayOff(d.date); render(); break;
+      // 补记：过去某天的任务补出来 / 背诵补记（间隔从那天起算）
+      case "cal-gen": { const n = await hs.ensureTasksForDay(d.date); render(); toast(n ? t("已补出 {n} 条任务，勾上做过的", { n }) : t("这天的任务都已经有了")); break; }
+      case "bf-open": openBackfill(d.date); break;
+      case "bf-do": await hs.setProgress(d.sid, S.childId, d.op, d.date); openBackfill(d.date); break;
+      case "bf-undo": await hs.setProgress(d.sid, S.childId, "undo"); openBackfill(d.date); break;
       case "report-prev": S.reportMonth = shiftMonth(S.reportMonth, -1); render(); break;
       case "report-next": S.reportMonth = shiftMonth(S.reportMonth, 1); render(); break;
       case "report-csv": { const csv = reportCSV(S.reportMonth, S.childId); if (csv) download(`${t("家庭学堂")}-${childName()}-${S.reportMonth}.csv`, csv); break; }

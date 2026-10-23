@@ -3,7 +3,7 @@ import { S, ageText, childName, stageOf } from "./core/state.js";
 import { dayKey, esc } from "./core/util.js";
 import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
-import { devotionDraft, learnedCount, nextToStart, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
+import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
 function viewToday(){
@@ -38,12 +38,16 @@ function devotionHTML(){
 /* 今日背诵：像任务一样的清单。到期复习和在学的卡自动进来，做过的留在原位（✓ 背出来了 / ↻ 练过了），可撤销。
    只有 ✓ 和 ↻，没有 ✗：“再练练”只是记一次，明天再来。连续三次再练练时给家长一行提示和“先放一放”。 */
 function reviewHTML(){
-  const cid = S.childId, plan = todayPlan(cid), learned = learnedCount(cid), color = subject("bible").color, next = nextToStart(cid);
+  const cid = S.childId, plan = todayPlan(cid), learned = learnedCount(cid), color = subject("bible").color, next = nextToStart(cid), pool = poolOf(cid);
+  const tf = S.todayFilter || "all", nNew = plan.rows.filter(x => x.kind === "learn").length, nRev = plan.rows.length - nNew;
+  const shown = plan.rows.filter(x => tf === "all" || (tf === "new" ? x.kind === "learn" : x.kind === "review"));
   const row = ({ s, p, kind, done }) => {
     const ok = done && p.last_result === "ok";
+    // 新学的标“新学 · 本批”；复习的带“已复习 n 次 · 下次复习 日期”，背过的卡一直留着这两样
     const meta = kind === "learn"
-      ? (done ? (ok ? t("今天会背了 ✓ · 3 天后复习") : t("今天练过了 · 明天继续")) : t("在学"))
-      : (done ? (ok ? t("今天背出来了 ✓ · 下次 {d}", { d: p.next_review || "" }) : t("今天练过了 · 明天再来")) : t("复习 · 第 {n} 次", { n: (p.reviews || 0) + 1 }));
+      ? (done ? (ok ? t("今天会背了 ✓ · 下次复习 {d}", { d: p.next_review || "" }) : t("今天练过了 · 明天继续")) : `${t("新学")}${pool && pool.ids.includes(s.id) ? ` · ${t("本批")}` : ""}`)
+      : (done ? (ok ? t("今天背出来了 ✓ · 已复习 {n} 次 · 下次复习 {d}", { n: p.reviews || 0, d: p.next_review || "" }) : t("今天练过了 · 明天再来"))
+        : t("复习 · 已复习 {n} 次 · 原定 {d}", { n: p.reviews || 0, d: p.next_review || "" }));
     const acts = done
       ? `<button class="chip" data-act="review-undo" data-sid="${esc(s.id)}">${t("撤销")}</button>`
       : kind === "learn"
@@ -56,13 +60,15 @@ function reviewHTML(){
   const pending = plan.total - plan.done;
   return `<h2>${t("经文背诵")} · ${esc(childName())}${pending ? ` <span class="pill ok">${t("今日 {n} 节", { n: pending })}</span>` : ""}</h2>
   <div class="panel">
-    ${plan.rows.length ? `<div class="tasks">${plan.rows.map(row).join("")}</div>
+    ${pool || plan.rows.some(x => x.kind === "learn" && !x.p.last_on) ? `<div class="pool-line"><span class="small">${pool ? t("本批 {a}/{b} 节已会背", { a: pool.done, b: pool.total }) : t("在学的经文")}</span><button class="chip" data-act="batch-swap" title="${esc(t("还没背过的这批整批换掉，练过的留着"))}">${t("换一批")}</button></div>` : ""}
+    ${plan.rows.length ? `<div class="seg today-filter" role="group" aria-label="${t("筛选")}"><button data-tf="all" aria-pressed="${tf === "all"}">${t("全部")} ${plan.rows.length}</button><button data-tf="new" aria-pressed="${tf === "new"}">${t("新学")} ${nNew}</button><button data-tf="review" aria-pressed="${tf === "review"}">${t("复习")} ${nRev}</button></div>
+      ${shown.length ? `<div class="tasks">${shown.map(row).join("")}</div>` : `<p class="muted" style="margin-top:8px">${tf === "new" ? t("今天没有新学的经文。") : t("今天没有到期的复习。")}</p>`}
       <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90、180 天自动安排复习，到期的会自动出现在这里。")}</p>`
       : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
     ${plan.backlog ? `<div class="small" style="margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft)">${t("复习排队了 {n} 节，最久的已拖 {d} 天。可以周末多复习几节，也可以今天先多做几节。", { n: plan.backlog.queued, d: plan.backlog.oldest })} <button class="chip" data-act="review-more">${t("今天多复习 3 节")}</button></div>` : ""}
     ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`
       : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`}
-    ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("每天 8 点如果还没有在学的经文，会从卡库随机挑一节；不合适就点“换一个”。可在设置里关闭。")}</p>`}
+    ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("不用点“开始背”：每天 8 点（或本批全部会背后）自动从卡库拉一批，每批节数和问答占比在经文卡库里调；不合适点“换一个”或“换一批”。可在设置里关闭。")}</p>`}
   </div>`;
 }
 

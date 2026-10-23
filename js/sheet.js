@@ -83,48 +83,6 @@ const childOpts = (withFamily) => [...(withFamily ? [["", t("全家")]] : []), .
 const subjectOpts = () => Object.entries(SUBJECTS).map(([k, s]) => [k, s.label]);
 const weekdayOpts = () => [1, 2, 3, 4, 5, 6, 0].map(d => [d, weekdayLabel(d)]);
 
-/* ---- 经文卡库 ----
-   不翻页：卡库是水池，所有卡和历史都留着。默认只看“进行中”（今天 / 在学 / 等复习），没开始和放一放收在筛选里。
-   排序默认按下次复习时间，最早的在前；在学、放一放、没开始依次排后面。 */
-S.scrFilter = S.scrFilter || { f: "active", sort: "review" };
-function openScriptures(){
-  const cid = S.childId, all = S.hs.scriptures, fv = fetchVersions(), day = dayKey(Date.now()), name = esc(childName());
-  const bucket = s => { const p = progressOf(s.id, cid); return !p ? "none" : p.status === "paused" ? "paused" : p.last_on === day ? "today" : p.status === "learning" ? "learning" : p.next_review && p.next_review <= day ? "today" : "learned"; };
-  const counts = {}; all.forEach(s => { const b = bucket(s); counts[b] = (counts[b] || 0) + 1; });
-  counts.active = (counts.today || 0) + (counts.learning || 0) + (counts.learned || 0); counts.all = all.length;
-  const FILTERS = [["active", "进行中"], ["today", "今天"], ["learning", "在学"], ["learned", "会背"], ["paused", "放一放"], ["none", "没开始"], ["all", "全部"]];
-  const f = S.scrFilter.f, sort = S.scrFilter.sort;
-  const keep = s => { const b = bucket(s); return f === "all" || b === f || (f === "active" && (b === "today" || b === "learning" || b === "learned")); };
-  const rank = { today: "0", learned: "1", learning: "2", paused: "3", none: "4" };
-  const key = s => { const p = progressOf(s.id, cid), b = bucket(s); return rank[b] + (b === "learned" || b === "today" ? (p && p.next_review) || "" : ""); };
-  const list = all.filter(keep); if (sort === "review") list.sort((a, b) => key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0);
-  const stateOf = s => { const p = progressOf(s.id, cid); if (!p) return "";
-    const todayMark = p.last_on === day ? (p.last_result === "ok" ? t("今天 ✓") : t("今天 ↻")) + " · " : "";
-    if (p.status === "paused") return t("放一放");
-    if (p.status === "learning") return todayMark + t("在学");
-    return todayMark + t("会背 · 下次复习 {d} · 已复习 {n} 次", { d: p.next_review || "", n: p.reviews || 0 }); };
-  const kindName = s => s.kind === "catechism" ? t("问答") : s.kind === "hymn" ? t("诗歌") : t("经文");
-  const actions = s => { const p = progressOf(s.id, cid);
-    if (!p) return `<button class="btn" data-act="scr-start" data-sid="${esc(s.id)}">${t("{name}开始背", { name })}</button>`;
-    if (p.status === "paused") return `<button class="btn primary" data-act="scr-resume" data-sid="${esc(s.id)}">${t("继续背")}</button><button class="chip" data-act="scr-reset" data-sid="${esc(s.id)}">${t("清除{name}的进度", { name })}</button>`;
-    return `<button class="chip" data-act="scr-pause" data-sid="${esc(s.id)}">${t("先放一放")}</button><button class="chip" data-act="scr-reset" data-sid="${esc(s.id)}">${t("清除{name}的进度", { name })}</button>`; };
-  $("#sheetIn").innerHTML = `${head(t("经文卡库"))}
-  <p class="small muted">${t("经文卡属于全家，背诵进度按孩子分开。当前孩子：{name}。", { name })}</p>
-  <p class="small muted">${t("自动抓取用：中文 {zh} · 英文 {en}", { zh: esc(fv.zh) + (fv.zhFallback ? t("（已回退）") : ""), en: esc(fv.en) + (fv.enFallback ? t("（{v} 需代理，已回退）", { v: esc(fv.wanted.en) }) : "") })} <button class="chip" data-act="fetch-settings">${t("改")}</button>${S.hs.versions ? "" : " · " + t("译本字段需要迁移 005")}</p>
-  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="scr-gen">${t("按出处生成")}</button><button class="btn" data-act="scr-set">${t("成套导入")}</button><button class="btn" data-act="ncc-import">${t("新城要理问答")}</button><button class="btn" data-act="scr-add">${t("手写一张")}</button></div>
-  ${all.length ? "" : `<p class="small muted">${t("“按出处生成”：贴几行出处（如 约翰福音 3:16），中英文经文自动抓取。或先")}<button class="chip" data-act="seed-scriptures">${t("导入起步经文卡（和合本 / ESV）")}</button>。</p>`}
-  ${all.length ? `<div class="chips" role="group" aria-label="${t("筛选")}">${FILTERS.map(([k, l]) => `<button class="chip" data-sf="${k}" aria-pressed="${f === k}">${t(l)}${counts[k] ? ` ${counts[k]}` : ""}</button>`).join("")}</div>
-  <div class="chips" role="group" aria-label="${t("排序")}" style="margin-top:0"><span class="small muted" style="align-self:center">${t("排序")}</span><button class="chip" data-ss="review" aria-pressed="${sort === "review"}">${t("按复习时间")}</button><button class="chip" data-ss="lib" aria-pressed="${sort === "lib"}">${t("按卡库顺序")}</button></div>` : ""}
-  ${all.length ? (list.length ? list.map(s => `<div class="card" style="margin-top:10px"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(s.ref)}</b> <span class="small muted">${kindName(s)}${stateOf(s) ? " · " + esc(stateOf(s)) : ""}</span><div>${esc(s.text_zh)}<span class="small muted">${esc(vz(s))}</span></div><div class="small muted">${esc(s.text_en)}${esc(ve(s))}</div>${s.source ? `<div class="small muted">${esc(s.source)}</div>` : ""}</div></div>
-    <div class="btns" style="margin-top:8px">
-      ${actions(s)}
-      <button class="chip" data-act="scr-week" data-sid="${esc(s.id)}" aria-pressed="${S.hs.settings.weekVerse === s.id}">${S.hs.settings.weekVerse === s.id ? t("本周经文 ✓") : t("设为本周经文")}</button>
-      <button class="chip" data-act="scr-edit" data-sid="${esc(s.id)}">${t("编辑")}</button></div></div>`).join("")
-    : `<div class="empty">${f === "active" ? t("{name}现在没有在背的经文。到“没开始”里挑一张开始背。", { name }) : t("这个筛选下没有卡。")}</div>`)
-    : `<div class="empty">${t("还没有经文卡。导入起步卡，或者添加你们自己选的经文。")}</div>`}
-  ${all.length ? `<div class="btns"><button class="btn" data-act="seed-scriptures">${t("补充导入起步经文卡（和合本 / ESV）")}</button></div>` : ""}`;
-  showSheet();
-}
 // 成套导入的选择页
 function openVerseSets(){
   const have = new Set(S.hs.scriptures.map(s => refKey(s.ref)));
@@ -208,7 +166,7 @@ function openSettings(){
 
   ${S.hs.loaded ? `<h2>${t("读经计划")}</h2><div class="panel">${planHTML()}</div>
   <h2>${t("本月诗歌")}</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">${t("还没填")}</span>`}</p><div class="btns" style="margin-top:0"><button class="btn" data-act="devo-hymn">${t("修改")}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div></div>
-  <h2>${t("经文背诵")}</h2><div class="panel"><p class="small">${S.hs.settings.autoVerse === false ? t("已关闭：") : t("已开启：")}${t("每天 8 点，哪个孩子还没有在学的经文，就从卡库里还没背过的卡中随机挑一节开始背；家长 8 点前手动点了“开始背”就不再加。卡库都背过了，自动从成套经文里按顺序抓下一批 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。")}</p>
+  <h2>${t("经文背诵")}</h2><div class="panel"><p class="small">${S.hs.settings.autoVerse === false ? t("已关闭：") : t("已开启：")}${t("不用点“开始背”：每天 8 点，哪个孩子没有在学的经文，就自动从卡库拉一批（每批节数、问答占比在经文卡库里调；问答按顺序、经文随机）；本批全部会背后马上拉下一批。卡库背完了，自动从成套经文里按顺序抓 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。")}</p>
     <div class="btns" style="margin-top:0"><button class="btn ${S.hs.settings.autoVerse === false ? "primary" : ""}" data-act="autoverse-toggle">${S.hs.settings.autoVerse === false ? t("开启自动安排") : t("关闭自动安排")}</button></div></div>
   <h2>${t("打印")}</h2><div class="panel"><p class="small">${t("不想一直看手机：打一张贴在冰箱上。今日页竖版一页（敬拜、背诵经文全文、任务、备注）；本周横版一张表，每格一个勾；本月一张月历加周例行。晚上或周末再把勾补回手机。")}</p>
     <div class="btns" style="margin-top:0"><button class="btn primary" data-act="print-day">${t("今日页")}</button><button class="btn" data-act="print-week">${t("本周")}</button><button class="btn" data-act="print-month">${t("本月")}</button></div></div>
@@ -244,5 +202,5 @@ function openSettings(){
   showSheet();
 }
 
-export { showSheet, closeSheet, openForm, drawForm, readForm, openInfo, openScriptures, openVerseSets, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields, fetchFields, genFields, nccFields };
+export { showSheet, closeSheet, head, openForm, drawForm, readForm, openInfo, openVerseSets, openSettings, childOpts, subjectOpts, weekdayOpts, scriptureFields, versionFields, yearFields, breakFields, fetchFields, genFields, nccFields };
 export function getForm(){ return form; }

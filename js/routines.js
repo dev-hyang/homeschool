@@ -3,7 +3,7 @@ import { S, childName } from "./core/state.js";
 import { dayKey, esc } from "./core/util.js";
 import { ROUTINE_TEMPLATES } from "./data/seeds.js";
 import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
-import { ensureMonth, monthData, monthRange, routine } from "./hs.js";
+import { ensureMonth, monthData, monthRange, routine, scripture } from "./hs.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
 
@@ -33,6 +33,11 @@ function monthHTML(){
       <span class="d">${d}</span>${devo ? `<span class="devo-dot" aria-hidden="true"></span>` : ""}${ts.length ? `<span class="n">${done}/${ts.length}</span>` : ""}</button>`);
   }
   const sel = S.calDay && md ? md.tasks.filter(x => x.date === S.calDay && (x.child_id == null || x.child_id === cid)) : [];
+  // 补记：今天和过去的日子可以直接勾 / 补出任务 / 补记背诵；未来的只看
+  const canFix = !!S.calDay && S.calDay <= today && !off.has(S.calDay);
+  const wdSel = S.calDay ? new Date(S.calDay + "T12:00:00").getDay() : 0;
+  const missing = canFix && md ? S.hs.routines.filter(r => r.active && (r.weekdays || []).includes(wdSel) && (r.child_id == null || r.child_id === cid) && !md.tasks.some(x => x.routine_id === r.id && x.date === S.calDay)).length : 0;
+  const verseDone = S.calDay ? S.hs.progress.filter(p => p.child_id === cid && p.last_on === S.calDay).map(p => ({ p, s: scripture(p.scripture_id) })).filter(x => x.s) : [];
   const status = x => x.status === "done" ? `${t("完成")}${x.minutes ? ` ${t("{n} 分钟", { n: x.minutes })}` : ""}` : x.status === "skip" ? t("跳过") : t("待做");
   return `<h2>${t("日历")} · ${esc(childName())}</h2>
   <div class="daynav"><button class="iconbtn" data-act="cal-prev" aria-label="${t("上个月")}">‹</button><b>${t("{y} 年 {m} 月", { y, m })}</b><button class="iconbtn" data-act="cal-next" aria-label="${t("下个月")}">›</button></div>
@@ -42,8 +47,11 @@ function monthHTML(){
     ${md ? "" : `<p class="small muted">${t("正在读取…")}</p>`}
     <div class="legend"><span style="--c:var(--sage)">${t("敬拜")}</span><span style="--c:var(--line)">${t("休息日")}</span></div>
     ${S.calDay ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px"><b>${S.calDay}</b> <span class="small muted">${off.has(S.calDay) ? t("休息日") : ""}</span>
-      ${sel.length ? sel.map(x => `<div class="small" style="margin-top:4px"><span class="dotc" style="background:${subject(x.subject).color}"></span>${esc(x.title)} <span class="muted">· ${status(x)}</span></div>`).join("") : `<p class="small muted" style="margin-top:4px">${t("这一天没有任务。")}</p>`}
-      <div class="btns" style="margin-top:8px"><button class="chip" data-act="dayoff-toggle" data-date="${S.calDay}">${off.has(S.calDay) ? t("取消休息日") : t("设为休息日（不生成任务）")}</button></div></div>` : `<p class="small muted" style="margin-top:8px">${t("点一天看任务，或把它设为休息日。教会年历预留在这里，暂未启用。")}</p>`}
+      ${sel.length ? sel.map(x => `<div class="small cal-task" style="margin-top:4px"><span class="dotc" style="background:${subject(x.subject).color}"></span>${esc(x.title)} <span class="muted">· ${status(x)}</span>${canFix ? (x.status === "todo"
+        ? `<span class="cal-acts"><button class="chip" data-act="task-done" data-tid="${esc(x.id)}">${t("补记完成")}</button><button class="chip" data-act="task-skip" data-tid="${esc(x.id)}">${t("跳过")}</button></span>`
+        : `<span class="cal-acts"><button class="chip" data-act="task-undo" data-tid="${esc(x.id)}">${t("撤销")}</button></span>`) : ""}</div>`).join("") : `<p class="small muted" style="margin-top:4px">${t("这一天没有任务。")}</p>`}
+      ${verseDone.length ? `<div class="small" style="margin-top:8px"><b>${t("背诵")}</b> ${verseDone.map(v => `${esc(v.s.ref)} ${v.p.last_result === "ok" ? "✓" : "↻"}`).join("、")}</div>` : ""}
+      <div class="btns" style="margin-top:8px">${canFix && missing ? `<button class="chip" data-act="cal-gen" data-date="${S.calDay}">${t("按周例行补出这天的任务（{n} 条）", { n: missing })}</button>` : ""}${canFix ? `<button class="chip" data-act="bf-open" data-date="${S.calDay}">${t("补记背诵")}</button>` : ""}<button class="chip" data-act="dayoff-toggle" data-date="${S.calDay}">${off.has(S.calDay) ? t("取消休息日") : t("设为休息日（不生成任务）")}</button></div></div>` : `<p class="small muted" style="margin-top:8px">${t("点一天看任务，或把它设为休息日。教会年历预留在这里，暂未启用。")}</p>`}
   </div>`;
 }
 
