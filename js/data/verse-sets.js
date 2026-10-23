@@ -70,7 +70,7 @@ function parseCatechism(text){
 /* ============ 成套导入要理问答：一键自动抓取，不用粘贴 ============
    儿童要理问答（The Catechism for Young Children，19 世纪长老会常用的 145 问，英文原文是公有领域）。
    数据来自 npm 包 childrens-catechism（Unlicense，整理自 reformed.org），由 jsDelivr 提供，浏览器可以直接取，不需要密钥也不经过自己的服务器。
-   这套只有英文；中文栏留空，家长可在卡上自己补。新城要理问答有版权、官网也不开放接口，所以仍然是粘贴官方全文导入。 */
+   英文由这里抓取；中文是内置译文（js/data/cc-zh.js，AI 辅助翻译，标「待核对」，核对后在卡库里标「已核对」）。新城要理问答有版权、官网也不开放接口，所以仍然是粘贴官方全文导入。 */
 const CC_URL = "https://cdn.jsdelivr.net/npm/childrens-catechism@1.0.0/lib/cc.json";
 const CC_PARTS = [ // 按主题分段，孩子可以一段一段背
   { id: "cc1", level: "学前起", name: "神与圣经（问 1–15）", from: 1, to: 15, desc: "谁造了我们、神是谁、圣经是什么。" },

@@ -118,10 +118,11 @@ document.addEventListener("click", async ev => {
       case "scr-set": openVerseSets(); break;
       case "scr-set-go": { const set = hs.verseSet(d.set); if (!set) break; btn.disabled = true; btn.textContent = t("抓取中…"); const r = await hs.generateCards(set.refs); openScriptures(); toast(`「${tc(set.name)}」${t("新增 {n} 张", { n: r.added })}${r.skipped ? `，${t("跳过 {n}", { n: r.skipped })}` : ""}${r.failed.length ? `，${t("失败 {n}", { n: r.failed.length })}` : ""}`); break; }
       case "cc-set": openCatechismSets(); break;
+      case "cc-review": { const part = CC_PARTS.find(p => p.id === d.part); if (!part) break; const n = await hs.markCatechismReviewed(part); openCatechismSets(); toast(t("{n} 问已标为已核对", { n })); break; }
       case "cc-go": { // 儿童要理问答：一段，或全部 145 问；联网抓取，失败就提示，不会写出半张卡
         const part = d.part === "all" ? { from: 1, to: 145, name: "儿童要理问答" } : CC_PARTS.find(p => p.id === d.part); if (!part) break;
         btn.disabled = true; btn.textContent = t("抓取中…");
-        try { const r = await hs.importChildrensCatechism(part); openCatechismSets(); toast(t("新增 {n} 问", { n: r.added }) + (r.skipped ? `，${t("已有 {n}，跳过", { n: r.skipped })}` : "")); }
+        try { const r = await hs.importChildrensCatechism(part); openCatechismSets(); toast(t("新增 {n} 问", { n: r.added }) + (r.filled ? `，${t("补上中文 {n} 问", { n: r.filled })}` : "") + (r.skipped ? `，${t("已有 {n}，跳过", { n: r.skipped })}` : "")); }
         catch (e) { btn.disabled = false; btn.textContent = t("导入"); toast(t("没抓到，检查网络后再试：{e}", { e: e && e.message || "" })); }
         break; }
       case "ncc-import": openForm("导入新城要理问答", nccFields, { lang: "zh", text: "" }, async f => { const r = await hs.importCatechism(f.text, f.lang); if (!r.total) { toast(t("没有识别出“问题N：”格式的内容")); return; } openScriptures(); toast(t("新城要理问答：新增 {a} 问，补充 {b} 问", { a: r.added, b: r.updated })); }); break;

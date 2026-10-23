@@ -11,6 +11,7 @@ import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 import { t, t as tr } from "./core/i18n.js";
 import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { CC_PARTS, VERSE_SETS, fetchChildrensCatechism, parseCatechism } from "./data/verse-sets.js";
+import { CC_ZH, CC_ZH_PENDING, CC_ZH_REVIEWED } from "./data/cc-zh.js";
 
 /* ============ 家庭学堂数据层（在线优先） ============
    进入家庭时一次性读取；每次写入直接到 Supabase，成功后更新内存并重绘。
@@ -200,21 +201,31 @@ async function importCatechism(text, lang){
   return { added, updated, total: items.length };
 }
 
-// 儿童要理问答一键导入：part = CC_PARTS 里的一段（或 { from, to }）。已有的问跳过，所以重复点不会重复。返回 { added, skipped, total }
+// 儿童要理问答一键导入：part = CC_PARTS 里的一段（或 { from, to }）。英文抓取、中文用内置译文（标“待核对”）。
+// 已有的问跳过；上一版只导过英文的卡，这次会补上中文。返回 { added, filled, skipped, total }
 async function importChildrensCatechism(part){
   const all = await fetchChildrensCatechism(), items = all.filter(x => x.n >= part.from && x.n <= part.to);
-  let added = 0, skipped = 0;
+  let added = 0, filled = 0, skipped = 0;
   for (const it of items) {
-    const ref = ccRef(it.n);
-    if (S.hs.scriptures.some(s => s.ref === ref)) { skipped++; continue; }
-    await upsertScripture({ kind: "catechism", ref, text_zh: "", text_en: `Q: ${it.q} A: ${it.a}`, version_zh: "", version_en: "Catechism for Young Children", source: "reformed.org · childrens-catechism（公有领域）", sort: 2000 + it.n });
+    const ref = ccRef(it.n), zh = CC_ZH[it.n], cur = S.hs.scriptures.find(s => s.ref === ref);
+    const zhPatch = zh ? { text_zh: `问：${zh[0]} 答：${zh[1]}`, version_zh: CC_ZH_PENDING } : {};
+    if (cur) { if (!cur.text_zh && zh) { await upsertScripture({ ...cur, ...zhPatch }); filled++; } else skipped++; continue; }
+    await upsertScripture({ kind: "catechism", ref, text_en: `Q: ${it.q} A: ${it.a}`, version_en: "Catechism for Young Children", ...(zh ? zhPatch : { text_zh: "", version_zh: "" }), source: "reformed.org · childrens-catechism（公有领域）；中文为 AI 辅助翻译", sort: 2000 + it.n });
     added++;
   }
-  return { added, skipped, total: items.length };
+  return { added, filled, skipped, total: items.length };
 }
 const ccRef = n => `儿童要理问答 问 ${n} - Catechism for Young Children Q${n}`;
-// 这一段里还没导入的问数
-const ccMissing = part => { let n = 0; for (let i = part.from; i <= part.to; i++) if (!S.hs.scriptures.some(s => s.ref === ccRef(i))) n++; return n; };
+const ccCards = part => { const out = []; for (let i = part.from; i <= part.to; i++) { const s = S.hs.scriptures.find(x => x.ref === ccRef(i)); if (s) out.push(s); } return out; };
+// 这一段里还要导入（没有这张卡，或有卡但缺中文）的问数
+const ccMissing = part => { let n = 0; for (let i = part.from; i <= part.to; i++) { const s = S.hs.scriptures.find(x => x.ref === ccRef(i)); if (!s || (!s.text_zh && CC_ZH[i])) n++; } return n; };
+// 译文还没人核对的张数；核对完在这一段标“已核对”，卡片上的译本名跟着改
+const ccPending = part => ccCards(part).filter(s => s.version_zh === CC_ZH_PENDING).length;
+async function markCatechismReviewed(part){
+  let n = 0;
+  for (const s of ccCards(part)) if (s.version_zh === CC_ZH_PENDING) { await upsertScripture({ ...s, version_zh: CC_ZH_REVIEWED }); n++; }
+  return n;
+}
 /* ---- 背诵进度：在学 → 会背了 → 3 天、7 天、30 天、90 天复习，之后一直 90 天一次 ----
    reviews 是已通过的复习次数，决定下一档间隔。“再练练”不是失败：记一次，明天再来，并退一档间隔重新巩固。
    迁移 011 加了 last_on / last_result / again_streak / undo_to 和 paused 状态；今天页据此把做过的卡留在原位，并支持撤销。 */
@@ -618,7 +629,7 @@ function attachRealtime(channel, onChange){
 }
 
 export { INTERVALS, ensureTasksForDay, loadAll, refreshIfNewDay, saveSettings, planState, currentPlan, todayPassage, choosePlan, importPlan, devotionDraft, saveDevotion,
-  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, importChildrensCatechism, ccMissing, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse, swapBatch, topUpPool, poolOf, poolCfg, addExtraReview,
+  upsertScripture, deleteScripture, importSeedScriptures, scripture, defaultVersions, fetchVersions, fetchBoth, generateCards, verseSet, importCatechism, importChildrensCatechism, ccMissing, ccPending, markCatechismReviewed, progressOf, setProgress, dueReviews, learningCards, learnedCount, todayPlan, nextToStart, autoAssignVerses, swapVerse, swapBatch, topUpPool, poolOf, poolCfg, addExtraReview,
   upsertRoutine, deleteRoutine, applyTemplate, routine, ensureTodayTasks, tasksFor, upsertTask, setTaskStatus, moveTask, deleteTask, attachRealtime,
   unit, lesson, unitLessons, unitProgress, upsertUnit, deleteUnit, upsertLesson, deleteLesson, setLessonStatus, scheduleLesson, applyCourseTemplate,
   upsertGoal, deleteGoal, toggleGoal, applyGoalTemplate, upsertResource, deleteResource, importSeedResources,
