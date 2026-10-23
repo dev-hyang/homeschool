@@ -252,6 +252,7 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .pace.ok{color:var(--sage)}
 .pace.warn,.num.warn{color:var(--rose);font-weight:500}
 .pill{font-size:12px;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.pill.lv{background:rgba(127,127,127,.16);color:var(--muted);font-weight:600}
 .pill.ok{background:var(--sage-soft);color:var(--sage)}
 .medrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
 .medrow:last-child{border-bottom:0}

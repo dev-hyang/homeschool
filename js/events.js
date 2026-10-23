@@ -1,3 +1,4 @@
+import { CC_PARTS } from "./data/verse-sets.js";
 import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
@@ -12,7 +13,7 @@ import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
 import { closePrint, openPrint } from "./print.js";
-import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openForm, openInfo, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
+import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openCatechismSets, openForm, openInfo, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { openBackfill, openScriptures, renderLibList } from "./library.js";
 import { render, toggleKids } from "./views.js";
 
@@ -63,7 +64,7 @@ document.addEventListener("click", async ev => {
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
-  if (["scr-gen", "scr-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
+  if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   try {
     switch (d.act) {
       case "settings": openSettings(); break;
@@ -116,6 +117,13 @@ document.addEventListener("click", async ev => {
       case "scr-gen": openForm("按出处生成经文卡", genFields, { refs: "" }, async f => { const refs = f.refs.split(/\r?\n|[;；]/).map(x => x.trim()).filter(Boolean); if (!refs.length) { toast(t("请贴几行出处")); return; } toast(t("正在抓取…")); const r = await hs.generateCards(refs); openScriptures(); toast(t("新增 {n} 张", { n: r.added }) + (r.skipped ? `，${t("已有 {n} 张跳过", { n: r.skipped })}` : "") + (r.failed.length ? `，${t("失败 {n}", { n: r.failed.length })}：${r.failed.map(x => x[0]).join("、")}` : "")); }); break;
       case "scr-set": openVerseSets(); break;
       case "scr-set-go": { const set = hs.verseSet(d.set); if (!set) break; btn.disabled = true; btn.textContent = t("抓取中…"); const r = await hs.generateCards(set.refs); openScriptures(); toast(`「${tc(set.name)}」${t("新增 {n} 张", { n: r.added })}${r.skipped ? `，${t("跳过 {n}", { n: r.skipped })}` : ""}${r.failed.length ? `，${t("失败 {n}", { n: r.failed.length })}` : ""}`); break; }
+      case "cc-set": openCatechismSets(); break;
+      case "cc-go": { // 儿童要理问答：一段，或全部 145 问；联网抓取，失败就提示，不会写出半张卡
+        const part = d.part === "all" ? { from: 1, to: 145, name: "儿童要理问答" } : CC_PARTS.find(p => p.id === d.part); if (!part) break;
+        btn.disabled = true; btn.textContent = t("抓取中…");
+        try { const r = await hs.importChildrensCatechism(part); openCatechismSets(); toast(t("新增 {n} 问", { n: r.added }) + (r.skipped ? `，${t("已有 {n}，跳过", { n: r.skipped })}` : "")); }
+        catch (e) { btn.disabled = false; btn.textContent = t("导入"); toast(t("没抓到，检查网络后再试：{e}", { e: e && e.message || "" })); }
+        break; }
       case "ncc-import": openForm("导入新城要理问答", nccFields, { lang: "zh", text: "" }, async f => { const r = await hs.importCatechism(f.text, f.lang); if (!r.total) { toast(t("没有识别出“问题N：”格式的内容")); return; } openScriptures(); toast(t("新城要理问答：新增 {a} 问，补充 {b} 问", { a: r.added, b: r.updated })); }); break;
       case "form-fetch": { readForm(); const f = getForm(); if (!f.draft.ref) { toast(t("先填出处")); return; } btn.textContent = t("抓取中…"); const r = await hs.fetchBoth(f.draft.ref); if (r.error) { toast(r.error); drawForm(); break; } Object.assign(f.draft, { ref: r.ref, text_zh: r.text_zh || f.draft.text_zh, text_en: r.text_en || f.draft.text_en, version_zh: r.version_zh || f.draft.version_zh, version_en: r.version_en || f.draft.version_en }); drawForm(); if (r.errors.length) toast(r.errors.join("；")); break; }
       case "scr-edit": { const s = hs.scripture(d.sid); openForm("编辑经文卡", scriptureFields, s, async f => { await hs.upsertScripture({ ...s, ...f }); openScriptures(); }, async () => { if (confirm(t("删除这张经文卡？所有孩子的进度一起删除。"))) { await hs.deleteScripture(s.id); openScriptures(); } }); break; }
