@@ -413,3 +413,4 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 @media (min-width:760px){.bk-cards{grid-template-columns:1fr 1fr}.bk-cards .bk-card:first-child{grid-column:1/-1}}
 .bk-path{width:100%}.bk-path label{flex:none}.bk-path input{flex:1 1 160px;min-height:34px;min-width:0}
 .bk-card.off{opacity:.6}
+.bk-hint{display:block;color:var(--muted,#6b7280);font-size:12px;line-height:1.4;margin:2px 0 4px}
