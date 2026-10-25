@@ -69,7 +69,7 @@ document.addEventListener("click", async ev => {
 
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
-  if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 小Y问（js/ask.js）
+  if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 咩咩咩（js/ask.js）
   try {
     switch (d.act) {
       case "settings": openSettings(); break;
@@ -254,7 +254,7 @@ function routineFields(){
     { k: "start", label: "开始时间（可空）", type: "time" }, { k: "minutes", label: "大约几分钟", type: "num" }, { k: "active", label: "启用", type: "check" }
   ];
 }
-// 小Y问：回车 / 发送按钮提交表单
+// 咩咩咩：回车 / 发送按钮提交表单
 document.addEventListener("submit", ev => { if (ev.target && ev.target.id === "askForm") { ev.preventDefault(); askAct("ask-send", ev.target); } });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;

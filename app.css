@@ -301,8 +301,9 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .crumb .sep{color:var(--muted);opacity:.7;font-size:12px;padding:0 1px}
 .crumb b{font-weight:700;color:var(--ink);padding:4px 5px;min-width:0;overflow-wrap:anywhere}
 @media print{.crumb{display:none}}
-/* 小Y问（js/ask.js）：今天页的入口行、问答表单、回答、折叠的 AI 设置 */
+/* 咩咩咩（js/ask.js）：今天页的入口行、问答表单、回答、折叠的 AI 设置 */
 .ask-entry{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.ai-ico{vertical-align:-4px;flex:none} .mrow .mi .ai-ico{vertical-align:middle}
 .ask-entry .ask-chip{font-weight:600;border-color:var(--slate);color:var(--slate);background:var(--slate-soft)}
 #askForm textarea{box-sizing:border-box;width:100%;min-height:84px;resize:vertical;padding:12px 14px;font-size:16px;line-height:1.6;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:var(--radius-sm)}
 #askForm textarea:focus{outline:none;border-color:var(--slate);box-shadow:0 0 0 4px var(--slate-soft)}

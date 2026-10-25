@@ -2,9 +2,9 @@ import { LS_PREFIX } from "./core/config.js";
 import { t } from "./core/i18n.js";
 
 /* ============ AI 助手 · 调用层（复制自牧羊人 js/ai.js；和爱家小助手同一套思路：自带 key、浏览器直连，没有服务器） ============
-   用户把自己的 API key 填在 小Y问 → AI 设置，只存本机浏览器（localStorage），不进仓库、不进数据库、不同步给家人。
+   用户把自己的 API key 填在 咩咩咩 → AI 设置，只存本机浏览器（localStorage），不进仓库、不进数据库、不同步给家人。
    爱家小助手（同一个域名）里已经填过的 key（localStorage "hmh-ai"）这里直接沿用，不用再填一遍。
-   家庭学堂只在「小Y问」用到 AI：一问一答（文字）。发出去的只有问题和孩子的学习统计（见 js/ask.js），不含姓名和备注。 */
+   家庭学堂只在「咩咩咩」用到 AI：一问一答（文字）。发出去的只有问题和孩子的学习统计（见 js/ask.js），不含姓名和备注。 */
 const KEY = LS_PREFIX + ".ai", PANTRY_KEY = "hmh-ai";
 
 const PROVIDERS = [
@@ -71,7 +71,7 @@ function explain(e){
 /** 一问一答：system + user（可带图片）→ 文本。json = true 时要求模型只回 JSON */
 async function askText(system, user, { json = false, images = [], maxTokens = 2000, temperature = 0.2, signal } = {}){
   const s = aiSettings(), p = providerOf(s.provider), key = cleanKey(s.key);
-  if (!key) throw new Error(t("还没填 API key，在小Y问页的「AI 设置」里填"));
+  if (!key) throw new Error(t("还没填 API key，在咩咩咩页的「AI 设置」里填"));
   if (p.id === "custom" && !/^https:\/\//i.test(String(s.base || ""))) throw new Error(t("接口地址要以 https:// 开头，填到 /v1 为止"));
   const models = p.kind === "gemini" ? [...new Set([/^gemini/i.test(s.model || "") ? s.model : p.model, ...p.fallback])] : [s.model || p.model];
   const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), images.length ? 120000 : 60000);

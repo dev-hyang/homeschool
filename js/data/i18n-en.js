@@ -459,8 +459,8 @@ const EN = {
   "Drive 里选的文件夹找不到了（被删或改了名）：重新选一个": "The chosen Drive folder can't be found (deleted or renamed): pick another",
   "选一个放备份的文件夹": "Choose a folder for backups",
   "只能用应用自己建的文件夹；想用你在 Drive 里已有的文件夹，请点下面的「或在 Drive 里选一个文件夹…」。": "Only folders the app created itself work here; to use a folder you already have in Drive, tap “…or pick a folder in Drive” below.",
-  // ---- 小Y问 / 面包屑 ----
-  "小Y问": "Ask Y",
+  // ---- 咩咩咩 / 面包屑 ----
+  "咩咩咩": "Baa Baa",
   "位置": "Location",
   "问今天的课怎么调、经文怎么背、孩子不配合怎么办…": "Ask how to adjust today's lessons, memorize verses, handle an uncooperative child…",
   "今天的课怎么调、经文怎么背、孩子不配合怎么办…": "How to adjust today's lessons, memorize verses, handle an uncooperative child…",
@@ -499,7 +499,7 @@ const EN = {
   "复制提示词": "Copy prompt",
   "换模型": "Change model",
   "填 API key": "Add API key",
-  "小Y的回答": "Y's answer",
+  "咩咩的回答": "Baa's answer",
   "AI 回答仅供参考，教育与孩子的具体情况请以家长判断为准。": "AI answers are for reference only; the parent's judgment about the child comes first.",
   "复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：": "After copying, open any AI and paste (on a phone the installed app opens directly):",
   "打开{n}": "Open {n}",
@@ -512,7 +512,7 @@ const EN = {
   "连接成功 ✓": "Connected ✓",
   "已清除": "Removed",
   "（沿用爱家小助手的 key，留空即可）": "(using Home Helper's key; leave blank)",
-  "还没填 API key，在小Y问页的「AI 设置」里填": "No API key yet; add one under \"AI settings\" on the Ask Y page",
+  "还没填 API key，在咩咩咩页的「AI 设置」里填": "No API key yet; add one under \"AI settings\" on the Baa Baa page",
   "模型返回的不是 JSON": "The model did not return JSON",
   "模型超时，稍后再试": "The model timed out, try again later",
   "浏览器无法直连这个接口（跨域或网络被拒）。可以换 Gemini，或者手动输入文字。": "The browser cannot reach this endpoint directly (CORS or network refused). Try Gemini instead.",
