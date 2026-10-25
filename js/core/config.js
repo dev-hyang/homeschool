@@ -5,8 +5,11 @@ const SUPABASE_URL = "https://gbhvqlraimmignhoczww.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiaHZxbHJhaW1taWduaG9jend3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3ODY5MzAsImV4cCI6MjEwNzM2MjkzMH0.Y9ZzQKGChGqnLj-69Bnljgb8BVgXbOEuHbbKt6Z5bBE";
 const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
 
+/* 云盘备份（我的 → 备份与恢复）：填两个公开的客户端标识（不是密钥，和 anon key 一样可以放在网页里），留空时卡片提示「需要先填好」。申请步骤见 README「云盘备份」 */
+const GOOGLE_CLIENT_ID = "";   // Google Cloud Console → OAuth 2.0 客户端（Web 应用）；「已获授权的 JavaScript 来源」填站点地址
+const DROPBOX_APP_KEY = "";    // Dropbox App Console → App key；Access type 选 App folder；Redirect URI 填站点地址（带结尾的 /）
 const LS_PREFIX = "homeschool.v1";            // 本设备偏好的 localStorage 前缀，与小月亮的 xiaoyueliang.v1 分开
-const APP_VERSION = "2026-10-25.12";
+const APP_VERSION = "2026-10-25.13";
 const BABY_LOG_URL = "https://dev-hyang.github.io/baby-log/";
 const PANTRY_URL = "https://dev-hyang.github.io/home-pantry/";
 // 四个姊妹站点同一个账号同一个家庭；标题旁的左右箭头在它们之间切换（按这里的顺序环绕）
@@ -18,4 +21,4 @@ const SISTER_APPS = [
 ];
 const THIS_APP = "homeschool";
 
-export { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JS, LS_PREFIX, APP_VERSION, BABY_LOG_URL, PANTRY_URL, SISTER_APPS, THIS_APP };
+export { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_JS, LS_PREFIX, APP_VERSION, BABY_LOG_URL, PANTRY_URL, SISTER_APPS, THIS_APP, GOOGLE_CLIENT_ID, DROPBOX_APP_KEY };

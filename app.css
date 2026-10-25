@@ -411,3 +411,5 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 .bk-sql{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--honey-soft,#fff6d6);font-size:13px}.bk-sql b{display:block}.bk-sql small{display:block;color:var(--muted,#6b7280);font-size:12.5px;margin:2px 0 8px;line-height:1.4}
 @media (max-width:520px){.bk-status{flex-direction:column;align-items:stretch}.bk-status .bk-row .btn{flex:1 1 0}}
 @media (min-width:760px){.bk-cards{grid-template-columns:1fr 1fr}.bk-cards .bk-card:first-child{grid-column:1/-1}}
+.bk-path{width:100%}.bk-path label{flex:none}.bk-path input{flex:1 1 160px;min-height:34px;min-width:0}
+.bk-card.off{opacity:.6}
