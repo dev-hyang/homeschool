@@ -1,4 +1,5 @@
 import { CC_PARTS } from "./data/verse-sets.js";
+import { bkAct, bkChange } from "./backup.js";
 import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
@@ -27,6 +28,7 @@ const libDrill = v => { const [kind, st] = String(v).split("|"); Object.assign(S
 document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest && ev.target.closest("svg [data-libf]")) { ev.preventDefault(); libDrill(ev.target.closest("[data-libf]").dataset.libf); } });
 // 卡库的下拉 / 搜索：类型和每批设置整页重画（图表跟着变），状态 / 排序 / 搜索只刷新列表
 document.addEventListener("change", async ev => {
+  if (await bkChange(ev)) return;   // 备份设置 / 选了备份文件
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
   if (id === "libKind") { S.scrFilter.kind = v; openScriptures(); }
   else if (id === "libSt") { S.scrFilter.st = v; renderLibList(); }
@@ -65,6 +67,7 @@ document.addEventListener("click", async ev => {
   if (d.member) { await sbMember(d.member, d.uid); return; }
 
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
+  if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
   try {
     switch (d.act) {
       case "settings": openSettings(); break;

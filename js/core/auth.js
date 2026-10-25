@@ -3,6 +3,7 @@ import { t } from "./i18n.js";
 import { CHILD_KEY, S, setChildren } from "./state.js";
 import { $, esc, toast } from "./util.js";
 import { attachRealtime, loadAll } from "../hs.js";
+import { runScheduled } from "../backup.js";
 import { refreshSettingsIfOpen, render } from "../views.js";
 
 /* ============ 登录、家庭、孩子（与小月亮共用同一套表） ============
@@ -53,6 +54,7 @@ async function enterFamily(fam){
   S.cloud = "ready";
   render();                 // show the shell with the family first
   await loadAll();          // homeschool rows (hs_* tables)
+  runScheduled();           // 定时备份到期了就在后台做一次
   setupRealtime();
   render(); refreshSettingsIfOpen();
 }
