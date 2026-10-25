@@ -15,8 +15,18 @@ import { viewToday } from "./today.js";
 
 /* ============ 渲染 ============ */
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
-// 子页 → 所属的底部页签：子页顶上有“‹ 所属页”返回，底部仍高亮所属页
+// 子页 → 所属页：顶上一条完整路径（‹ 我的 / 报告），底部仍高亮所属的页签。子页可以记住从哪个页签进来的（S.from）
 const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me" };
+const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", "cal-routines": "周例行", reports: "报告", law: "法规" };
+const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
+const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
+/** 面包屑：‹ 底部页签 / 中间页 / 当前页（加粗）。中间项可点，和 home-pantry 的 crumbNav 同一版式 */
+function crumbHTML(tab){
+  const chain = []; for (let p = parentOf(tab); p; p = parentOf(p)) chain.unshift(p);
+  if (!chain.length) return "";
+  const parts = [...chain.map(k => `<button type="button" class="crumb-link" data-tab="${k}">${chain[0] === k ? "‹ " : ""}${esc(labelOf(k))}</button>`), `<b aria-current="page">${esc(labelOf(tab))}</b>`];
+  return `<nav class="crumb" aria-label="${t("位置")}">${parts.join(`<span class="sep" aria-hidden="true">/</span>`)}</nav>`;
+}
 const VIEWS = { today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
@@ -68,13 +78,14 @@ function render(){
   // 打印视图：整页就是那张纸（头部、底栏由 body.printview 收起）
   document.body.classList.toggle("printview", !!S.printView);
   if (S.printView) { $("#main").innerHTML = printViewHTML(); return; }
-  const parent = PARENT[S.tab], cur = parent || S.tab;
+  let cur = S.tab; for (let p = parentOf(cur); p; p = parentOf(p)) cur = p;   // 一路找到所属的底部页签
+  const parent = parentOf(S.tab);
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
-  const back = parent ? `<div class="backbar"><button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button></div>` : "";
+  const back = crumbHTML(S.tab);
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me") ? back + v() : back + (gateHTML() || v());
-  updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${t(TAB_LABELS[parent])}</button>` : "", t("回到顶部"));
+  updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${esc(labelOf(parent))}</button>` : "", t("回到顶部"));
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
 

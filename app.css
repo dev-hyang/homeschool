@@ -293,7 +293,14 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .hdr-tools{display:inline-flex;align-items:center;gap:2px;margin:-4px -6px -2px 0}   /* 语言、应用两个 44px 触控按钮并排，顶栏保持紧凑 */
 /* 子页“‹ 所属页”路径条：页面往下滑时固定在顶部（刘海下面），随时能回上一层 */
-.backbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;margin:0 -16px 8px;padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--line)}
+/* 面包屑（子页顶部的完整路径：‹ 我的 / 报告；和 home-pantry 同一版式）：吸顶，第一项带 ‹，中间项可点，最后一项加粗 */
+.crumb{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;display:flex;align-items:center;flex-wrap:wrap;gap:2px 0;margin:0 -16px 8px;padding:6px 16px;font-size:14px;line-height:1.5;background:color-mix(in srgb,var(--bg) 94%,transparent);border-bottom:1px solid var(--line)}
+.crumb .crumb-link{background:none;border:0;font:inherit;cursor:pointer;color:var(--slate);font-weight:600;padding:4px 5px;border-radius:6px;white-space:nowrap;text-underline-offset:3px}
+.crumb .crumb-link:hover,.crumb .crumb-link:active,.crumb .crumb-link:focus-visible{background:var(--slate-soft);text-decoration:underline}
+.crumb > :first-child{margin-left:-5px}
+.crumb .sep{color:var(--muted);opacity:.7;font-size:12px;padding:0 1px}
+.crumb b{font-weight:700;color:var(--ink);padding:4px 5px;min-width:0;overflow-wrap:anywhere}
+@media print{.crumb{display:none}}
 /* 今天页头里的“打印今日页”：白字透明底，和深蓝渐变搭 */
 .hero .hero-chip{margin-left:auto;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.45);color:#fff;min-height:30px;padding:3px 10px;font-size:13px}
 .hero .hero-chip:hover{background:rgba(255,255,255,.28)}
