@@ -1,0 +1,189 @@
+/* ============ 小Y问 · 在家教育的 AI 问询页 ============
+   和爱家小助手的「小Y问」同一套思路：有 key（填在本页的「AI 设置」里，只存本机）就直接出答案；没 key 就把问题连同孩子
+   最近的学习情况拼成提示词，一键复制到任一 AI。场景 chips 各带一句默认问题和对应的上下文摘要。
+   发出去的只有统计和计划信息：年龄与阶段、今日任务（领域、分钟、完成几项）、近一周完成率、经文背诵进度、今天的读经段落。
+   不含孩子姓名（一律写「孩子」）、不含备注和任务里的自由文本。调用层在 js/ai.js（复制自牧羊人）。 */
+import { PROVIDERS, aiReady, aiSettings, askText, providerOf, saveAiSettings, testAi } from "./ai.js";
+import { t, locale } from "./core/i18n.js";
+import { S, ageText, stageOf } from "./core/state.js";
+import { D, dayKey, esc, toast } from "./core/util.js";
+import { subject } from "./data/subjects.js";
+import { devotionDraft, dueReviews, isOffDay, learnedCount, learningCards, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
+import { render } from "./views.js";
+
+const st = () => (S.ask ||= { q: "", busy: false, answer: null, error: null, withContext: true, keyOpen: false, prov: null });
+
+/* ---- 场景：一句默认问题 + 要带上的上下文块 ---- */
+const TOPICS = [
+  { id: "today", icon: "📅", name: "今天的课怎么调", q: "看看孩子今天的任务和已经完成的部分，剩下的时间怎么安排更合适？哪些可以合并、顺延或缩短？", ctx: ["child", "today", "week"] },
+  { id: "verse", icon: "📖", name: "背经文的方法", q: "孩子正在背这些经文，按他的年龄，有什么好用的背诵和复习方法？怎么让复习不枯燥？", ctx: ["child", "scripture"] },
+  { id: "focus", icon: "🧸", name: "孩子不配合、坐不住", q: "孩子最近上课不太配合、注意力不集中。结合他的年龄和最近一周的完成情况，我可以怎么调整节奏和方式？", ctx: ["child", "today", "week"] },
+  { id: "stuck", icon: "🧩", name: "某一科卡住了", q: "从最近一周各科的完成情况看，哪一科明显落后？可能是什么原因，怎么换个方法或降低难度？", ctx: ["child", "week", "subjects"] },
+  { id: "devotion", icon: "🕊", name: "带领家庭敬拜", q: "今天家庭敬拜要读这段经文，给这个年龄的孩子，怎么讲、问什么问题、做什么小活动？", ctx: ["child", "devotion"] },
+  { id: "review", icon: "📈", name: "本周回顾与下周计划", q: "根据这周每天的完成情况和各科时长，帮我做一个简短的回顾，并给下周的安排提两三条建议。", ctx: ["child", "week", "subjects"] },
+  { id: "pace", icon: "🌿", name: "节奏与休息", q: "孩子每天的课时量和连续上课的天数是否合适？这个年龄一天学多久、怎么安排休息比较好？", ctx: ["child", "week"] },
+];
+// 可直接打开的 AI 网页（手机上是通用链接，装了 App 会拉起 App）
+const AI_SITES = [
+  ["ChatGPT", "https://chatgpt.com/"], ["DeepSeek", "https://chat.deepseek.com/"], ["Claude", "https://claude.ai/new"],
+  ["豆包", "https://www.doubao.com/chat/"], ["通义千问", "https://www.tongyi.com/"], ["Kimi", "https://www.kimi.com/"], ["Gemini", "https://gemini.google.com/app"],
+];
+
+/* ---- 上下文：只有统计和计划，不带姓名、备注 ---- */
+const minutesOf = x => { const r = x.routine_id && routine(x.routine_id); return +x.minutes || (r && +r.minutes) || 0; };
+function ctxChild(){ return `孩子 ${ageText()}，${stageOf().name}阶段。`; }
+function ctxToday(){
+  const day = dayKey(Date.now()), list = tasksFor(day, S.childId), now = new Date();
+  if (!list.length) return `今天（${day}）没有安排任务${isOffDay(day) ? "，是休息日" : ""}。现在 ${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}。`;
+  const done = list.filter(x => x.status === "done"), left = list.filter(x => x.status === "todo");
+  const line = x => `${subject(x.subject).short}${minutesOf(x) ? ` ${minutesOf(x)} 分钟` : ""}（${x.status === "done" ? "已完成" : x.status === "skip" ? "跳过" : "未做"}）`;
+  return `今天（${day}）安排 ${list.length} 项：${list.map(line).join("、")}。已完成 ${done.length} 项，还剩 ${left.length} 项约 ${left.reduce((a, x) => a + minutesOf(x), 0)} 分钟。现在 ${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}。`;
+}
+function weekStats(){
+  const today = dayKey(Date.now()), from = dayKey(Date.now() - 6 * D), cid = S.childId;
+  const tasks = (S.hs.tasks || []).filter(x => x.date >= from && x.date <= today && (x.child_id == null || x.child_id === cid));
+  const by = {}; const days = {};
+  for (const x of tasks) {
+    const b = by[x.subject] ||= { done: 0, skip: 0, missed: 0, min: 0 }, d = days[x.date] ||= { done: 0, total: 0 };
+    d.total++;
+    if (x.status === "done") { b.done++; b.min += minutesOf(x); d.done++; } else if (x.status === "skip") b.skip++; else if (x.date < today) b.missed++;
+  }
+  const dayList = Object.keys(days).sort();
+  // 连续上课天数：从今天往回数，有任务且不是休息日
+  let streak = 0; for (let i = 0; i < 14; i++) { const d = dayKey(Date.now() - i * D); if (isOffDay(d)) continue; if (days[d]) streak++; else if (d !== today) break; }
+  const total = tasks.length, done = tasks.filter(x => x.status === "done").length, minutes = tasks.filter(x => x.status === "done").reduce((a, x) => a + minutesOf(x), 0);
+  return { by, days, dayList, streak, total, done, minutes };
+}
+function ctxWeek(){
+  const w = weekStats();
+  if (!w.total) return "最近一周没有任务记录。";
+  const perDay = w.dayList.map(d => `${d.slice(5)} ${w.days[d].done}/${w.days[d].total}`).join("，");
+  return `最近一周（含今天）共 ${w.total} 项任务，完成 ${w.done} 项（${Math.round(w.done / w.total * 100)}%），学习约 ${w.minutes} 分钟，有学习的日子平均 ${Math.round(w.minutes / Math.max(1, w.dayList.length))} 分钟；每天完成情况：${perDay}。连续上课 ${w.streak} 天。`;
+}
+function ctxSubjects(){
+  const w = weekStats(); const rows = Object.entries(w.by);
+  if (!rows.length) return "";
+  return "最近一周各科：" + rows.map(([k, b]) => `${subject(k).label} 完成 ${b.done} 次${b.skip ? `、跳过 ${b.skip}` : ""}${b.missed ? `、漏做 ${b.missed}` : ""}${b.min ? `、约 ${b.min} 分钟` : ""}`).join("；") + "。";
+}
+function ctxScripture(){
+  const cid = S.childId, plan = todayPlan(cid), learning = learningCards(cid).map(x => x.s.ref), due = dueReviews(cid).length;
+  const wv = S.hs.settings.weekVerse ? scripture(S.hs.settings.weekVerse) : null;
+  const parts = [`已会背 ${learnedCount(cid)} 节`];
+  if (learning.length) parts.push(`正在背：${learning.slice(0, 5).join("、")}${learning.length > 5 ? ` 等 ${learning.length} 节` : ""}`);
+  parts.push(`今天安排 ${plan.total} 节（新学 ${plan.rows.filter(x => x.kind === "learn").length}，复习 ${plan.rows.filter(x => x.kind === "review").length}），已做 ${plan.done}`);
+  if (due) parts.push(`到期待复习 ${due} 节`);
+  if (plan.backlog) parts.push(`复习积压 ${plan.backlog.queued} 节，最久拖了 ${plan.backlog.oldest} 天`);
+  if (wv) parts.push(`本周经文：${wv.ref}`);
+  return `经文背诵：${parts.join("；")}。复习按 3、7、30、90、180 天的间隔自动安排。`;
+}
+function ctxDevotion(){
+  const d = devotionDraft(), tp = todayPassage();
+  const ref = d.passage || (tp ? tp.ref : "");
+  return ref ? `今天家庭敬拜的读经段落：${ref}${tp && tp.note && !d.passage ? `（${tp.note}）` : ""}${d.done ? "，今天已经敬拜过了" : ""}。` : "今天还没选读经段落。";
+}
+const CTX = { child: ctxChild, today: ctxToday, week: ctxWeek, subjects: ctxSubjects, scripture: ctxScripture, devotion: ctxDevotion };
+const loaded = () => !!(S.hs && S.hs.loaded && S.childId);   // 没登录 / 没孩子：问题照问，只是不带学习情况
+function contextText(keys){ if (!loaded()) return ""; return keys.map(k => CTX[k] && CTX[k]()).filter(Boolean).join("\n"); }
+// 哪个场景的问题就带哪些块；自己写的问题带全部
+function ctxFor(q){ const tp = TOPICS.find(x => t(x.q) === q || x.q === q); return tp ? tp.ctx : Object.keys(CTX); }
+
+const answerLang = () => ({ en: "English", "zh-TW": "繁體中文" })[locale()] || "简体中文";
+function systemPrompt(){
+  return `你是一位谨慎、温和的在家教育（homeschool）顾问，用${answerLang()}回答家长。
+依据孩子的年龄和下面给出的学习情况，给出具体、可操作的建议；尊重家长的判断，不下结论、不贴标签。
+控制在 250 字（英文 180 词）以内，分 2–4 个短段落或要点；只在确有依据时引用给出的数据。
+如果问题超出教育范畴（医疗、心理诊断等），提醒家长咨询专业人士。`;
+}
+function userPrompt(q, withContext){ const c = withContext ? contextText(ctxFor(q)) : ""; return c ? `${c}\n\n问题：${q}` : q; }
+const promptText = (q, withContext) => `${systemPrompt()}\n\n${userPrompt(q, withContext)}`;
+
+/* ---- 页面 ---- */
+function renderAnswer(text){
+  const lines = esc(text).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").split("\n");
+  let out = "", list = null;
+  const flush = () => { if (list) { out += `<${list.tag}>${list.items.map(x => `<li>${x}</li>`).join("")}</${list.tag}>`; list = null; } };
+  for (const ln of lines) {
+    const m = ln.match(/^\s*(?:[-*•]|(\d+)[.、)])\s+(.*)$/);
+    if (m) { const tag = m[1] ? "ol" : "ul"; if (!list || list.tag !== tag) { flush(); list = { tag, items: [] }; } list.items.push(m[2]); continue; }
+    flush();
+    if (ln.trim()) out += /^#+\s/.test(ln) ? `<h4>${ln.replace(/^#+\s/, "")}</h4>` : `<p>${ln}</p>`;
+  }
+  flush();
+  return `<div class="ask-text">${out}</div>`;
+}
+function keyPanelHTML(){
+  const a = st(), s = aiSettings(), pid = a.prov || s.provider, p = providerOf(pid), own = !s.borrowed && !!s.key;
+  return `<details class="more" id="askKey" ${a.keyOpen ? "open" : ""}><summary>${t("AI 设置")}<span class="small muted">${aiReady() ? (s.borrowed ? t("沿用爱家小助手里填的 key") : t("已填 key · {p}", { p: p.name })) : t("填 API key 后直接出答案")}</span></summary>
+    <div class="panel">
+      <p class="small muted" style="margin-top:0">${t("key 只存在这台设备的浏览器里，不进仓库、不进数据库、不同步给家人。四个姊妹应用在同一个域名下，爱家小助手里填过的这里会自动沿用。")}</p>
+      <div class="field"><div class="lab">${t("服务商")}</div><div class="seg" role="group">${PROVIDERS.map(x => `<button type="button" data-act="ask-prov" data-v="${x.id}" aria-pressed="${x.id === pid}">${esc(x.name)}</button>`).join("")}</div>
+        ${p.hint ? `<p class="small muted" style="margin:6px 0 0">${esc(t(p.hint))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener">${t("去申请 key")}</a>` : ""}</p>` : ""}</div>
+      <div class="field"><label for="askKeyIn">API key</label><input id="askKeyIn" type="password" autocomplete="off" value="${esc(pid === s.provider && !s.borrowed ? s.key : "")}" placeholder="${s.borrowed && pid === s.provider ? t("（沿用爱家小助手的 key，留空即可）") : ""}"></div>
+      <div class="field"><label for="askModel">${t("模型（可空，用默认）")}</label><input id="askModel" type="text" value="${esc(pid === s.provider ? (s.model || "") : "")}" placeholder="${esc(p.model || "")}"></div>
+      ${pid === "custom" ? `<div class="field"><label for="askBase">${t("接口地址（到 /v1 为止）")}</label><input id="askBase" type="text" value="${esc(s.base || "")}" placeholder="https://…/v1"></div>` : ""}
+      <div class="btns"><button type="button" class="btn primary" data-act="ask-save">${t("保存")}</button><button type="button" class="btn" data-act="ask-test">${t("测试连接")}</button>${own ? `<button type="button" class="btn danger" data-act="ask-clear">${t("清除 key")}</button>` : ""}</div>
+    </div></details>`;
+}
+function viewAsk(){
+  const a = st(), ready = aiReady();
+  const topics = TOPICS.map(x => `<button type="button" class="chip" data-act="ask-topic" data-topic="${x.id}" aria-pressed="${a.q === t(x.q)}">${x.icon} ${t(x.name)}</button>`).join("");
+  const sites = AI_SITES.map(([n, u]) => `<a class="chip" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
+  return `<h2>🤖 ${t("小Y问")} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${loaded() ? `${esc(ageText())} · ${esc(stageOf().name)}` : t("登录并进入家庭后，回答会结合孩子的学习情况")}</span></h2>
+  <p class="small muted">${ready ? t("问孩子在家教育里的任何事：今天的课怎么调、经文怎么背、孩子不配合怎么办。勾上「附带学习情况」，回答会结合孩子的年龄、今日任务、近一周完成情况和背诵进度。") : t("问孩子在家教育里的任何事。还没填 API key：点「复制提示词」，会把问题连同孩子最近的学习情况一起复制，打开任一 AI 粘贴即可；也可以在下面的「AI 设置」里填 key，直接在这里出答案。")}</p>
+  <div class="chips" role="group" aria-label="${t("常见场景")}">${topics}</div>
+  <form id="askForm" class="panel" onsubmit="return false">
+    <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
+    <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带孩子最近的学习情况（年龄与阶段、今日任务、近一周完成情况、经文背诵进度、今天的读经段落；不含姓名和备注）")}</span></label>
+    <div class="btns">
+      ${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
+      <button type="button" class="btn ${ready ? "" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
+      <button type="button" class="btn" data-act="ask-key">${ready ? t("换模型") : t("填 API key")}</button>
+    </div>
+    ${a.error ? `<p class="small" role="alert" style="color:var(--rose);margin:8px 0 0">${esc(a.error)}</p>` : ""}
+  </form>
+  ${a.answer ? `<div class="panel ask-answer"><div class="ask-head"><b>🤖 ${t("小Y的回答")}</b><button type="button" class="chip" data-act="ask-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
+    <p class="small muted disclaimer">${t("AI 回答仅供参考，教育与孩子的具体情况请以家长判断为准。")}</p></div>` : ""}
+  ${ready ? "" : `<div class="panel"><p class="small muted" style="margin:0 0 8px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="chips" style="margin:0">${sites}</div></div>`}
+  ${keyPanelHTML()}`;
+}
+
+/* ---- 动作 ---- */
+const form = () => document.getElementById("askForm");
+function readForm(){ const f = form(); if (!f) return; const a = st(); a.q = f.elements.q.value.trim(); a.withContext = f.elements.ctx.checked; }
+function readKeyForm(){
+  const a = st(), s = aiSettings(), pid = a.prov || s.provider;
+  const v = id => (document.getElementById(id) || {}).value || "";
+  const key = v("askKeyIn").trim();
+  return { provider: pid, key: key || (pid === s.provider && !s.borrowed ? s.key : ""), model: v("askModel").trim(), base: v("askBase").trim() || (pid === s.provider ? s.base || "" : "") };
+}
+async function askAct(act, el){
+  const a = st();
+  switch (act) {
+    case "ask-topic": { readForm(); const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; } render(); break; }
+    case "ask-send": {
+      readForm(); if (!a.q) { a.error = t("先写一句要问的"); render(); break; }
+      a.busy = true; a.error = null; render();
+      try { a.answer = await askText(systemPrompt(), userPrompt(a.q, a.withContext), { maxTokens: 1500, temperature: 0.4 }); }
+      catch (e) { a.error = e.message; }
+      finally { a.busy = false; render(); }
+      break; }
+    case "ask-copy": {
+      readForm(); if (!a.q) { toast(t("先写一句要问的")); break; }
+      const text = promptText(a.q, a.withContext);
+      try { await navigator.clipboard.writeText(text); toast(t("提示词已复制，打开任一 AI 粘贴即可")); } catch (e) { window.prompt(t("复制下面的提示词"), text); }
+      break; }
+    case "ask-copy-answer": if (a.answer) { try { await navigator.clipboard.writeText(a.answer); toast(t("已复制")); } catch (e) { /* 忽略 */ } } break;
+    case "ask-key": readForm(); a.keyOpen = !a.keyOpen; render(); if (a.keyOpen) { const d = document.getElementById("askKey"); d && d.scrollIntoView({ block: "start", behavior: "smooth" }); } break;
+    case "ask-prov": readForm(); a.prov = el.dataset.v; a.keyOpen = true; render(); break;
+    case "ask-save": { readForm(); const f = readKeyForm(); if (!f.key) { toast(t("请填 API key")); break; } saveAiSettings(f); a.prov = null; toast(t("已保存")); render(); break; }
+    case "ask-test": { readForm(); const f = readKeyForm(); if (!f.key) { toast(t("请填 API key")); break; } saveAiSettings(f); a.prov = null; el.disabled = true;
+      try { await testAi(); toast(t("连接成功 ✓")); } catch (e) { toast(String(e.message || e).slice(0, 160)); } render(); break; }
+    case "ask-clear": { const s = aiSettings(); saveAiSettings({ provider: s.provider, key: "", model: "", base: "" }); a.prov = null; toast(t("已清除")); render(); break; }
+    default: return false;
+  }
+  return true;
+}
+// 「AI 设置」折叠块的开合记在状态里，重画后不丢
+document.addEventListener("toggle", e => { if (e.target && e.target.id === "askKey") st().keyOpen = e.target.open; }, true);
+
+export { viewAsk, askAct, TOPICS };

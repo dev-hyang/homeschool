@@ -17,6 +17,7 @@ import { closePrint, openPrint } from "./print.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openCatechismSets, openForm, openInfo, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { openBackfill, openScriptures, renderLibList } from "./library.js";
 import { render, toggleKids } from "./views.js";
+import { askAct } from "./ask.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -44,7 +45,7 @@ document.addEventListener("click", async ev => {
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
-  if (d.tab) { close(); S.printView = null; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }
+  if (d.tab) { close(); S.printView = null; if (d.from) (S.from ||= {})[d.tab] = d.from; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
   if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
   if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
@@ -68,6 +69,7 @@ document.addEventListener("click", async ev => {
 
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
+  if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 小Y问（js/ask.js）
   try {
     switch (d.act) {
       case "settings": openSettings(); break;
@@ -252,6 +254,8 @@ function routineFields(){
     { k: "start", label: "开始时间（可空）", type: "time" }, { k: "minutes", label: "大约几分钟", type: "num" }, { k: "active", label: "启用", type: "check" }
   ];
 }
+// 小Y问：回车 / 发送按钮提交表单
+document.addEventListener("submit", ev => { if (ev.target && ev.target.id === "askForm") { ev.preventDefault(); askAct("ask-send", ev.target); } });
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (!$("#kids").hidden) { toggleKids(false); $("#bname").focus(); }
