@@ -522,5 +522,7 @@ const EN = {
   "接口地址要以 https:// 开头，填到 /v1 为止": "The endpoint must start with https:// and end at /v1",
   "Google 的安全策略拦下了这次请求，换一张图再试。": "Google's safety policy blocked this request; try rephrasing.",
   "登录并进入家庭后，回答会结合孩子的学习情况": "After signing in and joining the family, answers use the child's learning context",
+  "备份记录": "Backup history",
+  "更早的 {n} 条": "{n} earlier",
 };
 export { EN };

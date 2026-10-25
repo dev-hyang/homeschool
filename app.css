@@ -438,3 +438,6 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 .bk-path{width:100%}.bk-path label{flex:none}.bk-path input{flex:1 1 160px;min-height:34px;min-width:0}
 .bk-card.off{opacity:.6}
 .bk-hint{display:block;color:var(--muted,#6b7280);font-size:12px;line-height:1.4;margin:2px 0 4px}
+
+.bk-more{margin-top:6px}.bk-more>summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0;list-style:none}
+.bk-more>summary::before{content:"▸ ";}.bk-more[open]>summary::before{content:"▾ ";}
