@@ -80,7 +80,7 @@ const selectFlow = id => saveJSON(FLOW_KEY, id);
 const flowOfLog = l => (l && l.steps && l.steps[0] && l.steps[0].flow) || "";
 const isNapLog = l => !!(l && l.steps && l.steps[0] && l.steps[0].kind === "nap");
 /** 选流程的小按钮：今天页、睡前页、流程页都用；点一下就选中（只记在这台设备） */
-const flowChips = c => c.flows.length < 2 ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(f.name)} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
+const flowChips = (c, always) => c.flows.length < 2 && !always ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(f.name)} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
 /* 带领词：当前版本，没有自家版本时直接用内置模板 */
 function currentText(c = cfg()){ const v = c.versions.find(x => x.id === c.version); return v || { id: null, name: TEXT_TEMPLATE.name + t("（内置模板）"), ...TEXT_TEMPLATE, builtin: true }; }
 /* 状况模板：内置的可以被同 id 的自家版本覆盖（恢复 = 删掉覆盖），再加自家新增的 */
@@ -325,9 +325,13 @@ const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small mu
 function bedtimeRowHTML(){
   const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLog(), today = dayKey(Date.now());
   const lastTxt = !last ? t("还没做过") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
-  return `<div class="row"><span class="k">${t("睡前")}</span>
-    <div class="v"><b>${esc(c.flowName)} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${esc(tc(c.reading))} · ${lastTxt}</div>${flowChips(c)}</div>
-    <span class="acts" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="chip" data-tab="bedtime" data-from="today">${t("流程")}</button><button class="chip" data-act="bt-start" ${n ? "" : "disabled"}>🌙 ${t("开始")}</button></span></div>`;
+  return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
+    <div class="v bt-card">
+      <div class="bt-card-head"><b class="bt-card-name">${c.flowKind === "nap" ? "☀" : "🌙"} ${esc(c.flowName)}</b><span class="bt-chip">${t("{n} 步 · 约 {m} 分钟", { n, m })}</span></div>
+      <div class="small muted bt-card-meta">${esc(tc(c.reading))} · ${lastTxt}</div>
+      ${flowChips(c)}
+      <div class="bt-card-acts"><button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
+    </div></div>`;
 }
 
 /* ---- 入口页 ---- */
@@ -366,26 +370,39 @@ function viewBedtime(){
   <p class="small muted" style="margin-top:12px">${t("安抚多过刑罚，不等于不管教：安抚是恢复安全感，管教是学习行为；两者可以同时存在，但不必用惩罚来制造平静。")}</p>`;
 }
 
-/* ---- 流程 ---- */
+/* ---- 流程 ----
+   三块：① 流程选择卡（选哪个流程、新建 / 另存为 / 改名 / 删除，说明折叠着）；② 步骤卡（顶上一条按分钟分段的时间条 + 合计，每步一个编号圆点、名称、几枚小标签，点一步去改，↑↓ 调顺序，底下「添加步骤」）；
+   ③ 折叠的「套用模板」和「三段式选歌」。 */
+const STEP_COLORS = ["var(--slate)", "var(--sky)", "var(--sage)", "var(--honey)", "var(--rose)"];
 function viewFlow(){
-  const c = cfg(), m = totalMin(c);
-  const row = (s, i) => { const sg = s.song ? songFor(s) : null;
-    return `<div class="task ${s.skip ? "skip" : ""}"><span class="bar" style="background:${s.skip ? "var(--line)" : "var(--slate)"}"></span>
-      <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="title">${i + 1}. ${esc(s.name)}</span><span class="meta">${t("{n} 分钟", { n: s.minutes })}${s.text ? ` · ${t(TEXT_LABEL[s.text])}` : ""} · ${s.song ? (sg ? "♪ " + esc(sg.title) : esc(songLabel(s.song)) + (s.song.startsWith("tag:") ? `（${t("这类还没有歌")}）` : "")) : t("不放歌")}${s.loop ? ` · ${t("循环到时间结束")}` : ""}${s.skip ? ` · ${t("已跳过")}` : ""}</span></button>
-      <span class="acts"><button class="iconbtn" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="-1" aria-label="${t("上移")}" ${i === 0 ? "disabled" : ""}>↑</button><button class="iconbtn" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="1" aria-label="${t("下移")}" ${i === c.steps.length - 1 ? "disabled" : ""}>↓</button></span></div>`; };
+  const c = cfg(), m = totalMin(c), over = m > c.cap, active = c.steps.filter(s => !s.skip);
+  const songBit = s => { if (!s.song) return `<span class="bt-pill dim">${t("不放歌")}</span>`; const sg = songFor(s);
+    if (sg) return `<span class="bt-pill song">♪ ${esc(sg.title)}</span>`;
+    if (s.song.startsWith("tag:")) return `<span class="bt-pill song none">♪ ${esc(t(SONG_TAGS[s.song.slice(4)] || ""))} <small>${t("歌单里还没有")}</small></span>`;
+    return `<span class="bt-pill none">${t("（这首歌已删除）")}</span>`; };
+  const row = (s, i) => `<div class="bt-step ${s.skip ? "skip" : ""}"><span class="bt-badge">${i + 1}</span>
+    <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="bt-st-name">${esc(s.name)}${s.skip ? ` <small>${t("已跳过")}</small>` : ""}</span>
+      <span class="bt-pills"><span class="bt-pill">⏱ ${t("{n} 分", { n: s.minutes })}</span>${s.text ? `<span class="bt-pill">📝 ${t(TEXT_LABEL[s.text])}</span>` : ""}${songBit(s)}${s.loop ? `<span class="bt-pill">↻ ${t("循环")}</span>` : ""}</span></button>
+    <span class="bt-mv"><button class="iconbtn sm" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="-1" aria-label="${t("上移")}" ${i === 0 ? "disabled" : ""}>↑</button><button class="iconbtn sm" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="1" aria-label="${t("下移")}" ${i === c.steps.length - 1 ? "disabled" : ""}>↓</button></span></div>`;
+  const bar = active.length ? `<div class="bt-bar" role="img" aria-label="${t("各步骤的时间占比")}">${active.map((s, i) => `<span style="flex:${Math.max(1, +s.minutes || 1)};background:${STEP_COLORS[i % 5]}" title="${esc(s.name)} · ${t("{n} 分", { n: s.minutes })}"></span>`).join("")}</div>` : "";
   return `${h2(t("流程"), esc(c.flowName))}
   ${offlineHTML()}
-  ${flowChips(c)}
-  <div class="btns" style="margin-top:0"><button class="btn sm" data-act="bt-flow-new">＋ ${t("新建流程")}</button><button class="btn sm" data-act="bt-flow-copy">${t("另存为新流程")}</button><button class="btn sm" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="btn sm danger" data-act="bt-flow-del">${t("删除这个流程")}</button>` : ""}</div>
-  <p class="small muted" style="margin:8px 0 0">${t("按场景建不同的流程：晚觉 20 分钟、午睡 8 分钟……开始前选一个。下面是「{name}」这个流程的步骤。", { name: esc(c.flowName) })}</p>
-  <div class="alert info" style="margin:8px 0">${t("你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为新流程」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。")}</div>
-  <div class="btns"><button class="btn primary sm" data-act="bt-step-add">＋ ${t("添加步骤")}</button>${Object.entries(FLOW_TEMPLATES).map(([k, tp]) => `<button class="btn sm" data-act="bt-flow-tpl" data-tpl="${k}">${t("套用：")}${esc(tc(tp.name))}</button>`).join("")}</div>
-  <p class="small muted" style="margin-top:8px">${t("点一步修改名字、分钟、放哪首歌、显示哪段文字；↑↓ 调顺序。年幼的孩子可以把某步设为跳过，不用删。")}</p>
-  <div class="panel">
-    <div class="tasks">${c.steps.map(row).join("")}</div>
-    <p class="small ${m > c.cap ? "" : "muted"}" style="margin:10px 0 0;${m > c.cap ? "color:var(--rose)" : ""}">${t("合计约 {m} 分钟", { m })}${m > c.cap ? ` · ${t("超过了 {cap} 分钟的上限，睡前流程宜短不宜长", { cap: c.cap })}` : ` · ${t("上限 {cap} 分钟", { cap: c.cap })}`}</p>
+  <div class="panel bt-flowcard">
+    <div class="bt-fc-label">${t("选择流程")}</div>
+    ${flowChips(c, true)}
+    <div class="bt-tools"><button class="chip" data-act="bt-flow-new">＋ ${t("新建")}</button><button class="chip" data-act="bt-flow-copy">${t("另存为")}</button><button class="chip" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="chip danger" data-act="bt-flow-del">${t("删除")}</button>` : ""}</div>
+    <details class="bt-tip"><summary>${t("改动怎么保存？")}</summary><p class="small">${t("你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。")}</p></details>
   </div>
-  <div class="panel" style="margin-top:10px"><b>${t("三段式选歌")}</b><p class="small" style="margin:4px 0 0">${t("一首有歌词的敬拜歌（被爱与安慰，2–3 分钟）＋ 一首经文歌（神的话语，2–4 分钟）＋ 纯音乐（放下与休息，5–15 分钟）。歌词比旋律重要：避免让孩子把「神爱我」听成「只有乖才爱我」。音量低、屏幕关、固定比丰富重要。")}</p></div>`;
+  <div class="panel bt-stepcard">
+    <div class="bt-sc-head"><b>${t("「{name}」的步骤", { name: esc(c.flowName) })}</b><span class="bt-total ${over ? "over" : ""}">${t("合计约 {m} 分钟", { m })}</span></div>
+    ${bar}
+    <p class="small ${over ? "" : "muted"} bt-cap-line" style="${over ? "color:var(--rose)" : ""}">${over ? t("超过了 {cap} 分钟的上限，睡前流程宜短不宜长", { cap: c.cap }) : t("上限 {cap} 分钟 · 点一步修改，↑↓ 调顺序；年幼的孩子可以把某步设为跳过", { cap: c.cap })}</p>
+    <div class="bt-steps2">${c.steps.map(row).join("") || `<div class="empty">${t("这个流程还没有步骤")}</div>`}</div>
+    <button class="bt-add" data-act="bt-step-add">＋ ${t("添加步骤")}</button>
+  </div>
+  <details class="panel bt-tpl"><summary><b>${t("套用模板")}</b> <span class="small muted">${t("会覆盖当前流程的步骤")}</span></summary>
+    ${Object.entries(FLOW_TEMPLATES).map(([k, tp]) => `<button class="bt-tpl-row" data-act="bt-flow-tpl" data-tpl="${k}"><b>${esc(tc(tp.name))}</b><span class="small muted">${esc(tc(tp.desc))}</span></button>`).join("")}</details>
+  <details class="panel bt-tpl"><summary><b>${t("三段式选歌")}</b></summary><p class="small" style="margin:6px 0 0">${t("一首有歌词的敬拜歌（被爱与安慰，2–3 分钟）＋ 一首经文歌（神的话语，2–4 分钟）＋ 纯音乐（放下与休息，5–15 分钟）。歌词比旋律重要：避免让孩子把「神爱我」听成「只有乖才爱我」。音量低、屏幕关、固定比丰富重要。")}</p></details>`;
 }
 const stepFields = () => [
   { k: "name", label: "这一步叫什么", type: "text", ph: "拥抱与敬拜" }, { k: "minutes", label: "建议几分钟", type: "num", ph: "4" },
