@@ -39,11 +39,21 @@ function t(key, vars){
   if (vars) for (const [k, v] of Object.entries(vars)) s = s.split(`{${k}}`).join(String(v));
   return s;
 }
-/* tc：应用自带的内容（法规、介绍、课程库名称……）。繁体转换，英文界面下保持中文 */
-const tc = text => cur === "zh-TW" ? s2t(text) : String(text ?? "");
+/* ---- 应用自带内容的翻译 ----
+   data/content-en.js 把「中文原文 → 英文」登记到 CONTENT（周例行模板、读经计划、大原则、睡前安然、冲突 / 情绪管理……）。
+   tc：应用自带内容的显示（繁体转换；英文查 CONTENT、再查界面字典；圣经出处在英文界面换成英文书卷名）。
+   tb：存进数据库的「模板内容」（周例行标题、流程和步骤名、带领词……）显示时翻译；用户自己输入或改过的不在表里，原样显示。
+   没有英文的内容照原样显示中文，不会报错。 */
+const CONTENT = new Map();
+let refFmt = null;
+const addContent = (zh, en) => { if (typeof zh === "string" && zh && typeof en === "string" && en && !CONTENT.has(zh)) CONTENT.set(zh, en); };
+const setRefFormatter = f => { refFmt = f; };
+const enOf = s => { const hit = CONTENT.get(s); if (hit != null) return hit; const ui = EN[s]; if (ui != null) return ui; return refFmt ? refFmt(s) : null; };
+const tc = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } return cur === "zh-TW" ? s2t(s) : s; };
+const tb = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } if (cur === "zh-TW") return CONTENT.has(s) || EN[s] != null ? s2t(s) : s; return s; };
 function locale(){ return cur; }
 function setLocale(l){ if (!LOCALES.some(x => x[0] === l)) return; cur = l; try { localStorage.setItem(KEY, l); } catch (e) {} applyLang(); }
 function applyLang(){ document.documentElement.lang = cur; document.title = t("家庭学堂") + " · " + t("在家教育"); }
 applyLang();
 
-export { LOCALES, t, tc, locale, setLocale, s2t };
+export { LOCALES, t, tc, tb, addContent, setRefFormatter, locale, setLocale, s2t };

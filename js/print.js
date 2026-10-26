@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { S, ageText, childName, stageOf } from "./core/state.js";
 import { D, dayKey, esc } from "./core/util.js";
 import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
@@ -36,7 +36,7 @@ function dayPage(){
   ${header(`${day} · ${esc(weekdayLabel(new Date().getDay()))}`, `${esc(childName())} · ${esc(ageText())} · ${esc(stageOf().name)}${off ? ` · ${t("休息日")}` : ""}`)}
   <h3>${t("今日敬拜")}</h3>
   <table class="pkv">
-    <tr><th>${t("读经")}</th><td>${esc(dv.passage || passageAt(0) || t("还没选读经计划"))}</td></tr>
+    <tr><th>${t("读经")}</th><td>${esc(tc(dv.passage || passageAt(0)) || t("还没选读经计划"))}</td></tr>
     <tr><th>${t("经文")}</th><td>${wv ? verse(wv) : `<span class="pmuted">${t("本周还没选经文")}</span>`}</td></tr>
     <tr><th>${t("诗歌")}</th><td>${esc(S.hs.settings.hymn || "")}</td></tr>
     <tr><th>${t("祷告")}</th><td>${lines(2)}</td></tr>
@@ -46,7 +46,7 @@ function dayPage(){
   ${plan.rows.length ? plan.rows.map(({ s, p, kind }) => `<div class="prow">${box()}<div>${verse(s)}<div class="pmuted">${kind === "learn" ? t("在学") : t("复习 · 第 {n} 次", { n: (p.reviews || 0) + 1 })}</div></div></div>`).join("")
     : `<p class="pmuted">${t("今天没有到期的复习。")}</p>`}
   <h3>${t("今日任务")}</h3>
-  ${tasks.length ? tasks.map(x => `<div class="prow">${box()}<div><b>${esc(x.title)}</b> <span class="pmuted">${esc(subject(x.subject).short)}${x.minutes ? ` · ${t("{n} 分钟", { n: x.minutes })}` : ""}${x.child_id == null ? ` · ${t("全家")}` : ""}</span></div></div>`).join("") : `<p class="pmuted">${off ? t("休息日不生成任务。") : t("今天没有任务。")}</p>`}
+  ${tasks.length ? tasks.map(x => `<div class="prow">${box()}<div><b>${esc(tb(x.title))}</b> <span class="pmuted">${esc(subject(x.subject).short)}${x.minutes ? ` · ${t("{n} 分钟", { n: x.minutes })}` : ""}${x.child_id == null ? ` · ${t("全家")}` : ""}</span></div></div>`).join("") : `<p class="pmuted">${off ? t("休息日不生成任务。") : t("今天没有任务。")}</p>`}
   <div class="prow">${box()}<div class="pline" style="flex:1"></div></div>
   <div class="prow">${box()}<div class="pline" style="flex:1"></div></div>
   <h3>${t("备注")}</h3>${lines(3)}
@@ -65,10 +65,10 @@ function weekPage(){
   <table class="pgrid">
     <thead><tr><th class="first"></th>${days.map(d => `<th class="${d.date === todayKey ? "today" : ""}">${esc(weekdayLabel(d.wd))}<br><span class="pmuted">${d.date.slice(5)}</span>${d.off ? `<br><span class="pmuted">${esc(d.brk || t("休息日"))}</span>` : ""}</th>`).join("")}</tr></thead>
     <tbody>
-      <tr><th class="first">${t("读经")}</th>${days.map(d => `<td class="small">${d.off ? "" : d.offset < 0 ? "" : esc(passageAt(d.offset))}</td>`).join("")}</tr>
+      <tr><th class="first">${t("读经")}</th>${days.map(d => `<td class="small">${d.off ? "" : d.offset < 0 ? "" : esc(tc(passageAt(d.offset)))}</td>`).join("")}</tr>
       <tr><th class="first">${t("敬拜")}</th>${days.map(d => d.off ? `<td class="off"></td>` : `<td class="c">${box()}</td>`).join("")}</tr>
       <tr><th class="first">${t("经文复习")}</th>${days.map(d => { const n = dueOn(cid, d.date); return d.off ? `<td class="off"></td>` : `<td class="c">${n ? `${box()} <span class="pmuted">${n}</span>` : ""}</td>`; }).join("")}</tr>
-      ${mine.map(r => `<tr><th class="first"><span class="pdot" style="background:${subject(r.subject).color}"></span>${esc(r.title)}<br><span class="pmuted">${esc(r.start || "")}${r.start ? " · " : ""}${t("{n} 分钟", { n: r.minutes })}${r.child_id == null ? ` · ${t("全家")}` : ""}</span></th>${days.map(d => cell(r, d)).join("")}</tr>`).join("")}
+      ${mine.map(r => `<tr><th class="first"><span class="pdot" style="background:${subject(r.subject).color}"></span>${esc(tb(r.title))}<br><span class="pmuted">${esc(r.start || "")}${r.start ? " · " : ""}${t("{n} 分钟", { n: r.minutes })}${r.child_id == null ? ` · ${t("全家")}` : ""}</span></th>${days.map(d => cell(r, d)).join("")}</tr>`).join("")}
       <tr><th class="first">${t("临时")}</th>${days.map(() => `<td class="c"></td>`).join("")}</tr>
       <tr><th class="first">${t("临时")}</th>${days.map(() => `<td class="c"></td>`).join("")}</tr>
     </tbody>
@@ -89,7 +89,7 @@ function monthPage(ym){
   const rows = []; for (let i = 0; i < cells.length; i += 7) rows.push(`<tr>${cells.slice(i, i + 7).join("")}</tr>`);
   const breaks = ((S.hs.settings.year || {}).breaks || []).filter(b => b.from && b.to && b.from <= `${ym}-31` && b.to >= `${ym}-01`);
   const mine = S.hs.routines.filter(r => r.active && (r.child_id == null || r.child_id === cid));
-  const byDay = d => mine.filter(r => (r.weekdays || []).includes(d)).sort((a, b) => (a.start || "99").localeCompare(b.start || "99")).map(r => esc(r.title)).join("、");
+  const byDay = d => mine.filter(r => (r.weekdays || []).includes(d)).sort((a, b) => (a.start || "99").localeCompare(b.start || "99")).map(r => esc(tb(r.title))).join("、");
   return `<section class="ppage pmonth">
   ${header(t("{y} 年 {m} 月", { y, m }), `${esc(childName())}${S.hs.settings.hymn ? ` · ${t("本月诗歌")}：${esc(S.hs.settings.hymn)}` : ""}`)}
   <table class="pcal"><thead><tr>${WEEKDAYS.map(w => `<th>${t("周" + w)}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>

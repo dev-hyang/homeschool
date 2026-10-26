@@ -3,6 +3,7 @@
    跨模块调用都在函数体内，循环引用是安全的。 */
 import { t } from "./core/i18n.js";
 import { initSwipeRows } from "./swipe-rows.js";
+import "./data/content-en.js";   // 应用自带内容的英文登记（英文界面下 tc / tb 用）
 import "./events.js";
 import { initSupabase } from "./core/auth.js";
 import { initProviders } from "./backup.js";
@@ -14,7 +15,7 @@ import { render } from "./views.js";
 /* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起（内部 import 没有版本号）。
    index.html 里的 meta 版本与 config.js 不一致时，强制重新抓取所有模块并刷新一次。 */
 const MODULES = ["app", "ai", "ask", "backup", "cloud-drives", "events", "views", "minibar", "swipe-rows", "sheet", "today", "course", "resources", "routines", "reports", "law", "about", "print", "me", "hs", "library", "charts",
-  "bedtime", "bedtime-play", "flows", "flows-trend", "recfilter", "principle", "songs-ui", "data/principle", "data/emotions", "data/music", "data/bedtime", "data/flows", "core/config", "core/util", "core/state", "core/auth", "core/i18n", "data/feeds", "data/subjects", "data/plans", "data/seeds", "data/law", "data/versions", "data/about", "data/curriculum", "data/bible", "data/verse-sets", "data/ideas"].map(m => `js/${m}.js`);
+  "bedtime", "bedtime-play", "flows", "flows-trend", "recfilter", "principle", "songs-ui", "data/principle", "data/emotions", "data/music", "data/content-en", "data/en-flows", "data/en-content", "data/plans", "data/seeds", "data/bedtime", "data/flows", "core/config", "core/util", "core/state", "core/auth", "core/i18n", "data/feeds", "data/subjects", "data/plans", "data/seeds", "data/law", "data/versions", "data/about", "data/curriculum", "data/bible", "data/verse-sets", "data/ideas"].map(m => `js/${m}.js`);
 async function healStaleModules(){
   const want = (document.querySelector('meta[name="app-version"]') || {}).content;
   if (!want || want === APP_VERSION) return false;

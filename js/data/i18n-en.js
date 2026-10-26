@@ -643,5 +643,8 @@ const EN = {
   // ---- 午睡用语 ----
   "完成": "Done", "午安": "Good afternoon", "孩子这次的状态": "Child this time", "大人这次的状态": "Parent this time", "记下这次 ✓": "Log this ✓", "记下了。午安。": "Logged. Good afternoon.", "今天已完成 · {n} 分钟": "Done today · {n} min", "专用带领词": "own leading words", "这个流程的带领词": "This routine’s leading words",
   "去掉这个流程专用的带领词？午睡会回到内置的午睡版，其他流程回到当前选的带领词版本。": "Remove this routine’s own leading words? Naps return to the built-in nap version; other routines return to the selected leading-words version.", "不肯睡": "Won’t sleep",
+
+  // ---- 年龄段、品牌名 ----
+  "2 岁前": "Under 2", "2–3 岁": "Ages 2–3", "3–5 岁": "Ages 3–5", "5–8 岁": "Ages 5–8", "9–12 岁": "Ages 9–12", "13 岁起": "13 and up", "开场带领词（拥抱与敬拜）": "Opening words (hug & worship)", "读经引导": "Reading guide", "祷告词": "Prayer", "结束的话（音乐与安睡）": "Closing words (music & sleep)", "豆包": "Doubao", "通义千问": "Qwen (Tongyi)",
 };
 export { EN };

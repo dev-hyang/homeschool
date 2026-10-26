@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { S } from "./core/state.js";
 import { $, dayKey, esc, toast } from "./core/util.js";
 import { ANCHOR_REF } from "./data/bedtime.js";
@@ -140,7 +140,7 @@ function draw(){
   host.classList.toggle("over", !!(planned && el >= planned));
   host.innerHTML = `
   <div class="btp-top"><span>${t("第 {i} 步 / {n}", { i: P.i + 1, n: P.steps.length })} · <span class="btp-total">${t("已用 {m}", { m: fmt(Math.floor((now() - P.startedAt) / 1000)) })}</span></span><button class="btp-x" data-act="btp-exit">${t("结束")}</button></div>
-  <h1 class="btp-name">${esc(st.name)}</h1>
+  <h1 class="btp-name">${esc(tb(st.name))}</h1>
   <div class="btp-bar"><span style="width:${planned ? Math.min(100, el / planned * 100) : 0}%"></span></div>
   <div class="btp-time">${timeHTML(st, el, planned)}</div>
   ${st.song ? `<div class="btp-song">${P.loading ? `<span class="muted">${t("正在加载音乐…")}</span>` : s ? `<span>♪ ${esc(s.title)}${s.artist ? ` <span class="muted">· ${esc(s.artist)}</span>` : ""}</span>
@@ -166,7 +166,7 @@ function casesHTML(){
 }
 function finishHTML(){
   const total = Math.round((P.endedAt - P.startedAt) / 60000), planned = P.steps.reduce((a, s) => a + (+s.minutes || 0), 0);
-  const rows = P.steps.map((s, i) => `<tr><td>${esc(s.name)}</td><td class="num">${s.minutes}</td><td class="num">${P.actual[i] == null ? "–" : Math.round(P.actual[i])}</td></tr>`).join("");
+  const rows = P.steps.map((s, i) => `<tr><td>${esc(tb(s.name))}</td><td class="num">${s.minutes}</td><td class="num">${P.actual[i] == null ? "–" : Math.round(P.actual[i])}</td></tr>`).join("");
   const leds = [...new Set([...P.api.members, "爸爸", "妈妈"])];
   return `
   <div class="btp-top"><span>${nap() ? t("完成") : t("今晚完成")}</span><button class="btp-x" data-act="btp-close">${t("不记录，关闭")}</button></div>

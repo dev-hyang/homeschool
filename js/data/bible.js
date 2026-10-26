@@ -128,9 +128,16 @@ async function fetchPassage(ref, version, proxy){
   return { text, version };
 }
 
+/* 英文界面里的出处：把「书名 章:节」里的中文书名换成英文书名，章节原样（也认 6–9、12; 15 这类写法）；不是出处返回 null */
+function refEn(ref){
+  const s = String(ref || "").trim().replace(/[：]/g, ":").replace(/[；]/g, ";");
+  const m = s.match(/^(\D+?)\s*(\d[\d:;,\-–— ]*)$/); if (!m) return null;
+  const n = BOOK_INDEX.get(norm(m[1])); if (!n) return null;
+  return `${book(n)[3]} ${m[2].trim()}`;
+}
 // 卡片标题：中英文出处并列，如 “诗篇 56:3 - Psalms 56:3”
 const biRef = p => `${p.label} - ${p.labelEn}`;
 // 去重用的键：老卡只有中文出处，新卡是中英并列，都归一到中文标签（去空格）；解析不了的按原文比较
 function refKey(ref){ const first = String(ref || "").split(/\s+[-–—]\s+/)[0]; const p = parseRef(first); return (p ? p.label : String(ref || "")).replace(/\s+/g, ""); }
 
-export { BOOKS, SOURCES, FROM as SOURCE_FROM, parseRef, passageId, fetchPassage, canFetch, needsProxy, biRef, refKey, ZH as ZH_SOURCES, EN as EN_SOURCES, PROXY as PROXY_SOURCES };
+export { refEn, BOOKS, SOURCES, FROM as SOURCE_FROM, parseRef, passageId, fetchPassage, canFetch, needsProxy, biRef, refKey, ZH as ZH_SOURCES, EN as EN_SOURCES, PROXY as PROXY_SOURCES };

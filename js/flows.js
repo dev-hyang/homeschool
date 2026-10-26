@@ -1,6 +1,6 @@
 import { aiReady, askText } from "./ai.js";
 import { askAbout } from "./ask.js";
-import { t, tc } from "./core/i18n.js";
+import { t, tc, locale } from "./core/i18n.js";
 import { S, ageText, childName } from "./core/state.js";
 import { D, dayKey, esc, newId, toast } from "./core/util.js";
 import { parseRef } from "./data/bible.js";
@@ -56,7 +56,7 @@ function viewFlows(){
 /* 引用经文：中英文全文都抓（按设置里的抓取译本），存在本机；抓失败的记住原因、10 分钟内不重试，行内有「再试」 */
 function verseBlock(ref){
   if (!ref || !parseRef(ref)) return ref ? `<p class="small muted" style="margin:4px 0 0">${t("经文")}：${esc(tc(ref))}</p>` : "";
-  const rows = ["zh", "en"].map(l => {
+  const rows = (locale() === "en" ? ["en"] : ["zh", "en"]).map(l => {
     const v = verseText(ref, l); if (v) return `<p class="cf-verse">${esc(v.text)} <span class="small muted">（${esc(v.version)}）</span></p>`;
     const err = verseError(ref, l); if (err) return `<p class="small" style="color:var(--rose);margin:2px 0">${l === "en" ? "EN" : "中"}：${t("没抓到")}（${esc(err)}） <button class="chip" data-act="cf-verse-retry" data-ref="${esc(ref)}">${t("再试")}</button></p>`;
     ensureVerse(ref, l).then(r => { if (r) scheduleRender(); });
@@ -89,9 +89,9 @@ function topicCard(s, band){
       : (bl.cur || bl.prev ? `<b>${t("小月亮里")}</b>：${s.bl.good ? t("近 30 天记了 {n} 次分享合作", { n: bl.cur }) : t("近 30 天 {n} 次", { n: bl.cur })} ${trendText(bl.cur, bl.prev)}${bl.avgMin != null ? ` · ${t("平均 {n} 分钟", { n: bl.avgMin })}` : ""}${bl.how.length ? `<br>${t("家里记过的处理办法")}：${esc(bl.how.join("；"))}` : ""}` : `<span class="muted">${t("小月亮里近 60 天没有相关记录")}</span>`))
     : `<span class="muted">${B.loading ? t("正在同步小月亮…") : B.err ? t("读不到小月亮的记录") : ""}</span>`;
   return `<div class="panel bt-sit"><div class="bt-card-row"><div><b>${esc(tc(s.when))}</b>${s.only && !g ? ` <span class="pill lv">${s.only === "f" ? t("女孩") : t("男孩")}</span>` : ""}${s.custom ? ` <span class="pill lv">${t("自家")}</span>` : ""}<div class="small muted">${esc(tc(s.short || ""))}</div></div><button class="btn primary sm" data-act="cf-ev-add" data-kind="${em ? "em" : "cf"}" data-sit="${esc(s.id)}">${t("记一笔")}</button></div>
-    ${x.why ? `<p class="cf-why"><b>${esc(childName())} · ${esc(ageText())}（${esc(BAND_NAME[band])}）</b><br>${esc(tc(x.why))}</p>` : ""}
+    ${x.why ? `<p class="cf-why"><b>${esc(childName())} · ${esc(ageText())}（${esc(t(BAND_NAME[band]))}）</b><br>${esc(tc(x.why))}</p>` : ""}
     ${gtext ? `<p class="small" style="margin:4px 0"><b>${genderName(g)}</b>：${esc(tc(gtext))}</p>` : ""}
-    ${others.length ? `<details class="cf-others"><summary class="small muted">${t("其他年龄段怎么看")}</summary>${others.map(k => `<p class="small"><b>${esc(BAND_NAME[k])}</b>　${esc(tc(s.why[k]))}</p>`).join("")}</details>` : ""}
+    ${others.length ? `<details class="cf-others"><summary class="small muted">${t("其他年龄段怎么看")}</summary>${others.map(k => `<p class="small"><b>${esc(t(BAND_NAME[k]))}</b>　${esc(tc(s.why[k]))}</p>`).join("")}</details>` : ""}
     ${s.table ? tableHTML(s.table) : ""}
     <div class="lab small" style="margin-top:8px">${em ? t("平时怎么陪伴") : t("怎么做")}</div>
     <ol class="bt-steps">${x.steps.map(y => `<li>${esc(tc(y))}</li>`).join("")}</ol>
@@ -122,10 +122,10 @@ function viewConflict(){
   const band = bandKey(), c = cfg(), rows = mineRows(), list = allConflicts(c);
   const counts = BLK.map(k => { const now = Date.now(), c30 = now - 30 * D, mine = rows.filter(e => e.type === "behavior" && e.kind === k); return { k, cur: mine.filter(e => e.ts >= c30).length, prev: mine.filter(e => e.ts < c30).length }; });
   const top = list.map(s => ({ s, st: blStats(s) })).filter(x => !(x.s.bl && x.s.bl.good) && x.st.cur > 0).sort((a, b) => b.st.cur - a.st.cur)[0];
-  return `${h2(t("冲突管理"), `${esc(childName())} · ${esc(ageText())}（${esc(BAND_NAME[band])}）`)}
+  return `${h2(t("冲突管理"), `${esc(childName())} · ${esc(ageText())}（${esc(t(BAND_NAME[band]))}）`)}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : sidesHint()}
   <div class="panel bt-principle"><p style="margin-top:0"><b>${esc(tc(PRINCIPLES.core))}</b></p>
-    ${PRINCIPLES.verses.map(v => `<p class="small"><b>${esc(tc(v.ref))}</b> ${esc(tc(v.zh))}<br><span class="muted">${esc(v.en)}</span></p>`).join("")}
+    ${PRINCIPLES.verses.map(v => `<p class="small"><b>${esc(tc(v.ref))}</b> ${esc(tc(v.zh))}${locale() === "en" ? "" : `<br><span class="muted">${esc(v.en)}</span>`}</p>`).join("")}
     <p class="small muted" style="margin-bottom:0">${t("冲突管理讲的是「事情发生了，当场怎么办」；持续的情绪和习惯（嫉妒、焦虑、屏幕……）在「情绪管理」。以下依据儿童发展的一般共识（AAP、CDC 等的公开育儿建议），只作参考，不是诊断。每个孩子不一样；持续而严重时，请找儿科医生或儿童心理专业人员。")}</p></div>
   ${angerHTML()}
   ${genderChips()}
@@ -159,7 +159,7 @@ function viewConflict(){
 /* ============ 情绪管理 ============ */
 function viewEmotion(){
   const band = bandKey();
-  return `${h2(t("情绪管理"), `${esc(childName())} · ${esc(ageText())}（${esc(BAND_NAME[band])}）`)}
+  return `${h2(t("情绪管理"), `${esc(childName())} · ${esc(ageText())}（${esc(t(BAND_NAME[band]))}）`)}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : sidesHint()}
   <p class="small muted">${t("情绪管理讲的是「持续的情绪、态度和习惯，平时怎么陪伴」；一件事当场发生了怎么办，在「冲突管理」。情绪不是要消灭，是要被看见、被陪伴，再带到神面前。以下依据儿童发展的一般共识，只作参考，不是诊断。")}</p>
   ${angerHTML()}
@@ -174,7 +174,7 @@ function viewEmotion(){
 }
 
 const evFields = kind => [
-  { k: "situation", label: "什么情况", type: "seg", raw: true, opts: (kind === "em" ? EMOTIONS : allConflicts()).map(s => [s.id, s.when]) },
+  { k: "situation", label: "什么情况", type: "seg", raw: true, opts: (kind === "em" ? EMOTIONS : allConflicts()).map(s => [s.id, tc(s.when)]) },
   { k: "date", label: "哪一天（过去的也能补）", type: "date" },
   { k: "children", label: "谁", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "title", label: "起因（可空）", type: "text", ph: "玩具被抢、饿了、换环境…" },

@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { S, childName } from "./core/state.js";
 import { dayKey, esc } from "./core/util.js";
 import { ROUTINE_TEMPLATES } from "./data/seeds.js";
@@ -47,7 +47,7 @@ function monthHTML(){
     ${md ? "" : `<p class="small muted">${t("正在读取…")}</p>`}
     <div class="legend"><span style="--c:var(--sage)">${t("敬拜")}</span><span style="--c:var(--honey)">${t("睡前安然")}</span><span style="--c:var(--line)">${t("休息日")}</span></div>
     ${S.calDay ? `<div style="margin-top:10px;border-top:1px solid var(--line);padding-top:10px"><b>${S.calDay}</b> <span class="small muted">${off.has(S.calDay) ? t("休息日") : ""}</span>
-      ${sel.length ? sel.map(x => `<div class="small cal-task" style="margin-top:4px"><span class="dotc" style="background:${subject(x.subject).color}"></span>${esc(x.title)} <span class="muted">· ${status(x)}</span>${canFix ? (x.status === "todo"
+      ${sel.length ? sel.map(x => `<div class="small cal-task" style="margin-top:4px"><span class="dotc" style="background:${subject(x.subject).color}"></span>${esc(tb(x.title))} <span class="muted">· ${status(x)}</span>${canFix ? (x.status === "todo"
         ? `<span class="cal-acts"><button class="chip" data-act="task-done" data-tid="${esc(x.id)}">${t("补记完成")}</button><button class="chip" data-act="task-skip" data-tid="${esc(x.id)}">${t("跳过")}</button></span>`
         : `<span class="cal-acts"><button class="chip" data-act="task-undo" data-tid="${esc(x.id)}">${t("撤销")}</button></span>`) : ""}</div>`).join("") : `<p class="small muted" style="margin-top:4px">${t("这一天没有任务。")}</p>`}
       ${verseDone.length ? `<div class="small" style="margin-top:8px"><b>${t("背诵")}</b> ${verseDone.map(v => `${esc(v.s.ref)} ${v.p.last_result === "ok" ? "✓" : "↻"}`).join("、")}</div>` : ""}
@@ -63,7 +63,7 @@ function routinesHTML(){
   const order = [1, 2, 3, 4, 5, 6, 0];
   const row = r => `<button class="routine ${r.active ? "" : "off"}" data-act="routine-edit" data-rid="${esc(r.id)}">
     <span class="t num">${esc(r.start || "—")}</span><span class="bar" style="background:${subject(r.subject).color}"></span>
-    <span><span class="title">${esc(r.title)}</span><span class="meta">${esc(subject(r.subject).short)} · ${t("{n} 分钟", { n: r.minutes })}${r.child_id == null ? ` · ${t("全家")}` : ""}${r.active ? "" : ` · ${t("已停用")}`}</span></span></button>`;
+    <span><span class="title">${esc(tb(r.title))}</span><span class="meta">${esc(subject(r.subject).short)} · ${t("{n} 分钟", { n: r.minutes })}${r.child_id == null ? ` · ${t("全家")}` : ""}${r.active ? "" : ` · ${t("已停用")}`}</span></span></button>`;
   // 一次看一天：默认今天，‹ › 翻到前后一天，七个星期片直接跳（带条数），“整周”才把七天都铺开
   const today = new Date().getDay(), sel = S.routineDay == null ? today : S.routineDay, week = sel === "week";
   const idx = order.indexOf(week ? today : sel), prev = order[(idx + 6) % 7], next = order[(idx + 1) % 7];

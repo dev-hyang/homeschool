@@ -25,4 +25,4 @@ const REC = {
 const DEFAULT_REC = { tags: ["rest"], why: "先用舒缓的音乐帮助身体和情绪平静下来，再谈事情。", ideas: ["钢琴 / 竖琴纯音乐敬拜"] };
 const recOf = id => REC[id] || DEFAULT_REC;
 
-export { recOf };
+export { recOf, REC };

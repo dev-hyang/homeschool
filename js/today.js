@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { aiIcon } from "./ask.js";
 import { S, ageText, childName, stageOf } from "./core/state.js";
 import { dayKey, esc } from "./core/util.js";
@@ -29,7 +29,7 @@ function devotionHTML(){
   const joined = new Set(d.children || []);
   return `<h2>${t("今日敬拜")}</h2>
   <div class="panel devo ${d.done ? "done" : ""}">
-    <div class="row"><span class="k">${t("读经")}</span><div class="v"><b>${d.passage ? esc(d.passage) : tp ? tc(esc(tp.ref)) : t("还没选读经计划")}</b>${tp ? `<div class="small muted">${tc(esc(tp.note))}${tp.note ? " · " : ""}${tc(esc(tp.plan.name))} ${tp.index + 1}/${tp.total}</div>` : ""}</div><button class="chip" data-act="devo-passage">${t("改")}</button></div>
+    <div class="row"><span class="k">${t("读经")}</span><div class="v"><b>${d.passage ? esc(tc(d.passage)) : tp ? tc(esc(tp.ref)) : t("还没选读经计划")}</b>${tp ? `<div class="small muted">${tc(esc(tp.note))}${tp.note ? " · " : ""}${tc(esc(tp.plan.name))} ${tp.index + 1}/${tp.total}</div>` : ""}</div><button class="chip" data-act="devo-passage">${t("改")}</button></div>
     <div class="row"><span class="k">${t("经文")}</span><div class="v">${wv ? `<b>${esc(wv.ref)}</b><div class="small">${esc(wv.text_zh)}<span class="muted">${esc(vz(wv))}</span></div><div class="small muted">${esc(wv.text_en)}${esc(ve(wv))}</div>` : `<span class="muted">${t("本周还没选经文")}</span>`}</div><button class="chip" data-act="devo-verse">${t("选")}</button></div>
     <div class="row"><span class="k">${t("诗歌")}</span><div class="v">${S.hs.settings.hymn ? `<b>${esc(S.hs.settings.hymn)}</b>` : `<span class="muted">${t("本月诗歌还没填")}</span>`}</div><button class="chip" data-act="devo-hymn">${t("填")}</button></div>
     <div class="row"><span class="k">${t("祷告")}</span><div class="v">${d.prayer ? esc(d.prayer) : `<span class="muted">${t("今天为谁、为什么祷告")}</span>`}</div><button class="chip" data-act="devo-prayer">${t("写")}</button></div>
@@ -86,7 +86,7 @@ function tasksHTML(day){
   const row = x => { const sj = subject(x.subject), r = x.routine_id && routine(x.routine_id);
     const minutes = x.minutes ? x.minutes : r && r.minutes ? r.minutes : 0;
     return `<div class="task ${x.status}"><span class="bar" style="background:${sj.color}"></span>
-      <button class="main" data-act="task-edit" data-tid="${esc(x.id)}"><span class="title">${esc(x.title)}</span><span class="meta">${esc(sj.short)}${r && r.start ? ` · ${r.start}` : ""}${minutes ? ` · ${t("{n} 分钟", { n: minutes })}` : ""}${x.child_id == null ? ` · ${t("全家")}` : ""}${x.note ? ` · ${esc(x.note)}` : ""}</span></button>
+      <button class="main" data-act="task-edit" data-tid="${esc(x.id)}"><span class="title">${esc(tb(x.title))}</span><span class="meta">${esc(sj.short)}${r && r.start ? ` · ${r.start}` : ""}${minutes ? ` · ${t("{n} 分钟", { n: minutes })}` : ""}${x.child_id == null ? ` · ${t("全家")}` : ""}${x.note ? ` · ${esc(x.note)}` : ""}</span></button>
       <span class="acts">${x.status === "todo"
         ? `<button class="iconbtn ok" data-act="task-done" data-tid="${esc(x.id)}" aria-label="${t("完成")}">✓</button><button class="iconbtn" data-act="task-move" data-tid="${esc(x.id)}" aria-label="${t("顺延到明天")}">→</button><button class="iconbtn" data-act="task-skip" data-tid="${esc(x.id)}" aria-label="${t("跳过")}">✕</button>`
         : `<button class="chip" data-act="task-undo" data-tid="${esc(x.id)}">${x.status === "done" ? t("已完成 · 撤销") : t("已跳过 · 撤销")}</button>`}</span></div>`; };

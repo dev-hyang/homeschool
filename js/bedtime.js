@@ -1,7 +1,7 @@
 import { aiReady, askText } from "./ai.js";
 import { SB, memberName } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb, locale } from "./core/i18n.js";
 import { S } from "./core/state.js";
 import { $, D, dayKey, esc, loadJSON, newId, saveJSON, toast } from "./core/util.js";
 import { fetchPassage, parseRef } from "./data/bible.js";
@@ -64,12 +64,13 @@ function normalize(raw){
     versions, version: versions.some(v => v.id === r.version) ? r.version : (versions[0] ? versions[0].id : null),
     readings: Array.isArray(r.readings) ? r.readings.filter(x => x && x.ref) : [], reading: r.reading || READINGS[1].ref, anchor: r.anchor !== false,
     situations: Array.isArray(r.situations) ? r.situations.filter(x => x && x.id && x.when) : [],
-    cap: +r.cap || 30, mirror: r.mirror !== false, mirrorConflict: r.mirrorConflict !== false, lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : "zh", firstOn: r.firstOn || "" };
+    cap: +r.cap || 30, mirror: r.mirror !== false, mirrorConflict: r.mirrorConflict !== false, langSet: ["zh", "en", "both"].includes(r.lang), lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : (locale() === "en" ? "en" : "zh"), firstOn: r.firstOn || "" };
 }
 const cfg = () => normalize(S.hs.loaded ? S.hs.settings.bedtime : cache().cfg);
 async function saveCfg(patch){
   if (!online()) { toast(t("没连上云端，现在不能改设置")); throw new Error("offline"); }
-  const { steps: _s, flowName: _n, flowKind: _k, flow: _f, ...base } = cfg();   // steps / flowName / flowKind / flow 是当前流程派生出来的，不单独存
+  const { steps: _s, flowName: _n, flowKind: _k, flow: _f, lang: _l, langSet, ...base } = cfg();   // lang 没明确选过就不存，让它跟着界面语言走
+  if (langSet) base.lang = _l;   // steps / flowName / flowKind / flow 是当前流程派生出来的，不单独存
   await saveSettings({ bedtime: { ...base, ...patch } });
   writeCache();
 }
@@ -80,7 +81,7 @@ const selectFlow = id => saveJSON(FLOW_KEY, id);
 const flowOfLog = l => (l && l.steps && l.steps[0] && l.steps[0].flow) || "";
 const isNapLog = l => !!(l && l.steps && l.steps[0] && l.steps[0].kind === "nap");
 /** 选流程的小按钮：今天页、睡前页、流程页都用；点一下就选中（只记在这台设备） */
-const flowChips = (c, always) => c.flows.length < 2 && !always ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(f.name)} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
+const flowChips = (c, always) => c.flows.length < 2 && !always ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(tb(f.name))} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
 /* 这个流程自己的带领词：午睡流程默认用 NAP_TEXT（不说「今晚」），也可以给任何流程单独设一套；没有的就用当前选的带领词版本 */
 function flowText(c = cfg()){
   const base = currentText(c), f = c.flows.find(x => x.id === c.flow), own = f && f.texts ? f.texts : (c.flowKind === "nap" ? NAP_TEXT : null);
@@ -335,8 +336,8 @@ function bedtimeRowHTML(){
   const len = [...c.flowName].length, fs = len <= 6 ? 16 : len <= 8 ? 15 : len <= 10 ? 14 : len <= 13 ? 13 : len <= 16 ? 12 : 11;
   const icon = f => f.kind === "nap" ? "☀" : "🌙";
   const pick = c.flows.length > 1
-    ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(f.name)}</option>`).join("")}</select>`
-    : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(c.flowName)}</div>`;
+    ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(tb(f.name))}</option>`).join("")}</select>`
+    : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(tb(c.flowName))}</div>`;
   return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
     <div class="v bt-card">
       <div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>
@@ -354,17 +355,17 @@ function viewBedtime(){
   <div class="panel bt-hero">
     <p class="bt-verse">${esc(tc(ANCHOR_ZH))}</p>
     ${flowChips(c)}
-    <div class="bt-card-row"><div><b>${esc(c.flowName)} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${t("带领词")}：${esc(currentText(c).name)} · ${t("经文")}：${esc(tc(c.reading))}${c.anchor ? `（${t("先读")} ${esc(tc(ANCHOR_REF))}）` : ""}</div></div>
-      <button class="btn primary" data-act="bt-start" ${n ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(c.flowName)}</button></div>
+    <div class="bt-card-row"><div><b>${esc(tb(c.flowName))} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${t("带领词")}：${esc(tb(currentText(c).name))} · ${t("经文")}：${esc(tc(c.reading))}${c.anchor ? `（${t("先读")} ${esc(tc(ANCHOR_REF))}）` : ""}</div></div>
+      <button class="btn primary" data-act="bt-start" ${n ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(tb(c.flowName))}</button></div>
     ${m > c.cap ? `<p class="small" style="color:var(--rose);margin:8px 0 0">${t("合计 {m} 分钟，超过了 {cap} 分钟的上限：睡前流程宜短不宜长，去流程里减一减。", { m, cap: c.cap })}</p>` : ""}
     <p class="small muted" style="margin:8px 0 0">${last ? (last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min })) : t("还没做过")}${week ? ` · ${t("本周 {n} 晚", { n: week })}` : ""}</p>
   </div>
   <div class="panel" style="margin-top:10px"><b>${esc(tc(ph.g.title))}</b>${ph.day ? ` <span class="small muted">${t("第 {n} 天", { n: ph.day })}</span>` : ""}<p class="small" style="margin:4px 0 0">${esc(tc(ph.g.text))}</p>
     ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
   <div class="panel mlist" style="margin-top:10px">
-    ${mrow('data-tab="bt-flow"', t("流程"), c.flows.length > 1 ? t("{k} 个流程：{names}", { k: c.flows.length, names: esc(c.flows.map(f => `${f.name} ${flowMin(f)}`).join(" · ")) }) : t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
+    ${mrow('data-tab="bt-flow"', t("流程"), c.flows.length > 1 ? t("{k} 个流程：{names}", { k: c.flows.length, names: esc(c.flows.map(f => `${tb(f.name)} ${flowMin(f)}`).join(" · ")) }) : t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
     ${mrow('data-tab="bt-songs"', t("歌单"), songs().length ? t("{n} 首 · 这台设备已下载 {k} 首", { n: songs().length, k: cached }) : t("还没有歌。放几首自己的 MP3，固定两三首就够"), "♪")}
-    ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(currentText(c).name), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
+    ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(tb(currentText(c).name)), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
     ${mrow('data-tab="bt-readings"', t("睡前经文"), t("今晚：{ref} · 共 {n} 段", { ref: esc(tc(c.reading)), n: allReadings(c).length }), "📖")}
     ${mrow('data-tab="bt-logs"', t("记录"), S.bt.logs.length ? t("最近 {n} 晚 · 本周 {w} 晚", { n: S.bt.logs.length, w: week }) : t("还没有记录"), "▦")}
     ${mrow('data-tab="bt-cases"', t("状况与应对"), (() => { const n = btEvents().filter(e => e.date >= dayKey(Date.now() - 29 * D)).length; return n ? t("近 30 天记了 {n} 次 · {k} 种状况的模板", { n, k: allSituations(c).length }) : t("不肯睡、打人、自责、父母发脾气……怎么说、怎么做、怎么记"); })(), "⚑")}
@@ -392,11 +393,11 @@ function viewFlow(){
     return `<span class="bt-pill none">${t("（这首歌已删除）")}</span>`; };
   const row = (s, i) => `<div class="song-row bt-step-row" data-id="${esc(s.id)}" data-kind="step"><div class="song-bg" aria-hidden="true"><span class="sb-del">🗑 ${t("删除")}</span></div>
     <div class="song-in bt-step ${s.skip ? "skip" : ""}"><span class="bt-badge">${i + 1}</span>
-    <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="bt-st-name">${esc(s.name)}${s.skip ? ` <small>${t("已跳过")}</small>` : ""}</span>
+    <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="bt-st-name">${esc(tb(s.name))}${s.skip ? ` <small>${t("已跳过")}</small>` : ""}</span>
       <span class="bt-pills"><span class="bt-pill">⏱ ${t("{n} 分", { n: s.minutes })}</span>${s.text ? `<span class="bt-pill">📝 ${t(TEXT_LABEL[s.text])}</span>` : ""}${songBit(s)}${s.loop ? `<span class="bt-pill">↻ ${t("循环")}</span>` : ""}</span></button>
     <span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></div></div>`;
-  const bar = active.length ? `<div class="bt-bar" role="img" aria-label="${t("各步骤的时间占比")}">${active.map((s, i) => `<span style="flex:${Math.max(1, +s.minutes || 1)};background:${STEP_COLORS[i % 5]}" title="${esc(s.name)} · ${t("{n} 分", { n: s.minutes })}"></span>`).join("")}</div>` : "";
-  return `${h2(t("流程"), esc(c.flowName))}
+  const bar = active.length ? `<div class="bt-bar" role="img" aria-label="${t("各步骤的时间占比")}">${active.map((s, i) => `<span style="flex:${Math.max(1, +s.minutes || 1)};background:${STEP_COLORS[i % 5]}" title="${esc(tb(s.name))} · ${t("{n} 分", { n: s.minutes })}"></span>`).join("")}</div>` : "";
+  return `${h2(t("流程"), esc(tb(c.flowName)))}
   ${offlineHTML()}
   <div class="panel bt-flowcard">
     <div class="bt-fc-label">${t("选择流程")}</div>
@@ -405,7 +406,7 @@ function viewFlow(){
     <details class="bt-tip"><summary>${t("改动怎么保存？")}</summary><p class="small">${t("你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。")}</p></details>
   </div>
   <div class="panel bt-stepcard">
-    <div class="bt-sc-head"><b>${t("「{name}」的步骤", { name: esc(c.flowName) })}</b><span class="bt-total ${over ? "over" : ""}">${t("合计约 {m} 分钟", { m })}</span></div>
+    <div class="bt-sc-head"><b>${t("「{name}」的步骤", { name: esc(tb(c.flowName)) })}</b><span class="bt-total ${over ? "over" : ""}">${t("合计约 {m} 分钟", { m })}</span></div>
     ${bar}
     <p class="small ${over ? "" : "muted"} bt-cap-line" style="${over ? "color:var(--rose)" : ""}">${over ? t("超过了 {cap} 分钟的上限，睡前流程宜短不宜长", { cap: c.cap }) : t("上限 {cap} 分钟 · 点一步修改，长按 ⋮⋮ 拖动调顺序，向左滑删除；年幼的孩子可以把某步设为跳过", { cap: c.cap })}</p>
     <div class="bt-steps2">${c.steps.map(row).join("") || `<div class="empty">${t("这个流程还没有步骤")}</div>`}</div>
@@ -441,7 +442,7 @@ function viewSongs(){
   <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
   <h2>${t("可以去找的歌")}</h2>
   <div class="panel"><p class="small muted" style="margin-top:0">${t("不内置音频：自己买或下载 MP3 后传进来。优先慢速、轻柔、没有突然增强的鼓点和高音的版本。")}</p>
-    <div class="tasks">${SONG_IDEAS.map(([n, a, tag, why]) => `<div class="task"><span class="bar" style="background:var(--honey)"></span><div class="main"><span class="title">${esc(n)}</span><span class="meta">${esc(tc(a))} · ${t(SONG_TAGS[tag])} · ${esc(tc(why))}</span></div><span></span></div>`).join("")}</div></div>`;
+    <div class="tasks">${SONG_IDEAS.map(([n, a, tag, why]) => `<div class="task"><span class="bar" style="background:var(--honey)"></span><div class="main"><span class="title">${esc(tc(n))}</span><span class="meta">${esc(tc(a))} · ${t(SONG_TAGS[tag])} · ${esc(tc(why))}</span></div><span></span></div>`).join("")}</div></div>`;
 }
 function openSongForm(s){
   songForm = { id: s ? s.id : null, draft: s ? { title: s.title, artist: s.artist || "", tags: [...(s.tags || [])], lyrics: s.lyrics || "", lyrics_ai: !!s.lyrics_ai } : { title: "", artist: "", tags: [], lyrics: "", lyrics_ai: false }, file: null, oldPath: s ? s.path : "" };
@@ -504,12 +505,12 @@ function viewTexts(){
   const vrow = v => `<div class="task ${v.id === c.version ? "done" : ""}"><span class="bar" style="background:${v.id === c.version ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-ver-edit" data-id="${esc(v.id)}"><span class="title" style="text-decoration:none;color:var(--ink)">${esc(v.name)}${v.id === c.version ? ` <span class="pill ok">${t("当前")}</span>` : ""}</span><span class="meta">${v.updated_at ? t("{d} · {who} 改过", { d: v.updated_at.slice(0, 10), who: esc(v.by || t("家人")) }) : ""}</span></button>
     <span class="acts">${v.id === c.version ? "" : `<button class="chip" data-act="bt-ver-use" data-id="${esc(v.id)}">${t("用这版")}</button>`}</span></div>`;
-  return `${h2(t("带领词"), esc(cur.name))}
+  return `${h2(t("带领词"), esc(tb(cur.name)))}
   ${offlineHTML()}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-ver-new">＋ ${t("新建版本（从模板）")}</button>${c.versions.length ? `<button class="btn" data-act="bt-ver-copy">${t("复制当前版")}</button>` : ""}</div>
   <p class="small muted" style="margin-top:8px">${t("先有一份家庭通用版；孩子长大、换带领人，就另存一版（幼儿版 / 学龄版 / 英文版…），播放前选今晚用哪版。每版都能恢复成模板。尽量每天用同样的话，让孩子熟悉这个节奏。")}</p>
   ${c.versions.length ? `<div class="panel"><div class="tasks">${c.versions.map(vrow).join("")}</div></div>` : `<div class="panel"><p class="muted" style="margin:0">${t("现在用的是内置模板。点「新建版本」生成一份自家的，就可以改了。")}</p></div>`}
-  <h2>${esc(cur.name)}</h2>
+  <h2>${esc(tb(cur.name))}</h2>
   <div class="panel">${block("open", "开场带领词（拥抱与敬拜）")}${block("reading", "读经引导")}${block("prayer", "祷告词")}${block("close", "结束的话（音乐与安睡）")}
     ${cur.builtin ? "" : `<div class="btns"><button class="btn" data-act="bt-ver-edit" data-id="${esc(cur.id)}">${t("修改这版")}</button><button class="btn" data-act="bt-ver-reset" data-id="${esc(cur.id)}">${t("恢复成模板")}</button>${c.versions.length > 1 ? `<button class="btn danger" data-act="bt-ver-del" data-id="${esc(cur.id)}">${t("删除这版")}</button>` : ""}</div>`}</div>
   <div class="panel mlist" style="margin-top:10px">${mrow('data-tab="bt-cases"', t("状况与应对"), t("不肯睡、打人、自责、父母发脾气……怎么说、怎么做、怎么记"), "⚑")}</div>`;
@@ -710,8 +711,8 @@ function openAddToFlow(songId){
   $("#sheetIn").innerHTML = `${head(esc(t("加到流程")))}
   <p class="small"><b>♪ ${esc(s.title)}</b><br><span class="muted">${t("点一下加进去，再点一下取消。睡前流程的一步只放一首歌（会换掉原来那首）；冲突 / 情绪话题可以放多首推荐歌。")}</span></p>
   <h2>${t("睡前安然")}</h2>
-  ${c.flows.map(f => `<div class="panel" style="margin-top:8px"><b>${f.kind === "nap" ? "☀" : "🌙"} ${esc(f.name)}</b> <span class="small muted">${t("约 {n} 分钟", { n: flowMin(f) })}</span>
-    <div class="seg" style="margin-top:6px">${f.steps.map(st => { const cur = st.song && st.song !== songId ? songLabel(st.song) : ""; return `<button type="button" data-act="bt-pick-step" data-song="${esc(songId)}" data-flow="${esc(f.id)}" data-step="${esc(st.id)}" aria-pressed="${st.song === songId}">${esc(st.name)}${cur ? ` <small class="muted">♪${esc(cur)}</small>` : ""}</button>`; }).join("") || `<span class="small muted">${t("这个流程还没有步骤")}</span>`}</div></div>`).join("")}
+  ${c.flows.map(f => `<div class="panel" style="margin-top:8px"><b>${f.kind === "nap" ? "☀" : "🌙"} ${esc(tb(f.name))}</b> <span class="small muted">${t("约 {n} 分钟", { n: flowMin(f) })}</span>
+    <div class="seg" style="margin-top:6px">${f.steps.map(st => { const cur = st.song && st.song !== songId ? songLabel(st.song) : ""; return `<button type="button" data-act="bt-pick-step" data-song="${esc(songId)}" data-flow="${esc(f.id)}" data-step="${esc(st.id)}" aria-pressed="${st.song === songId}">${esc(tb(st.name))}${cur ? ` <small class="muted">♪${esc(cur)}</small>` : ""}</button>`; }).join("") || `<span class="small muted">${t("这个流程还没有步骤")}</span>`}</div></div>`).join("")}
   <h2>${t("冲突管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "cf").map(btn).join("")}</div>
   <h2>${t("情绪管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "em").map(btn).join("")}</div>
   <div class="btns"><button class="btn primary" data-act="close">${t("完成")}</button></div>`;
