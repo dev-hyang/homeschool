@@ -10,8 +10,9 @@ import { viewLaw } from "./law.js";
 import { viewReports } from "./reports.js";
 import { viewIdeas, viewLibrary, viewResources, viewSources } from "./resources.js";
 import { viewScriptures } from "./library.js";
-import { viewConflict, viewFlows } from "./flows.js";
-import { viewTrend } from "./flows-trend.js";
+import { viewConflict, viewEmotion, viewFlows } from "./flows.js";
+import { beforeRender, viewTrend } from "./flows-trend.js";
+import { principleHTML } from "./principle.js";
 import { viewCalRoutines, viewRoutines } from "./routines.js";
 import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
@@ -22,10 +23,10 @@ import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewRe
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
 // 子页 → 所属页：顶上一条完整路径（‹ 我的 / 报告），底部仍高亮所属的页签。咩咩咩从哪进就以哪为父页（S.from 记录）
 const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me", ask: "me",
-  "res-scriptures": "resources", "res-sources": "resources", flows: "resources", "flow-conflict": "flows", "flow-trend": "flows", "me-print": "me",
+  "res-scriptures": "resources", "res-sources": "resources", flows: "resources", "flow-conflict": "flows", "flow-emotion": "flows", "flow-trend": "flows", "me-print": "me",
   bedtime: "flows", "bt-flow": "bedtime", "bt-songs": "bedtime", "bt-texts": "bedtime", "bt-readings": "bedtime", "bt-logs": "bedtime", "bt-cases": "bedtime" };
 const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", "cal-routines": "周例行", reports: "报告", law: "法规", ask: "咩咩咩",
-  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-trend": "趋势与分析", "me-print": "打印",
+  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-emotion": "情绪管理", "flow-trend": "趋势与分析", "me-print": "打印",
   bedtime: "睡前安然", "bt-flow": "流程", "bt-songs": "歌单", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
@@ -36,8 +37,9 @@ function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印�
   const parts = [...chain.map(k => `<button type="button" class="crumb-link" data-tab="${k}">${chain[0] === k ? "‹ " : ""}${esc(labelOf(k))}</button>`), `<b aria-current="page">${esc(tail || labelOf(tab))}</b>`];
   return `<nav class="crumb" aria-label="${t("位置")}">${parts.join(`<span class="sep" aria-hidden="true">/</span>`)}</nav>`;
 }
+const CORE_TABS = new Set(["course", "resources", "calendar", "me", "flows", "bedtime", "flow-conflict", "flow-emotion", "flow-trend", "ask"]);
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
-  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-trend": viewTrend, "me-print": viewPrintHub,
+  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub,
   bedtime: viewBedtime, "bt-flow": viewFlow, "bt-songs": viewSongs, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
@@ -89,6 +91,7 @@ function render(){
   // 打印视图：整页就是那张纸（头部、底栏由 body.printview 收起）
   document.body.classList.toggle("printview", !!S.printView);
   if (S.printView) { $("#main").innerHTML = printViewHTML(); return; }
+  beforeRender(S.tab);   // 刚进冲突 / 情绪 / 趋势页：先在后台从小月亮拉一次，按钮此时就是灰的
   let cur = S.tab; for (let p = parentOf(cur); p; p = parentOf(p)) cur = p;   // 一路找到所属的底部页签
   const parent = parentOf(S.tab);
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
@@ -96,7 +99,9 @@ function render(){
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   const back = crumbHTML(S.tab);
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
-  $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + v() : back + (gateHTML() || v());
+  // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
+  const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
+  $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
   updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${esc(labelOf(parent))}</button>` : "", t("回到顶部"));
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }

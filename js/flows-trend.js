@@ -1,8 +1,9 @@
 import { SB } from "./core/auth.js";
 import { t, tc } from "./core/i18n.js";
-import { S, ageText, stageOf } from "./core/state.js";
-import { D, dayKey, esc } from "./core/util.js";
-import { CONFLICTS, SIDES, STAGE_NAME } from "./data/flows.js";
+import { S, ageMonths, ageText } from "./core/state.js";
+import { D, dayKey, esc, toast } from "./core/util.js";
+import { CONFLICTS, SIDES, STAGE_NAME, bandOf, contentFor } from "./data/flows.js";
+import { EMOTIONS } from "./data/emotions.js";
 import { aiIcon, askAbout } from "./ask.js";
 import { bars, stack } from "./charts.js";
 import { cfg, h2, isCf, offlineHTML, sidesHint } from "./bedtime.js";
@@ -16,31 +17,55 @@ import { render } from "./views.js";
 const B = (S.cf = S.cf || { loaded: false, loading: false, rows: [], ts: 0, err: "" });
 const fid = () => S.family && S.family.id;
 
-/* ---- 小月亮的记录（只读）：情绪行为、社交、睡眠，近 61 天 ---- */
-async function loadBaby(force){
-  if (B.loading || !SB.client || !fid() || !S.hs.loaded) return;
-  if (!force && B.loaded && Date.now() - B.ts < 60e3) return;
-  B.loading = true;
-  const { data, error } = await SB.client.from("entries").select("id,type,ts,data").eq("family_id", fid()).in("type", ["behavior", "social", "sleep"]).eq("deleted", false).gte("ts", Date.now() - 61 * D).order("ts", { ascending: false }).limit(3000);
+/* ---- 小月亮的记录（只读）：情绪行为、社交、睡眠、情绪、自律、活动（屏幕），近 61 天 ----
+   默认自动同步：每次打开带「从小月亮重新读取」按钮的页面（冲突管理、情绪管理、趋势与分析），都在后台先拉一次；
+   拉的时候按钮是灰色的、点不了；拉完提示「已同步最新小月亮记录」。一直停在这页、小月亮那边又有新记录时，可以再点按钮手动拉。 */
+const PULL_TABS = new Set(["flow-conflict", "flow-emotion", "flow-trend"]);
+const canPull = () => !!(SB.client && fid() && S.hs.loaded);
+let enteredTab = null;
+async function pull({ quiet = false, renderNow = true } = {}){
+  if (B.loading || !canPull()) return;
+  B.loading = true; B.err = "";
+  if (renderNow && PULL_TABS.has(S.tab)) render();   // 按钮立刻变灰
+  let data = null, error = null;
+  try { ({ data, error } = await SB.client.from("entries").select("id,type,ts,data").eq("family_id", fid()).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity"]).eq("deleted", false).gte("ts", Date.now() - 61 * D).order("ts", { ascending: false }).limit(4000)); }
+  catch (e) { error = { message: (e && e.message) || "network" }; }   // 网络异常也要把按钮放开
   B.loading = false; B.ts = Date.now(); B.loaded = !error; B.err = error ? (error.message || "error") : "";
-  B.rows = (data || []).map(r => ({ ...(r.data || {}), id: r.id, type: r.type, ts: r.ts }));
-  if (["flow-conflict", "flow-trend"].includes(S.tab)) render();
+  if (!error) B.rows = (data || []).map(r => ({ ...(r.data || {}), id: r.id, type: r.type, ts: r.ts }));
+  if (PULL_TABS.has(S.tab)) render();
+  if (!quiet) toast(error ? t("读取小月亮失败：") + String(B.err).slice(0, 80) : t("已同步最新小月亮记录（{n} 条）", { n: (data || []).length }));
 }
+/* views.js 每次画页面之前调：刚进入这几页就自动拉一次；离开这几页再进来会再拉 */
+function beforeRender(tab){
+  if (!PULL_TABS.has(tab)) { enteredTab = null; return; }
+  if (enteredTab === tab || !canPull()) return;
+  enteredTab = tab; pull({ renderNow: false });
+}
+const loadBaby = () => pull({ quiet: true });
+const hhmm = ts => { const d = new Date(ts); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); };
+/** 「从小月亮重新读取」按钮：拉的时候灰色不可点；旁边写上次同步的时间 */
+const pullButtonHTML = () => `<button type="button" class="chip pull-btn" data-act="tr-refresh" ${B.loading || !canPull() ? "disabled" : ""}>${B.loading ? t("正在同步小月亮…") : t("从小月亮重新读取")}</button> <span class="small muted">${B.loading ? "" : B.loaded ? t("上次同步 {t}", { t: hhmm(B.ts) }) : B.err ? esc(t("读取失败：") + B.err) : canPull() ? "" : t("登录并进入家庭后才能读取")}</span>`;
 const mineRows = () => { const cid = S.childId, first = S.children[0] && S.children[0].id; return B.rows.filter(e => e.child === cid || (!e.child && first === cid)); };
 
 /* 内置状况 + 自家加的（cfg.situations 里 id 以 cf- 开头的）*/
+/* 孩子的性别（可选）：小月亮里没有这一项，放在家庭学堂设置里按孩子单独记；只用来决定哪些内容显示给他（比如青春期） */
+const genderOf = (cid = S.childId) => ((S.hs.settings.genders || {})[cid]) || "";
+const bandKey = () => bandOf(ageMonths());
+const allEmotions = () => EMOTIONS;
 const allConflicts = (c = cfg()) => [...CONFLICTS, ...c.situations.filter(x => String(x.id).startsWith("cf-") && !CONFLICTS.some(s => s.id === x.id)).map(x => ({ ...x, custom: true, bl: x.bl || { kinds: [x.write || "发脾气"], social: [] } }))];
-const sitOf = id => allConflicts().find(s => s.id === id) || null;
-const whyOf = (s, stage) => (s.why && (s.why[stage] || s.why.all)) || "";
+const sitOf = id => allConflicts().find(s => s.id === id) || EMOTIONS.find(s => s.id === id) || null;
+const whyOf = (s, band) => contentFor(s, band).why;
 
+const hasBl = sit => !!(sit.bl && ((sit.bl.kinds || []).length || (sit.bl.social || []).length || (sit.bl.mood || []).length || (sit.bl.habit || []).length || (sit.bl.activity || []).length));
 function blStats(sit){
-  const rows = mineRows(), now = Date.now(), c30 = now - 30 * D;
-  const hit = e => (e.type === "behavior" && sit.bl.kinds.includes(e.kind)) || (e.type === "social" && (sit.bl.social || []).includes(e.kind));
+  const rows = mineRows(), now = Date.now(), c30 = now - 30 * D, b = sit.bl || {};
+  const hit = e => (e.type === "behavior" && (b.kinds || []).includes(e.kind)) || (e.type === "social" && (b.social || []).includes(e.kind)) || (e.type === "mood" && (b.mood || []).includes(e.kind)) || (e.type === "habit" && (b.habit || []).includes(e.kind)) || (e.type === "activity" && (b.activity || []).includes(e.kind));
   const all = rows.filter(hit), cur = all.filter(e => e.ts >= c30), prev = all.filter(e => e.ts < c30);
   const mins = cur.filter(e => +e.minutes > 0), how = {};
   all.forEach(e => { const h = String(e.how || "").trim(); if (h) how[h] = (how[h] || 0) + 1; });
-  return { cur: cur.length, prev: prev.length, avgMin: mins.length ? Math.round(mins.reduce((a, e) => a + +e.minutes, 0) / mins.length) : null,
-    how: Object.entries(how).sort((a, b) => b[1] - a[1]).slice(0, 3).map(x => x[0]), fromHere: all.filter(e => String(e.id).startsWith("hscf-")).length };
+  const sumMin = cur.reduce((a, e) => a + (+e.minutes || 0), 0);
+  return { cur: cur.length, prev: prev.length, sumMin, dayAvg: Math.round(sumMin / 30), prevSum: prev.reduce((a, e) => a + (+e.minutes || 0), 0), avgMin: mins.length ? Math.round(mins.reduce((a, e) => a + +e.minutes, 0) / mins.length) : null,
+    how: Object.entries(how).sort((a, c) => c[1] - a[1]).slice(0, 3).map(x => x[0]), fromHere: all.filter(e => String(e.id).startsWith("hscf-")).length };
 }
 
 /* ---- 睡眠：每个晚上取最长的一段夜间睡眠（18 点后或凌晨 4 点前入睡、至少 3 小时）。bed = 离 18:00 的分钟数，wake = 当天的分钟数 ---- */
@@ -67,8 +92,8 @@ const nightsIn = days => S.bt.logs.filter(l => l.date >= sinceKey(days));
 
 /* ============ 摘要：交给咩咩咩的上下文（也是「会发送什么」里能看到的原文）============ */
 function flowContext({ days = 14, focus = null } = {}){
-  const L = [], stage = stageOf().key, evs = eventsIn(days), logs = nightsIn(days), nights = sleepNights(days);
-  L.push(`孩子 ${ageText()}，${STAGE_NAME[stage]}阶段。记录区间：最近 ${days} 天。`);
+  const L = [], stage = bandKey(), evs = eventsIn(days), logs = nightsIn(days), nights = sleepNights(days);
+  L.push(`孩子 ${ageText()}（${STAGE_NAME[stage]}）${genderOf() ? "，" + (genderOf() === "f" ? "女孩" : "男孩") : ""}。记录区间：最近 ${days} 天。`);
   if (logs.length) {
     const mins = logs.map(l => +l.actual_min || 0), plan = logs.map(l => +l.planned_min || 0).filter(Boolean);
     L.push(`睡前流程：${logs.length} 晚做了（共 ${days} 晚），平均 ${Math.round(avg(mins))} 分钟${plan.length ? `（计划约 ${Math.round(avg(plan))}）` : ""}；孩子状态：${countText(count(logs, l => l.child_state)) || "没记"}；大人状态：${countText(count(logs, l => l.parent_state)) || "没记"}。`);
@@ -87,13 +112,18 @@ function flowContext({ days = 14, focus = null } = {}){
     const bad = evs.filter(e => (e.outcome === "none" || e.outcome === "worse") && e.approach).slice(0, 5).map(e => `${(sitOf(e.situation) || { when: "其他" }).when}：${e.approach}（${e.outcome === "worse" ? "更糟了" : "没什么用"}）`);
     if (bad.length) L.push(`试过但没用的做法：${bad.join("；")}。`);
   } else L.push(`冲突记录：这 ${days} 天没有记录。`);
+  const emEv = S.bt.events.filter(e => String(e.situation || "").startsWith("em-") && e.date >= sinceKey(days));
+  if (emEv.length) L.push(`情绪管理记录：共 ${emEv.length} 次（${countText(count(emEv, e => (sitOf(e.situation) || { when: "其他" }).when))}）；孩子当时的状态：${countText(count(emEv, e => e.child_state)) || "没记"}；大人当时的状态：${countText(count(emEv, e => e.parent_state)) || "没记"}。`);
+  const scr = mineRows().filter(e => e.type === "activity" && e.kind === "屏幕" && e.ts >= Date.now() - days * D);
+  if (scr.length) L.push(`屏幕（小月亮的活动记录）：${scr.length} 次，共 ${scr.reduce((a, e) => a + (+e.minutes || 0), 0)} 分钟，日均约 ${Math.round(scr.reduce((a, e) => a + (+e.minutes || 0), 0) / days)} 分钟。`);
   const beh = mineRows().filter(e => e.type === "behavior" && e.ts >= Date.now() - days * D);
   if (beh.length) L.push(`小月亮里的情绪行为（${beh.length} 条）：${countText(count(beh, e => e.kind))}。`);
   if (focus) {
     const s = sitOf(focus);
     if (s) {
       const mine = S.bt.events.filter(e => e.situation === focus).slice(0, 6);
-      L.push(`\n关注的状况：${s.when}（${s.short || ""}）。\n这个年龄段的解释（应用自带）：${whyOf(s, stage)}\n应用自带的做法：${(s.steps || []).join("；")}`);
+      if (focus.startsWith("em-")) L.push("（这是一种持续的情绪 / 习惯，不是一次冲突；回答里请着重「平时怎么陪伴」。）");
+      L.push(`\n关注的状况：${s.when}（${s.short || ""}）。\n这个年龄段的解释（应用自带）：${whyOf(s, stage)}\n应用自带的做法：${contentFor(s, stage).steps.join("；")}`);
       if (mine.length) L.push(`家里在这个状况下最近的记录：\n${mine.map(e => `- ${e.date}：${e.approach || "（没写做法）"}；结果 ${({ calm: "平静下来了", partly: "勉强过去了", none: "没什么用", worse: "更糟了" })[e.outcome] || "没记"}${e.minutes != null ? `，用了 ${e.minutes} 分钟` : ""}${e.child_state ? `；孩子 ${e.child_state}` : ""}${e.parent_state ? `；大人 ${e.parent_state}` : ""}${e.title ? `；起因：${e.title}` : ""}`).join("\n")}`);
       else L.push("家里还没有在这个状况下的记录。");
     }
@@ -142,7 +172,6 @@ function timeDots(title, pts, dates, fmt){
 const legend = names => `<p class="legend-line">${names.map(n => `<span><i style="background:${stateColor(n)}"></i>${esc(t(n))}</span>`).join("")}</p>`;
 
 function viewTrend(){
-  loadBaby();
   const days = S.trendDays || 30, bk = buckets(days), dates = Array.from({ length: days }, (_, i) => dayKey(Date.now() - (days - 1 - i) * D));
   const logs = nightsIn(days), evs = eventsIn(days), nights = sleepNights(days), on = new Set(logs.map(l => l.date));
   const calm = evs.filter(e => e.outcome === "calm").length, heated = evs.filter(e => SIDES.heated.includes(e.parent_state)).length + logs.filter(l => ["有点急", "发了脾气"].includes(l.parent_state)).length;
@@ -157,7 +186,7 @@ function viewTrend(){
   ${offlineHTML()}${sidesHint()}
   <div class="chips" role="group" aria-label="${t("时间范围")}">${TREND_DAYS.map(d => `<button type="button" class="chip" data-act="tr-days" data-v="${d}" aria-pressed="${days === d}">${t("近 {n} 天", { n: d })}</button>`).join("")}</div>
   <div class="panel"><div class="stats">${stat(t("睡前流程"), `${logs.length}<small>/${days}</small>`, t("晚"))}${stat(t("平均入睡"), nights.length ? bedClock(avg(nights.map(n => n.bed))) : "–", "")}${stat(t("冲突记录"), evs.length, t("次"))}${stat(t("大人情绪升高"), heated, t("次"))}</div>
-    <div class="btns" style="margin-top:10px"><button class="btn primary" data-act="tr-ask">${aiIcon(18)} ${t("让咩咩咩分析最近的记录")}</button><button class="btn" data-act="tr-refresh">${t("重新读取小月亮")}</button></div>
+    <div class="btns" style="margin-top:10px"><button class="btn primary sm" data-act="tr-ask">${aiIcon(16)} ${t("让咩咩咩分析最近的记录")}</button></div><p style="margin:8px 0 0">${pullButtonHTML()}</p>
     <p class="small muted" style="margin:8px 0 0">${B.loaded ? t("睡眠来自小月亮的记录（只读）；睡前流程和冲突是这里记的。点分析会带着这一页的摘要去问咩咩咩，「会发送什么」里能看到原文。") : B.loading ? t("正在读取小月亮的记录…") : B.err ? t("读不到小月亮的记录：") + esc(B.err) : ""}</p></div>
 
   <h2>${t("入睡时间")}</h2><div class="panel">${timeDots(t("入睡时间"), nights.map(n => ({ date: n.date, v: n.bed, on: on.has(n.date) })), dates, bedClock)}</div>
@@ -178,10 +207,10 @@ async function trAct(act, btn){
   const d = btn.dataset;
   switch (act) {
     case "tr-days": S.trendDays = +d.v; render(); break;
-    case "tr-refresh": B.loaded = false; await loadBaby(true); break;
+    case "tr-refresh": await pull({}); break;
     case "tr-ask": { const days = S.trendDays || 30; askAbout({ q: HUB_PROMPTS[0][1], extra: flowContext({ days }), name: ctxName(days), from: "flow-trend" }); break; }
     case "tr-ask-hub": { const free = d.i === "free", p = free ? null : HUB_PROMPTS[+d.i]; askAbout({ q: p ? p[1] : "", extra: flowContext({ days: 14 }), name: ctxName(14), from: "flows" }); break; }
   }
 }
 
-export { B, loadBaby, mineRows, allConflicts, sitOf, whyOf, blStats, sleepNights, flowContext, ctxName, hubAskHTML, viewTrend, trAct };
+export { B, pull, beforeRender, pullButtonHTML, loadBaby, genderOf, bandKey, allEmotions, hasBl, mineRows, allConflicts, sitOf, whyOf, blStats, sleepNights, flowContext, ctxName, hubAskHTML, viewTrend, trAct };

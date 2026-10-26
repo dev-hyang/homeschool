@@ -3,6 +3,7 @@ import { S } from "./core/state.js";
 import { $, dayKey, esc, toast } from "./core/util.js";
 import { ANCHOR_REF } from "./data/bedtime.js";
 import { SIDES } from "./data/flows.js";
+import { ANGER, V } from "./data/principle.js";
 import { memberName } from "./core/auth.js";
 import { render } from "./views.js";
 
@@ -159,7 +160,7 @@ function casesHTML(){
       <div class="lab">${t("怎么处理的（一句话，可空）")}</div><textarea id="btpEvNote" rows="2">${esc(ev.note)}</textarea>
       <div class="btp-ev-acts"><button data-act="btp-ev-save" ${ev.saving ? "disabled" : ""}>${ev.saving ? t("保存中…") : t("记下")}</button><button data-act="btp-ev-cancel">${t("取消")}</button></div></div>`
     : `<button class="btp-ev-open" data-act="btp-ev-open" data-sit="${esc(s.id)}">${t("记一笔")}</button>`}</div>`;
-  return `<div class="btp-cases"><p class="btp-principle">${esc(tc(pr.core))}<br><span class="muted">${pr.verses.map(v => `${esc(tc(v.ref))}：${esc(tc(v.zh))}`).join("　")}</span></p>${P.api.situations.map(one).join("")}<p class="muted small">${esc(tc(pr.notEvery))}</p></div>`;
+  return `<div class="btp-cases"><p class="btp-anger"><b>${esc(tc(ANGER.title))}</b><br>${ANGER.verses.map(r => `${esc(tc(r))}：${esc(tc(V[r] || ""))}`).join("<br>")}<br><span class="muted">${esc(tc(ANGER.steps[0]))}；${esc(tc(ANGER.steps[3]))}</span></p><p class="btp-principle">${esc(tc(pr.core))}<br><span class="muted">${pr.verses.map(v => `${esc(tc(v.ref))}：${esc(tc(v.zh))}`).join("　")}</span></p>${P.api.situations.map(one).join("")}<p class="muted small">${esc(tc(pr.notEvery))}</p></div>`;
 }
 function finishHTML(){
   const total = Math.round((P.endedAt - P.startedAt) / 60000), planned = P.steps.reduce((a, s) => a + (+s.minutes || 0), 0);

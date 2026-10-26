@@ -10,6 +10,7 @@ import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
 import { CONFLICTS, SIDES } from "./data/flows.js";
 import { recordsHTML } from "./recfilter.js";
+import { angerHTML } from "./principle.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
@@ -68,8 +69,9 @@ const totalMin = c => activeSteps(c).reduce((a, s) => a + (+s.minutes || 0), 0);
 /* 带领词：当前版本，没有自家版本时直接用内置模板 */
 function currentText(c = cfg()){ const v = c.versions.find(x => x.id === c.version); return v || { id: null, name: TEXT_TEMPLATE.name + t("（内置模板）"), ...TEXT_TEMPLATE, builtin: true }; }
 /* 状况模板：内置的可以被同 id 的自家版本覆盖（恢复 = 删掉覆盖），再加自家新增的 */
+const isEm = e => String((e && e.situation) || "").startsWith("em-");   // 情绪管理的记录：em- 开头
 const isCf = e => String((e && e.situation) || "").startsWith("cf-");   // 冲突管理的记录：situation 以 cf- 开头（和睡前状况共用一张表）
-const btEvents = () => S.bt.events.filter(e => !isCf(e));
+const btEvents = () => S.bt.events.filter(e => !isCf(e) && !isEm(e));
 function allSituations(c = cfg()){
   const mine = c.situations.filter(x => !String(x.id).startsWith("cf-")), own = new Map(mine.map(x => [x.id, x]));
   return [...SITUATIONS.map(s => own.has(s.id) ? { ...own.get(s.id), builtin: true, edited: true } : { ...s, builtin: true }), ...mine.filter(x => !SITUATIONS.some(s => s.id === x.id)).map(x => ({ ...x, custom: true }))];
@@ -297,7 +299,7 @@ const nightsIn = (from, to) => S.bt.logs.filter(l => l.date >= from && l.date <=
 const lastLog = () => S.bt.logs[0] || null;
 
 /* ============ 页面 ============ */
-const LIVE_EXTRA = new Set(["flow-conflict", "flow-trend"]);   // 这些页签里也有要等抓取结果的经文
+const LIVE_EXTRA = new Set(["flow-conflict", "flow-emotion", "flow-trend"]);   // 这些页签里也有要等抓取结果的经文
 const BT_TABS = new Set(["flows", "bedtime", "bt-flow", "bt-songs", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
 const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需要数据库迁移 019。")}${t("请在 Supabase 执行本地")} <code>supabase/migrations/019_bedtime.sql</code>${t("，然后刷新。")}${t("流程、带领词和经文清单不受影响。")}</div>`;
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
@@ -479,7 +481,8 @@ function viewCases(){
     <button class="main" data-act="bt-ev-edit" data-id="${esc(e.id)}"><span class="title">${esc(e.date)} · ${esc(tc(sitName(e, c)))}${e.keep ? " ★" : ""}</span><span class="meta">${(e.children || []).map(kidName).join("、")}${e.outcome ? ` · ${outcomeLabel(e.outcome)}` : ""}${sidesLine(e)}${e.minutes != null ? ` · ${t("{n} 分钟", { n: e.minutes })}` : ""}${e.approach ? `<br>${esc(e.approach)}` : ""}${e.note ? `<br><span class="muted">${esc(e.note)}</span>` : ""}</span></button><span class="acts"><button class="chip" data-act="bt-ev-keep" data-id="${esc(e.id)}" aria-pressed="${!!e.keep}">${e.keep ? t("值得继续 ★") : t("值得继续")}</button></span></div>`;
   return `${h2(t("状况与应对"))}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : sidesHint()}
-  <div class="panel bt-principle"><p style="margin-top:0"><b>${esc(tc(PRINCIPLES.core))}</b></p>
+  ${angerHTML()}
+  <div class="panel bt-principle" style="margin-top:10px"><p style="margin-top:0"><b>${esc(tc(PRINCIPLES.core))}</b></p>
     ${PRINCIPLES.verses.map(v => `<p class="small"><b>${esc(tc(v.ref))}</b> ${esc(lang === "en" ? v.en : tc(v.zh))}</p>`).join("")}
     <p class="small">${esc(tc(PRINCIPLES.boundary))}</p><p class="small muted" style="margin-bottom:0">${esc(tc(PRINCIPLES.notEvery))}</p></div>
   <div class="panel" style="margin-top:10px"><div class="stats"><div class="stat"><div class="k">${t("近 30 天")}</div><div class="v num">${cur.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("上个 30 天")}</div><div class="v num">${prev.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("平静下来")}</div><div class="v num">${cur.length ? Math.round(calm / cur.length * 100) : 0}<small>%</small></div></div><div class="stat"><div class="k">${t("值得继续的做法")}</div><div class="v num">${btEvents().filter(e => e.keep).length}</div></div></div>
@@ -619,4 +622,4 @@ function btChange(ev){
   return playChange(ev);
 }
 
-export { verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+export { isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

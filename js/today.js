@@ -6,6 +6,7 @@ import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 import { bedtimeRowHTML } from "./bedtime.js";
+import { principleHTML } from "./principle.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
 function viewToday(){
@@ -15,6 +16,7 @@ function viewToday(){
     <div class="lbl">${day} · ${esc(weekdayLabel(new Date(now).getDay()))}</div>
     <div class="big">${esc(childName())}</div>
     <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>
+  ${principleHTML("full")}
   <div class="ask-entry"><button class="chip ask-chip" data-tab="ask" data-from="today">${aiIcon(18)} ${t("咩咩咩")}</button><span class="small muted">${t("今天的课怎么调、经文怎么背、孩子不配合怎么办…")}</span></div>
   ${devotionHTML()}
   ${reviewHTML()}

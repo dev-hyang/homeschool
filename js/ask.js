@@ -9,6 +9,7 @@ import { S, ageText, childName, stageOf } from "./core/state.js";
 import { D, dayKey, esc, toast } from "./core/util.js";
 import { subject } from "./data/subjects.js";
 import { devotionDraft, dueReviews, isOffDay, learnedCount, learningCards, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
+import { AI_PRINCIPLE } from "./data/principle.js";
 import { render } from "./views.js";
 
 /** 咩咩图标：一只白绒绒的小羊咩咩，额头上一枚珊瑚红的字母 Y（四个应用同一只；颜色固定，深浅色主题下都一样），随文字大小缩放 */
@@ -107,14 +108,16 @@ function familySystem(){
 2. 对已经试过的做法的评价：哪些值得继续、哪些可以调整；
 3. 接下来可以试的 2–3 条具体做法，和一句可以对孩子说的话；
 4. 给家长自己的一句提醒（包括大人当时的状态，必要时提到换人接手、事后向孩子道歉修复）。
-不建议体罚、羞辱、威胁或制造恐惧；不做诊断；涉及安全、持续而严重的情况，建议找儿科医生或儿童心理专业人员。只在有依据时引用给出的数据。`;
+不建议体罚、羞辱、威胁或制造恐惧；不做诊断；涉及安全、持续而严重的情况，建议找儿科医生或儿童心理专业人员。只在有依据时引用给出的数据。
+${AI_PRINCIPLE}`;
 }
 function systemPrompt(){
   if (st().mode === "family") return familySystem();
   return `你是一位谨慎、温和的在家教育（homeschool）顾问，用${answerLang()}回答家长。
 依据孩子的年龄和下面给出的学习情况，给出具体、可操作的建议；尊重家长的判断，不下结论、不贴标签。
 控制在 250 字（英文 180 词）以内，分 2–4 个短段落或要点；只在确有依据时引用给出的数据。
-如果问题超出教育范畴（医疗、心理诊断等），提醒家长咨询专业人士。`;
+如果问题超出教育范畴（医疗、心理诊断等），提醒家长咨询专业人士。
+${AI_PRINCIPLE}`;
 }
 function userPrompt(q, withContext){ const a = st(), c = withContext ? [contextText(ctxFor(q)), a.extra].filter(Boolean).join("\n") : ""; return c ? `${c}\n\n问题：${q}` : q; }
 const promptText = (q, withContext) => `${systemPrompt()}\n\n${userPrompt(q, withContext)}`;
