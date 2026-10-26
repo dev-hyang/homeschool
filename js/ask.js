@@ -22,7 +22,7 @@ const aiIcon = (size = 22) => `<svg class="ai-ico" width="${size}" height="${siz
   <circle cx="23.2" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/><circle cx="40.8" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/>
   <path d="M25.5 11.5l6.5 8 6.5-8M32 19.5v9" fill="none" stroke="#D9655F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-const st = () => (S.ask ||= { q: "", busy: false, answer: null, error: null, withContext: true, cfg: false, draft: null });
+const st = () => (S.ask ||= { q: "", busy: false, answer: null, error: null, withContext: true, cfg: false, draft: null, extra: "", extraName: "", mode: "", ctxKeys: null });
 
 /* ---- 场景：一句默认问题 + 要带上的上下文块 ---- */
 const TOPICS = [
@@ -96,16 +96,27 @@ const CTX = { child: ctxChild, today: ctxToday, week: ctxWeek, subjects: ctxSubj
 const loaded = () => !!(S.hs && S.hs.loaded && S.childId);   // 没登录 / 没孩子：问题照问，只是不带学习情况
 function contextText(keys){ if (!loaded()) return ""; return keys.map(k => CTX[k] && CTX[k]()).filter(Boolean).join("\n"); }
 // 哪个场景的问题就带哪些块；自己写的问题带全部
-function ctxFor(q){ const tp = TOPICS.find(x => t(x.q) === q || x.q === q); return tp ? tp.ctx : Object.keys(CTX); }
+function ctxFor(q){ const a = st(); if (a.ctxKeys) return a.ctxKeys; const tp = TOPICS.find(x => t(x.q) === q || x.q === q); return tp ? tp.ctx : Object.keys(CTX); }
 
 const answerLang = () => ({ en: "English", "zh-TW": "繁體中文" })[locale()] || "简体中文";
+/* 从定制流程（睡前安然、冲突管理、趋势）带着记录来问：系统提示换成「家庭教养顾问」，附带的记录摘要放在 st().extra 里 */
+function familySystem(){
+  return `你是一位温和、谨慎的儿童发展与家庭教养顾问，服务基督徒家庭，认同「安抚多过刑罚，不等于不管教：安抚是为了恢复孩子的安全感，管教是为了帮助孩子学习正确的行为」。用${answerLang()}回答家长。
+依据孩子的年龄段和下面给出的记录（孩子和大人两方面都要看），按这个顺序回答，每部分 1–3 句，总共 350 字（英文 250 词）以内：
+1. 可能的原因（结合年龄，不贴标签）；
+2. 对已经试过的做法的评价：哪些值得继续、哪些可以调整；
+3. 接下来可以试的 2–3 条具体做法，和一句可以对孩子说的话；
+4. 给家长自己的一句提醒（包括大人当时的状态，必要时提到换人接手、事后向孩子道歉修复）。
+不建议体罚、羞辱、威胁或制造恐惧；不做诊断；涉及安全、持续而严重的情况，建议找儿科医生或儿童心理专业人员。只在有依据时引用给出的数据。`;
+}
 function systemPrompt(){
+  if (st().mode === "family") return familySystem();
   return `你是一位谨慎、温和的在家教育（homeschool）顾问，用${answerLang()}回答家长。
 依据孩子的年龄和下面给出的学习情况，给出具体、可操作的建议；尊重家长的判断，不下结论、不贴标签。
 控制在 250 字（英文 180 词）以内，分 2–4 个短段落或要点；只在确有依据时引用给出的数据。
 如果问题超出教育范畴（医疗、心理诊断等），提醒家长咨询专业人士。`;
 }
-function userPrompt(q, withContext){ const c = withContext ? contextText(ctxFor(q)) : ""; return c ? `${c}\n\n问题：${q}` : q; }
+function userPrompt(q, withContext){ const a = st(), c = withContext ? [contextText(ctxFor(q)), a.extra].filter(Boolean).join("\n") : ""; return c ? `${c}\n\n问题：${q}` : q; }
 const promptText = (q, withContext) => `${systemPrompt()}\n\n${userPrompt(q, withContext)}`;
 
 /* ---- 页面 ---- */
@@ -139,13 +150,14 @@ function viewAsk(){
   const a = st(), ready = aiReady();
   const topics = TOPICS.map(x => `<button type="button" class="chip" data-act="ask-topic" data-topic="${x.id}" aria-pressed="${a.q === t(x.q)}">${x.icon} ${t(x.name)}</button>`).join("");
   const sites = AI_SITES.map(([n, u]) => `<a class="chip" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
-  const sent = loaded() ? (a.withContext ? contextText(ctxFor(a.q)) : "") : "";
+  const sent = a.withContext ? [loaded() ? contextText(ctxFor(a.q)) : "", a.extra].filter(Boolean).join("\n") : "";
   return `<h2>${aiIcon(26)} ${t("咩咩咩")} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${loaded() ? `${esc(childName())} · ${esc(ageText())}` : t("登录并进入家庭后，回答会结合孩子的学习情况")}</span></h2>
   <p class="small muted">${ready ? t("问孩子在家教育里的任何事：今天的课怎么调、经文怎么背、孩子不配合怎么办。会附上孩子的年龄、今日任务、近一周完成情况和背诵进度（不含备注和姓名），答案就在下面出现。") : t("还没填 API key：点「复制提示词」，会把问题连同孩子最近的学习情况一起复制，打开任一 AI 粘贴即可；也可以点「填 API key」，直接在这里出答案。")}</p>
   <div class="chips" role="group" aria-label="${t("常见场景")}">${topics}</div>
+  ${a.extra ? `<div class="alert info ask-extra"><span>${t("已附带：{n}（点下面「会发送什么」看原文）", { n: esc(a.extraName || t("定制流程的记录摘要")) })}</span> <button type="button" class="chip" data-act="ask-extra-clear">${t("不带这个")}</button></div>` : ""}
   <form id="askForm" class="panel ask" onsubmit="return false">
     <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
-    <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
+    <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${a.extra ? t("附带孩子最近的情况和上面的记录摘要（含你写的处理办法，不含姓名和备注）") : t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
     <div class="btns">${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
       <button type="button" class="btn ${ready ? "" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
       <button type="button" class="btn" data-act="ask-cfg">${ready ? t("换模型") : t("填 API key")}</button></div>
@@ -168,7 +180,8 @@ function readInputs(){
 async function askAct(act, el){
   const a = st(); readInputs();
   switch (act) {
-    case "ask-topic": { const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; } render(); break; }
+    case "ask-topic": { const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; a.extra = ""; a.extraName = ""; a.mode = ""; a.ctxKeys = null; } render(); break; }
+    case "ask-extra-clear": a.extra = ""; a.extraName = ""; a.mode = ""; a.ctxKeys = null; render(); break;
     case "ask-send": {
       if (!a.q) { a.error = t("先写一句要问的"); render(); break; }
       a.busy = true; a.error = null; render();
@@ -193,4 +206,10 @@ async function askAct(act, el){
   return true;
 }
 
-export { viewAsk, askAct, aiIcon, TOPICS };
+/** 带着记录来问：q 是预填的问题，extra 是记录摘要（会随提问一起发送，页面上能看到原文），from 是返回的上一层页签 */
+function askAbout({ q, extra, name, from }){
+  const a = st(); Object.assign(a, { q, extra: extra || "", extraName: name || "", mode: "family", ctxKeys: [], answer: null, error: null, withContext: true });
+  (S.from ||= {}).ask = from || "flows"; S.tab = "ask"; render(); window.scrollTo(0, 0);
+}
+
+export { viewAsk, askAct, askAbout, aiIcon, TOPICS };

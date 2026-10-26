@@ -2,6 +2,7 @@ import { t, tc } from "./core/i18n.js";
 import { S } from "./core/state.js";
 import { $, dayKey, esc, toast } from "./core/util.js";
 import { ANCHOR_REF } from "./data/bedtime.js";
+import { SIDES } from "./data/flows.js";
 import { memberName } from "./core/auth.js";
 import { render } from "./views.js";
 
@@ -23,7 +24,7 @@ async function openPlayer(api){
   const c = api.cfg;
   P = { api, c, text: api.text, steps: c.steps.filter(s => !s.skip).map(s => ({ ...s })), i: 0, startedAt: now(), stepStart: now(), actual: [], offset: {}, played: new Set(),
     audio: null, url: null, textOn: true, lyricsOn: false, casesOn: false, flagged: false, fading: false, ext: 0, done: false, timer: null, blocked: false, loading: false,
-    readIdx: Math.max(0, api.readings.findIndex(r => r.ref === c.reading)), kids: new Set(api.kids.map(k => k.id)), led: S.user ? memberName(S.user.id) : (api.members[0] || ""), note: "", saving: false };
+    readIdx: Math.max(0, api.readings.findIndex(r => r.ref === c.reading)), kids: new Set(api.kids.map(k => k.id)), led: S.user ? memberName(S.user.id) : (api.members[0] || ""), note: "", childSt: "", parentSt: "", saving: false };
   const host = document.createElement("div"); host.id = "btplay"; host.className = "btp"; document.body.appendChild(host);
   document.body.classList.add("bt-playing");
   P.timer = setInterval(tick, 1000);
@@ -110,7 +111,7 @@ function verseBlock(ref, extra = ""){
     if (v) { parts.push(`<p class="btp-verse">${esc(v.text)}</p>`); continue; }
     const err = P.api.verseError(ref, l);
     if (err) parts.push(`<p class="btp-verse muted small">${t("没抓到")}：${esc(err)}</p>`);
-    else { parts.push(`<p class="btp-verse muted">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</p>`); P.api.ensureVerse(ref, l).then(() => { if (P && !P.done) draw(); }); } }
+    else { parts.push(`<p class="btp-verse muted">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</p>`); P.api.ensureVerse(ref, l).then(ok => { if (ok && P && !P.done) draw(); }); } }
   return `<div class="btp-ref">${esc(tc(ref))}${extra}</div>${parts.join("")}`;
 }
 function textHTML(st){
@@ -172,6 +173,8 @@ function finishHTML(){
   <div class="btp-form">
     <div class="lab">${t("谁参加了")}</div><div class="seg">${P.api.kids.map(k => `<button data-act="btp-kid" data-id="${esc(k.id)}" aria-pressed="${P.kids.has(k.id)}">${esc(k.name || t("宝宝"))}</button>`).join("")}</div>
     <div class="lab">${t("谁带的")}</div><div class="seg">${leds.map(m => `<button data-act="btp-led" data-v="${esc(m)}" aria-pressed="${P.led === m}">${esc(m)}</button>`).join("")}</div>
+    <div class="lab">${t("孩子今晚的状态")}</div><div class="seg">${SIDES.night.child.map(x => `<button data-act="btp-cs" data-v="${esc(x)}" aria-pressed="${P.childSt === x}">${t(x)}</button>`).join("")}</div>
+    <div class="lab">${t("大人今晚的状态")}</div><div class="seg">${SIDES.night.parent.map(x => `<button data-act="btp-ps" data-v="${esc(x)}" aria-pressed="${P.parentSt === x}">${t(x)}</button>`).join("")}</div>
     <div class="lab">${t("一句备注（可空）：今天处理了什么、孩子说了什么感恩的事")}</div><textarea id="btpNote" rows="2">${esc(P.note)}</textarea>
   </div>
   <div class="btp-acts"><button class="btp-next" data-act="btp-save" ${P.saving ? "disabled" : ""}>${P.saving ? t("保存中…") : t("记下今晚 ✓")}</button></div>
@@ -203,13 +206,15 @@ async function playAct(act, btn){
     case "btp-read-next": P.readIdx = (P.readIdx + 1) % P.api.readings.length; draw(); break;
     case "btp-kid": P.kids.has(d.id) ? P.kids.delete(d.id) : P.kids.add(d.id); readNote(); draw(); break;
     case "btp-led": P.led = d.v; readNote(); draw(); break;
+    case "btp-cs": P.childSt = P.childSt === d.v ? "" : d.v; readNote(); draw(); break;
+    case "btp-ps": P.parentSt = P.parentSt === d.v ? "" : d.v; readNote(); draw(); break;
     case "btp-extend": { // 回到最后一步，音乐再放 5 分钟
       readNote(); P.done = false; P.keepMusic = false; const i = P.steps.length - 1; P.i = i; P.stepStart = now(); P.ext = 300; P.flagged = false; P.fading = false; draw();
       if (P.audio) { P.audio.volume = P.volume == null ? 0.6 : P.volume; P.audio.play().catch(() => {}); } else await playSong(P.song); break; }
     case "btp-save": { readNote(); P.saving = true; draw();
       const r = P.api.readings[P.readIdx] || {}, log = { date: dayKey(P.startedAt), started_at: new Date(P.startedAt).toISOString(), ended_at: new Date(P.endedAt).toISOString(),
         planned_min: P.steps.reduce((a, s) => a + (+s.minutes || 0), 0), actual_min: Math.max(1, Math.round((P.endedAt - P.startedAt) / 60000)), children: [...P.kids], led_by: P.led || "",
-        version: P.text.name, passage: r.ref || "", songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]) })), note: P.note };
+        version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]) })), note: P.note };
       try { await P.api.saveLog(log); closePlayer(); toast(t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
       break; }
     case "btp-close": closePlayer(); render(); break;

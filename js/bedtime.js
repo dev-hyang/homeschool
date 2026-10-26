@@ -8,7 +8,8 @@ import { fetchPassage, parseRef } from "./data/bible.js";
 import { ANCHOR_EN, ANCHOR_REF, ANCHOR_ZH, FLOW_TEMPLATES, GUIDE, OUTCOMES, PARENT_LINES, PRINCIPLES, READINGS, SITUATIONS, SONG_IDEAS, SONG_TAGS, TEXT_TEMPLATE } from "./data/bedtime.js";
 import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
-import { CONFLICTS } from "./data/flows.js";
+import { CONFLICTS, SIDES } from "./data/flows.js";
+import { recordsHTML } from "./recfilter.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
@@ -18,7 +19,7 @@ import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
    歌单在 hs_bedtime_songs（音频在 media 桶），每晚的完成记录在 hs_bedtime_logs（迁移 019）。
    深夜网络不稳也要能用：配置和歌单在本机留一份（localStorage），音频下载过一次就存在 IndexedDB；
    没连上云端时播放页照常打开，完成记录先排队，下次联网自动补传。播放页在 js/bedtime-play.js。 */
-S.bt = { loaded: false, missing: false, error: null, songs: [], logs: [], events: [], cached: new Set(), pending: loadJSON(LS_PREFIX + ".bedtime.pending", []), pendingEv: loadJSON(LS_PREFIX + ".bedtime.pendingEv", []) };
+S.bt = { loaded: false, missing: false, sideCols: null, error: null, songs: [], logs: [], events: [], cached: new Set(), pending: loadJSON(LS_PREFIX + ".bedtime.pending", []), pendingEv: loadJSON(LS_PREFIX + ".bedtime.pendingEv", []) };
 const CACHE_KEY = LS_PREFIX + ".bedtime", PEND_KEY = LS_PREFIX + ".bedtime.pending", PENDEV_KEY = LS_PREFIX + ".bedtime.pendingEv", VERSE_KEY = LS_PREFIX + ".bedtime.verses";
 const fid = () => S.family && S.family.id;
 const online = () => S.cloud === "ready" && S.hs.loaded && !!SB.client;
@@ -114,7 +115,7 @@ function verseText(ref, lang){
 const fetching = new Set(), failed = new Map();
 const RETRY_MS = 10 * 60e3;
 let renderTimer = null;
-function scheduleRender(){ clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (BT_TABS.has(S.tab) && !playerOpen()) render(); }, 300); }
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer = setTimeout(() => { if ((BT_TABS.has(S.tab) || LIVE_EXTRA.has(S.tab)) && !playerOpen()) render(); }, 300); }
 const verseError = (ref, lang) => { const f = failed.get(vkey(ref, lang)); return f && Date.now() - f.ts < RETRY_MS ? f.msg : ""; };
 function retryVerse(ref){ for (const l of ["zh", "en"]) failed.delete(vkey(ref, l)); }
 async function ensureVerse(ref, lang){
@@ -123,7 +124,7 @@ async function ensureVerse(ref, lang){
   const f = failed.get(k); if (f && Date.now() - f.ts < RETRY_MS) return false;
   fetching.add(k);
   try { const fv = fetchVersions(), r = await fetchPassage(ref, lang === "en" ? fv.en : fv.zh, S.hs.settings.esvProxy); const st = verseStore(); st[k] = r.text; saveJSON(VERSE_KEY, st); failed.delete(k); return true; }
-  catch (e) { console.warn("verse", ref, lang, e.message); failed.set(k, { ts: Date.now(), msg: e.message || String(e) }); return false; }
+  catch (e) { console.warn("verse", ref, lang, e.message); failed.set(k, { ts: Date.now(), msg: e.message || String(e) }); return "failed"; }   // 真的抓过：成功 true、失败 "failed"（都值得重绘一次）；没抓（已有 / 正在抓 / 刚失败过）false
   finally { fetching.delete(k); }
 }
 // 今晚要读的都取回来（主锚点 + 今晚那段，中英都取）
@@ -162,6 +163,8 @@ async function loadBedtime(){
   const bad = (sg.error && sg) || (lg.error && lg) || (ev.error && ev);
   if (bad) { console.error(bad.error); S.bt = { ...S.bt, loaded: false, missing: missingTable(bad.error), error: bad.error.message || "error", songs: [], logs: [], events: [] }; writeCache(); return; }
   S.bt = { ...S.bt, loaded: true, missing: false, error: null, songs: sg.data || [], logs: lg.data || [], events: ev.data || [] }; sortEvents();
+  // 迁移 020 加的「孩子 / 大人状态」两列：任一行带该字段即视为已迁移；没有行时探测一次。没迁移时存的时候折进备注（withSides）
+  S.bt.sideCols = (ev.data || []).length ? ("parent_state" in ev.data[0]) : !(await SB.client.from("hs_bedtime_events").select("parent_state").eq("family_id", f).limit(1)).error;
   writeCache();
   await flushPending();
   prefetchTonight().catch(() => {});
@@ -170,10 +173,10 @@ async function loadBedtime(){
 async function flushPending(){
   if (!S.bt.pending.length || !online()) return;
   const left = [], before = S.bt.pending.length;
-  for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...row, family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); } catch (e) { left.push(row); } }
+  for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); } catch (e) { left.push(row); } }
   S.bt.pending = left; saveJSON(PEND_KEY, left); sortLogs();
   const leftEv = [];
-  for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...row, family_id: fid() }).select().single()); put(S.bt.events, saved); await mirrorEvent(saved); } catch (e) { leftEv.push(row); } }
+  for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.events, saved); await mirrorEvent(saved); } catch (e) { leftEv.push(row); } }
   const beforeEv = S.bt.pendingEv.length; S.bt.pendingEv = leftEv; saveJSON(PENDEV_KEY, leftEv); sortEvents();
   if (left.length < before || leftEv.length < beforeEv) toast(t("离线时的睡前记录已补传"));
 }
@@ -222,8 +225,19 @@ async function moveSong(id, dir){
 }
 
 /* ---- 完成记录 ---- */
+/* 孩子 / 大人状态：有两列（迁移 020）就原样存；没有就折进备注，不丢 */
+function withSides(row){
+  if (S.bt.sideCols === true) return row;
+  const r = { ...row }, add = [];
+  if (r.child_state) add.push(`孩子：${r.child_state}`); if (r.parent_state) add.push(`大人：${r.parent_state}`);
+  delete r.child_state; delete r.parent_state;
+  if (add.length) r.note = [r.note, add.join("；")].filter(Boolean).join("；");
+  return r;
+}
+const sidesLine = x => [x.child_state && `${t("孩子")}：${t(x.child_state)}`, x.parent_state && `${t("大人")}：${t(x.parent_state)}`].filter(Boolean).map(s => " · " + s).join("");
+const sidesHint = () => S.bt.sideCols === false ? `<div class="alert info">${t("还没有「孩子 / 大人状态」两列（数据库迁移 020）：现在这两项先折进备注里，不丢；执行迁移后才能在趋势图里统计。")}</div>` : "";
 async function saveLog(log){
-  const row = { id: log.id || newId(), ...log };
+  const row = withSides({ id: log.id || newId(), ...log });
   if (!online()) { S.bt.pending.push(row); saveJSON(PEND_KEY, S.bt.pending); toast(t("没连上云端：记录先存在这台设备，联网后自动补传")); return row; }
   const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...row, family_id: fid() }).select().single());
   put(S.bt.logs, saved); sortLogs();
@@ -250,7 +264,7 @@ async function mirrorLog(l, remove = false){
 }
 /* 状况记录：离线时同样先排队 */
 async function saveEvent(ev){
-  const row = { id: ev.id || newId(), ...ev };
+  const row = withSides({ id: ev.id || newId(), ...ev });
   if (!online()) { S.bt.pendingEv.push(row); saveJSON(PENDEV_KEY, S.bt.pendingEv); toast(t("没连上云端：记录先存在这台设备，联网后自动补传")); return row; }
   const old = S.bt.events.find(x => x.id === row.id);
   const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...row, family_id: fid() }).select().single());
@@ -268,7 +282,7 @@ async function deleteEvent(id){
    所以改这笔会更新小月亮那条、删这笔会把那条标成已删，不会重复。小月亮 → 这里是只读（见 js/flows.js）。可在冲突管理页关掉。 */
 async function mirrorEvent(ev, { remove = false, only = null } = {}){
   if (!isCf(ev) || !SB.client || cfg().mirrorConflict === false) return;
-  const sit = CONFLICTS.find(x => x.id === ev.situation), kind = (sit && sit.write) || "发脾气", today = dayKey(Date.now());
+  const sit = CONFLICTS.find(x => x.id === ev.situation) || cfg().situations.find(x => x.id === ev.situation), kind = (sit && sit.write) || "发脾气", today = dayKey(Date.now());
   const ts = ev.date === today ? Date.now() : new Date(ev.date + "T12:00:00").getTime(), now = Date.now();
   const trigger = [sit ? sit.when : "", ev.title].filter(Boolean).join("：") || "冲突";
   for (const child of (only || ev.children || [])) {
@@ -283,6 +297,7 @@ const nightsIn = (from, to) => S.bt.logs.filter(l => l.date >= from && l.date <=
 const lastLog = () => S.bt.logs[0] || null;
 
 /* ============ 页面 ============ */
+const LIVE_EXTRA = new Set(["flow-conflict", "flow-trend"]);   // 这些页签里也有要等抓取结果的经文
 const BT_TABS = new Set(["flows", "bedtime", "bt-flow", "bt-songs", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
 const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需要数据库迁移 019。")}${t("请在 Supabase 执行本地")} <code>supabase/migrations/019_bedtime.sql</code>${t("，然后刷新。")}${t("流程、带领词和经文清单不受影响。")}</div>`;
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
@@ -461,9 +476,9 @@ function viewCases(){
       ${st.keep.length ? `<div class="bt-keep"><b class="small">${t("我们家验证过的做法")}</b>${st.keep.map(e => `<div class="small">✓ ${esc(e.approach)} <span class="muted">· ${e.date}</span></div>`).join("")}</div>` : ""}
       <div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-sit-edit" data-id="${esc(s.id)}">${t("改模板")}</button>${s.edited ? `<button class="chip" data-act="bt-sit-reset" data-id="${esc(s.id)}">${t("恢复内置")}</button>` : ""}</div></div>`; };
   const evRow = e => `<div class="task"><span class="bar" style="background:${e.outcome === "calm" ? "var(--sage)" : e.outcome === "worse" ? "var(--rose)" : "var(--honey)"}"></span>
-    <button class="main" data-act="bt-ev-edit" data-id="${esc(e.id)}"><span class="title">${esc(e.date)} · ${esc(tc(sitName(e, c)))}${e.keep ? " ★" : ""}</span><span class="meta">${(e.children || []).map(kidName).join("、")}${e.outcome ? ` · ${outcomeLabel(e.outcome)}` : ""}${e.minutes != null ? ` · ${t("{n} 分钟", { n: e.minutes })}` : ""}${e.approach ? `<br>${esc(e.approach)}` : ""}${e.note ? `<br><span class="muted">${esc(e.note)}</span>` : ""}</span></button><span class="acts"><button class="chip" data-act="bt-ev-keep" data-id="${esc(e.id)}" aria-pressed="${!!e.keep}">${e.keep ? t("值得继续 ★") : t("值得继续")}</button></span></div>`;
+    <button class="main" data-act="bt-ev-edit" data-id="${esc(e.id)}"><span class="title">${esc(e.date)} · ${esc(tc(sitName(e, c)))}${e.keep ? " ★" : ""}</span><span class="meta">${(e.children || []).map(kidName).join("、")}${e.outcome ? ` · ${outcomeLabel(e.outcome)}` : ""}${sidesLine(e)}${e.minutes != null ? ` · ${t("{n} 分钟", { n: e.minutes })}` : ""}${e.approach ? `<br>${esc(e.approach)}` : ""}${e.note ? `<br><span class="muted">${esc(e.note)}</span>` : ""}</span></button><span class="acts"><button class="chip" data-act="bt-ev-keep" data-id="${esc(e.id)}" aria-pressed="${!!e.keep}">${e.keep ? t("值得继续 ★") : t("值得继续")}</button></span></div>`;
   return `${h2(t("状况与应对"))}
-  ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
+  ${offlineHTML()}${S.bt.missing ? migrateHTML() : sidesHint()}
   <div class="panel bt-principle"><p style="margin-top:0"><b>${esc(tc(PRINCIPLES.core))}</b></p>
     ${PRINCIPLES.verses.map(v => `<p class="small"><b>${esc(tc(v.ref))}</b> ${esc(lang === "en" ? v.en : tc(v.zh))}</p>`).join("")}
     <p class="small">${esc(tc(PRINCIPLES.boundary))}</p><p class="small muted" style="margin-bottom:0">${esc(tc(PRINCIPLES.notEvery))}</p></div>
@@ -473,7 +488,7 @@ function viewCases(){
   <h2>${t("常见状况")}</h2>
   ${list.map(card).join("")}
   <h2>${t("最近的记录")}</h2>
-  <div class="panel">${btEvents().length ? `<div class="tasks">${btEvents().slice(0, 40).map(evRow).join("")}</div>` : `<div class="empty">${t("还没有记录。遇到状况时在播放页点「遇到状况」记一笔，或者在这里补记。")}</div>`}</div>
+  ${recordsHTML("bt-ev", btEvents(), evRow, null, t("还没有记录。遇到状况时在播放页点「遇到状况」记一笔，或者在这里补记。"))}
   ${S.bt.pendingEv.length ? `<p class="small muted" style="margin-top:8px">${t("还有 {n} 条离线记录等着联网补传。", { n: S.bt.pendingEv.length })}</p>` : ""}`;
 }
 const sitFields = [
@@ -486,6 +501,7 @@ const evFields = c => [
   { k: "children", label: "谁", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "approach", label: "怎么处理的", type: "area", rows: 4, ph: "温柔坚定说了一次，陪回床上三次，没有谈判" }, { k: "minutes", label: "花了几分钟", type: "num" },
   { k: "outcome", label: "结果", type: "seg", opts: OUTCOMES }, { k: "keep", label: "这个做法值得继续用（会列在状况卡上）", type: "check" },
+  { k: "child_state", label: "孩子当时的状态", type: "seg", opts: SIDES.event.child.map(x => [x, x]) }, { k: "parent_state", label: "大人当时的状态", type: "seg", opts: SIDES.event.parent.map(x => [x, x]) },
   { k: "note", label: "备注（可空）：孩子的反应、明天要跟进什么", type: "area" }];
 async function saveSituations(list){ await saveCfg({ situations: list }); }
 const verFields = [
@@ -503,7 +519,7 @@ function viewReadings(){
     if (v) parts.push(`<span class="verse">${esc(v.text)} <span class="small muted">（${esc(v.version)}）</span></span>`);
     else { const err = verseError(r.ref, l);
       if (err) parts.push(`<span class="verse small" style="color:var(--rose)">${t("没抓到")}（${l === "en" ? "EN" : "中"}）：${esc(err)} <button class="chip" data-act="bt-read-retry" data-ref="${esc(r.ref)}">${t("再试")}</button></span>`);
-      else { ensureVerse(r.ref, l).then(scheduleRender); parts.push(`<span class="verse muted small">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</span>`); } } }
+      else { ensureVerse(r.ref, l).then(ok => { if (ok) scheduleRender(); }); parts.push(`<span class="verse muted small">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</span>`); } } }
     return parts.join(""); };
   const row = r => `<div class="task ${r.ref === c.reading ? "done" : ""}"><span class="bar" style="background:${r.ref === c.reading ? "var(--sage)" : r.ref === ANCHOR_REF ? "var(--honey)" : "var(--line)"}"></span>
     <div class="main"><span class="title" style="text-decoration:none;color:var(--ink)"><b>${esc(tc(r.ref))}</b>${r.ref === c.reading ? ` <span class="pill ok">${t("今晚")}</span>` : ""}${r.ref === ANCHOR_REF && c.anchor ? ` <span class="pill lv">${t("每晚先读")}</span>` : ""}</span>${show(r)}<span class="meta">${esc(tc(r.lead))}${r.ask ? ` · ${t("问")}：${esc(tc(r.ask))}` : ""}</span></div>
@@ -522,20 +538,22 @@ function viewLogs(){
   const avg = l => l.length ? Math.round(l.reduce((a, x) => a + (+x.actual_min || 0), 0) / l.length) : 0;
   const over = month.filter(x => x.planned_min && x.actual_min > x.planned_min + 5).length;
   const row = l => `<div class="task"><span class="bar" style="background:${l.actual_min > (l.planned_min || 0) + 5 ? "var(--honey)" : "var(--sage)"}"></span>
-    <button class="main" data-act="bt-log-edit" data-id="${esc(l.id)}"><span class="title">${esc(l.date)} · ${t("{n} 分钟", { n: l.actual_min })}${l.planned_min ? ` <span class="small muted">/ ${t("计划 {n}", { n: l.planned_min })}</span>` : ""}</span><span class="meta">${(l.children || []).map(kidName).join("、") || t("没记孩子")}${l.led_by ? ` · ${esc(l.led_by)}${t("带")}` : ""}${l.passage ? ` · ${esc(tc(l.passage))}` : ""}${l.songs && l.songs.length ? ` · ♪ ${esc(l.songs.join("、"))}` : ""}${l.version ? ` · ${esc(l.version)}` : ""}${l.note ? `<br>${esc(l.note)}` : ""}</span></button><span></span></div>`;
+    <button class="main" data-act="bt-log-edit" data-id="${esc(l.id)}"><span class="title">${esc(l.date)} · ${t("{n} 分钟", { n: l.actual_min })}${l.planned_min ? ` <span class="small muted">/ ${t("计划 {n}", { n: l.planned_min })}</span>` : ""}</span><span class="meta">${(l.children || []).map(kidName).join("、") || t("没记孩子")}${l.led_by ? ` · ${esc(l.led_by)}${t("带")}` : ""}${l.passage ? ` · ${esc(tc(l.passage))}` : ""}${l.songs && l.songs.length ? ` · ♪ ${esc(l.songs.join("、"))}` : ""}${l.version ? ` · ${esc(l.version)}` : ""}${sidesLine(l)}${l.note ? `<br>${esc(l.note)}` : ""}</span></button><span></span></div>`;
   return `${h2(t("记录"))}
   ${S.bt.missing ? migrateHTML() : ""}
   <div class="panel"><div class="stats"><div class="stat"><div class="v">${week.length}<small>/7</small></div><div class="k">${t("本周")}</div></div><div class="stat"><div class="v">${month.length}<small>/30</small></div><div class="k">${t("近 30 天")}</div></div><div class="stat"><div class="v">${avg(month)}<small>${t("分")}</small></div><div class="k">${t("平均时长")}</div></div><div class="stat"><div class="v">${over}</div><div class="k">${t("拖长的晚上")}</div></div></div>
     <p class="small muted" style="margin:8px 0 0">${t("看的不只是有没有做：睡前争执是否减少、孩子是否更愿意认错、被纠正后能否重新连接。入睡时间在小月亮的睡眠记录里对照。")}</p></div>
   <div class="btns"><button class="btn" data-act="bt-log-add">＋ ${t("补记一晚")}</button></div>
-  <div class="panel" style="margin-top:10px">${S.bt.logs.length ? `<div class="tasks">${S.bt.logs.map(row).join("")}</div>` : `<div class="empty">${t("还没有记录。做完一次睡前流程，这里就有了。")}</div>`}</div>
+  ${recordsHTML("bt-log", S.bt.logs, row, null, t("还没有记录。做完一次睡前流程，这里就有了。"))}
   ${S.bt.pending.length ? `<p class="small muted" style="margin-top:8px">${t("还有 {n} 条离线记录等着联网补传。", { n: S.bt.pending.length })}</p>` : ""}`;
 }
 const logFields = () => [
   { k: "date", label: "哪一晚", type: "date" }, { k: "actual_min", label: "实际几分钟", type: "num" },
   { k: "children", label: "谁参加了", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "led_by", label: "谁带的", type: "seg", raw: true, opts: [...new Set([...members(), "爸爸", "妈妈"])].map(m => [m, m]) },
-  { k: "passage", label: "读了哪段（可空）", type: "text" }, { k: "note", label: "一句备注（今天处理了什么、孩子说了什么）", type: "area" }];
+  { k: "passage", label: "读了哪段（可空）", type: "text" },
+  { k: "child_state", label: "孩子今晚的状态", type: "seg", opts: SIDES.night.child.map(x => [x, x]) }, { k: "parent_state", label: "大人今晚的状态", type: "seg", opts: SIDES.night.parent.map(x => [x, x]) },
+  { k: "note", label: "一句备注（今天处理了什么、孩子说了什么）", type: "area" }];
 
 /* ============ 事件 ============ */
 async function btAct(act, btn){
@@ -601,4 +619,4 @@ function btChange(ev){
   return playChange(ev);
 }
 
-export { cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+export { verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

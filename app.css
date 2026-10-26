@@ -539,3 +539,22 @@ body.bt-playing{overflow:hidden}
 .cf-why{margin:10px 0 4px;line-height:1.6}
 .cf-others{margin:4px 0}
 .cf-others summary{cursor:pointer;padding:4px 0}
+
+/* 记录的日期筛选与时间线（js/recfilter.js）、冲突管理的经文全文、咩咩咩附带的摘要 */
+.rf-bar{margin-top:6px}
+.rf-chips{margin:6px 0}
+.rf-chips .chip{min-height:34px;padding:5px 11px}
+.rf-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.rf-view button{min-height:36px;padding:6px 12px;font-size:14px}
+.tl{border-left:2px solid var(--line);margin-left:6px;padding-left:14px}
+.tl-day{position:relative;margin-bottom:12px}
+.tl-day::before{content:"";position:absolute;left:-21px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--slate);border:2px solid var(--surface)}
+.tl-head{margin-bottom:4px}
+.tl-item{border-top:1px solid var(--line)}
+.tl-item:first-of-type{border-top:0}
+.tl-item .task{border-bottom:0}
+.cf-verse-box{margin:8px 0 0;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft)}
+.cf-verse{margin:3px 0;font-size:14.5px;line-height:1.6}
+.ask-extra{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13.5px}
+.bt-ask .chips{margin:10px 0 0}
+.ai-sites a.chip{text-decoration:none}

@@ -20,6 +20,8 @@ import { render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { cfAct } from "./flows.js";
+import { trAct } from "./flows-trend.js";
+import { setFilter } from "./recfilter.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -76,6 +78,8 @@ document.addEventListener("click", async ev => {
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
   if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 咩咩咩（js/ask.js）
+  if (d.act === "rf-set") { setFilter(d.key, d); render(); return; }   // 记录的日期筛选 / 列表 · 时间线（js/recfilter.js）
+  if (d.act && d.act.startsWith("tr-")) { try { await trAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 趋势与分析、问咩咩咩（js/flows-trend.js）
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {

@@ -7,8 +7,19 @@
 /* 流程清单：tab 是页签键；以后新增流程加在这里（hub 页按这个顺序列出） */
 const FLOWS = [
   { id: "bedtime", tab: "bedtime", icon: "🌙", name: "睡前安然", desc: "以诗篇 4:8 为中心的睡前敬拜流程：歌、经文、祷告、带领词；深色播放页；遇到状况当场记一笔" },
-  { id: "conflict", tab: "flow-conflict", icon: "⚑", name: "冲突管理", desc: "害怕、怕生、不愿分享、抢东西、打人、咬人、发脾气：按年龄解释为什么、怎么做、怎么说，结合小月亮的记录看趋势" }
+  { id: "conflict", tab: "flow-conflict", icon: "⚑", name: "冲突管理", desc: "害怕、怕生、不愿分享、抢东西、打人、咬人、发脾气：按年龄解释为什么、怎么做、怎么说，结合小月亮的记录看趋势" },
+  { id: "trend", tab: "flow-trend", icon: "📈", name: "趋势与分析", desc: "睡眠、睡前流程、冲突的趋势，大人和孩子两方面，可以让咩咩咩分析" }
 ];
+
+/* 小月亮「情绪行为」可选的类别：自定义状况回填时从这里选一个 */
+const BL_KINDS = ["发脾气", "哭闹", "分离焦虑", "害怕", "打人/咬人", "分享合作", "开心"];
+/* 记录时「大人 / 孩子」两方面的描述（迁移 020 的 child_state / parent_state 两列；没执行时折进备注）。
+   heated = 算作「大人情绪升高」的选项，趋势图里单独数。 */
+const SIDES = {
+  event: { child: ["平静", "生气", "难过", "害怕", "累了", "兴奋", "委屈"], parent: ["平静", "有点急", "提高了声音", "发了脾气", "换人接手"] },
+  night: { child: ["安静入睡", "有点闹", "哭闹抗拒", "很晚才睡"], parent: ["平静", "有点累", "有点急", "发了脾气"] },
+  heated: ["提高了声音", "发了脾气", "有点急"]
+};
 
 const STAGE_NAME = { baby: "2 岁前", toddler: "2–3 岁", prek: "3–5 岁", school: "5 岁起" };
 
@@ -101,4 +112,4 @@ const CONFLICTS = [
     flag: "频繁、持续很久（超过 25 分钟）、会伤害自己，或学龄后仍几乎每天爆发：和儿科医生或儿童心理专业人员聊聊。" }
 ];
 
-export { FLOWS, CONFLICTS, STAGE_NAME };
+export { FLOWS, CONFLICTS, STAGE_NAME, BL_KINDS, SIDES };

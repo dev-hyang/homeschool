@@ -11,6 +11,7 @@ import { viewReports } from "./reports.js";
 import { viewIdeas, viewLibrary, viewResources, viewSources } from "./resources.js";
 import { viewScriptures } from "./library.js";
 import { viewConflict, viewFlows } from "./flows.js";
+import { viewTrend } from "./flows-trend.js";
 import { viewCalRoutines, viewRoutines } from "./routines.js";
 import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
@@ -21,10 +22,10 @@ import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewRe
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
 // 子页 → 所属页：顶上一条完整路径（‹ 我的 / 报告），底部仍高亮所属的页签。咩咩咩从哪进就以哪为父页（S.from 记录）
 const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me", ask: "me",
-  "res-scriptures": "resources", "res-sources": "resources", flows: "resources", "flow-conflict": "flows", "me-print": "me",
+  "res-scriptures": "resources", "res-sources": "resources", flows: "resources", "flow-conflict": "flows", "flow-trend": "flows", "me-print": "me",
   bedtime: "flows", "bt-flow": "bedtime", "bt-songs": "bedtime", "bt-texts": "bedtime", "bt-readings": "bedtime", "bt-logs": "bedtime", "bt-cases": "bedtime" };
 const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", "cal-routines": "周例行", reports: "报告", law: "法规", ask: "咩咩咩",
-  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "me-print": "打印",
+  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-trend": "趋势与分析", "me-print": "打印",
   bedtime: "睡前安然", "bt-flow": "流程", "bt-songs": "歌单", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
@@ -36,7 +37,7 @@ function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印�
   return `<nav class="crumb" aria-label="${t("位置")}">${parts.join(`<span class="sep" aria-hidden="true">/</span>`)}</nav>`;
 }
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
-  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "me-print": viewPrintHub,
+  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-trend": viewTrend, "me-print": viewPrintHub,
   bedtime: viewBedtime, "bt-flow": viewFlow, "bt-songs": viewSongs, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
