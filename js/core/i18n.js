@@ -48,7 +48,10 @@ const CONTENT = new Map();
 let refFmt = null;
 const addContent = (zh, en) => { if (typeof zh === "string" && zh && typeof en === "string" && en && !CONTENT.has(zh)) CONTENT.set(zh, en); };
 const setRefFormatter = f => { refFmt = f; };
-const enOf = s => { const hit = CONTENT.get(s); if (hit != null) return hit; const ui = EN[s]; if (ui != null) return ui; return refFmt ? refFmt(s) : null; };
+const RULES = [];   // 固定格式的句子：[正则, 函数]，查表没命中时按规则生成英文
+const addRules = list => { RULES.push(...list); };
+const byRule = s => { for (const [re, fn] of RULES) { const m = re.exec(s); if (m) return fn(m); } return null; };
+const enOf = s => { const hit = CONTENT.get(s); if (hit != null) return hit; const ui = EN[s]; if (ui != null) return ui; const r = byRule(s); if (r != null) return r; return refFmt ? refFmt(s) : null; };
 const tc = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } return cur === "zh-TW" ? s2t(s) : s; };
 const tb = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } if (cur === "zh-TW") return CONTENT.has(s) || EN[s] != null ? s2t(s) : s; return s; };
 function locale(){ return cur; }
@@ -56,4 +59,4 @@ function setLocale(l){ if (!LOCALES.some(x => x[0] === l)) return; cur = l; try 
 function applyLang(){ document.documentElement.lang = cur; document.title = t("家庭学堂") + " · " + t("在家教育"); }
 applyLang();
 
-export { LOCALES, t, tc, tb, addContent, setRefFormatter, locale, setLocale, s2t };
+export { LOCALES, t, tc, tb, addContent, addRules, setRefFormatter, locale, setLocale, s2t };

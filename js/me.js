@@ -13,7 +13,7 @@ function viewMe(){
   const ready = S.cloud === "ready" && S.hs.loaded;
   const who = ready ? t("{name} · {age}", { name: esc(childName()), age: esc(ageText()) }) : S.cloud === "signedout" ? t("还没登录") : S.cloud === "nofamily" ? t("还没加入家庭") : "";
   const row = mrow;
-  const link = (a) => `<a class="mrow" href="${a.url}"><span class="mi" aria-hidden="true">↗</span><span class="mt"><b>${esc(t(a.name))}</b><small>${tc(esc(a.desc))}</small></span><span class="mch" aria-hidden="true">›</span></a>`;
+  const link = (a) => `<a class="mrow" href="${a.url}"><span class="mi" aria-hidden="true">↗</span><span class="mt"><b>${esc(t(a.name))}</b><small>${esc(tc(a.desc))}</small></span><span class="mch" aria-hidden="true">›</span></a>`;
   return `
   <h2>${t("我的")}${who ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${who}</span>` : ""}</h2>
   <div class="panel mlist">

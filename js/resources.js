@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { S, ageMonths, childName } from "./core/state.js";
 import { esc } from "./core/util.js";
 import { SUBJECTS, subject } from "./data/subjects.js";
@@ -49,7 +49,7 @@ function viewIdeas(){
   const chip = (attr, val, label, cur) => `<button class="chip" data-if="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
   const color = subject(CATS[f.cat].subject).color, feed = f.mode !== "list";
   const item = ([x, i]) => `<div class="res"><span class="bar" style="background:${color}"></span>
-    <div class="v"><b>${tc(esc(x.t))}</b> <a class="small" href="${searchUrl(x)}" target="_blank" rel="noopener">${t("搜详情")}</a><div class="small">${tc(esc(x.h))}</div>${x.f ? `<div class="small muted">✝ ${tc(esc(x.f))}</div>` : ""}</div>
+    <div class="v"><b>${esc(tc(x.t))}</b> <a class="small" href="${searchUrl(x)}" target="_blank" rel="noopener">${t("搜详情")}</a><div class="small">${esc(tc(x.h))}</div>${x.f ? `<div class="small muted">✝ ${esc(tc(x.f))}</div>` : ""}</div>
     <button class="chip" data-act="idea-add" data-band="${band.id}" data-cat="${f.cat}" data-i="${i}" title="${t("加到{name}今天的任务", { name: esc(childName()) })}">${t("加到今天")}</button></div>`;
   return `<h2>${t("日常点子")}</h2>
   <div class="chips" role="group" aria-label="${t("来源")}">${chip("mode", "feed", t("每日新鲜（博客）"), feed ? "feed" : "list")}${chip("mode", "list", t("精选清单"), feed ? "feed" : "list")}${feed ? `<span style="flex-basis:100%"></span>${chip("lang", "en", t("English 博客"), f.lang)}${chip("lang", "zh", t("中文博客（在家教育 · 亲子）"), f.lang)}` : ""}</div>
@@ -60,10 +60,10 @@ function viewIdeas(){
 }
 const ideaSourcesHTML = () => `<p class="small muted">${t("<b>每日新鲜</b>直接读下面博客的 WordPress 公开接口（和经文抓取用 getBible 一个道理：无密钥、浏览器直取），每条都链接到原文；<b>精选清单</b>是内置的固定清单，每条带一个“搜详情”。年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 没有公开接口，抓不到，看到好的可以手动加进资源库。")}</p>
   <h2>${t("每日新鲜读的博客")}</h2>
-  ${FEEDS.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="https://${esc(s.host)}/" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${s.lang === "zh" ? t("中文") : t("英文")} · ${s.cats.map(c => t(CATS[c].name)).join(" / ")}</div></div><span></span></div>`).join("")}
+  ${FEEDS.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="https://${esc(s.host)}/" target="_blank" rel="noopener"><b>${esc(tc(s.name))}</b></a><div class="small muted">${s.lang === "zh" ? t("中文") : t("英文")} · ${s.cats.map(c => t(CATS[c].name)).join(" / ")}</div></div><span></span></div>`).join("")}
   <p class="small muted">${t("中文站少：吹号者（纽约华人在家教育事工）、在基督裡自學（台湾基督徒自学家庭，WordPress.com）、舉目（海外校园的亲子与教养文章）。它们的文章偏信仰与教养，手工类不多。知道别的开着公开接口的中文博客，告诉我们就能加。")}</p>
   <h2>${t("精选清单参考")}</h2>
-  ${IDEA_SOURCES.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(s.name)}</b></a><div class="small muted">${tc(esc(s.note))}</div></div><span></span></div>`).join("")}`;
+  ${IDEA_SOURCES.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(tc(s.name))}</b></a><div class="small muted">${esc(tc(s.note))}</div></div><span></span></div>`).join("")}`;
 
 /* ============ 资源页：链接、书目、视频、打印件，按领域 / 语言 / 类型筛选 ============ */
 S.resFilter = S.resFilter || { subject: "", lang: "", type: "" };
@@ -102,9 +102,9 @@ function viewLibrary(){
   const chip = (attr, val, label, cur) => `<button class="chip" data-rf="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
   const age = r => r.age_min != null || r.age_max != null ? ` · ${r.age_min ?? ""}${r.age_min != null && r.age_max != null ? "–" : ""}${r.age_max ?? ""} ${t("岁")}${r.age_min != null && r.age_max == null ? t("起") : ""}` : "";
   const row = r => `<div class="res"><span class="bar" style="background:${r.subject ? subject(r.subject).color : "var(--line)"}"></span>
-    <div class="v">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(r.title)}</b></a>` : `<b>${esc(r.title)}</b>`}
-      <div class="meta small muted">${TYPES[r.type] ? t(TYPES[r.type]) : esc(r.type)} · ${LANGS[r.lang] ? t(LANGS[r.lang]) : esc(r.lang)}${r.subject ? ` · ${esc(subject(r.subject).short)}` : ""}${age(r)}${r.source ? ` · ${esc(r.source)}` : ""}${(r.tags || []).length ? ` · ${r.tags.map(esc).join(" / ")}` : ""}</div>
-      ${r.note ? `<div class="small">${esc(r.note)}</div>` : ""}</div>
+    <div class="v">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(tb(r.title))}</b></a>` : `<b>${esc(tb(r.title))}</b>`}
+      <div class="meta small muted">${TYPES[r.type] ? t(TYPES[r.type]) : esc(r.type)} · ${LANGS[r.lang] ? t(LANGS[r.lang]) : esc(r.lang)}${r.subject ? ` · ${esc(subject(r.subject).short)}` : ""}${age(r)}${r.source ? ` · ${esc(tb(r.source))}` : ""}${(r.tags || []).length ? ` · ${r.tags.map(esc).join(" / ")}` : ""}</div>
+      ${r.note ? `<div class="small">${esc(tb(r.note))}</div>` : ""}</div>
     <button class="chip" data-act="res-edit" data-rid="${esc(r.id)}">${t("编辑")}</button></div>`;
   return `<h2>${t("资源库")}</h2>
   <div class="chips" role="group" aria-label="${t("领域")}">${chip("subject", "", t("全部"), f.subject)}${Object.keys(SUBJECTS).map(k => chip("subject", k, SUBJECTS[k].short, f.subject)).join("")}</div>

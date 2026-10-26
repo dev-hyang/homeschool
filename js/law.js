@@ -10,7 +10,7 @@ function lawState(){ try { const s = localStorage.getItem(KEY); return LAWS[s] ?
 function setLawState(s){ if (!LAWS[s]) return; try { localStorage.setItem(KEY, s); } catch (e) {} }
 
 function viewLaw(){
-  const cur = lawState(), L = LAWS[cur], c = s => tc(esc(s));
+  const cur = lawState(), L = LAWS[cur], c = s => esc(tc(s));
   const glance = [
     ["伊利诺伊", "不需要", "6–17", "无", "无"],
     ["密歇根", "不需要（豁免 f）", "6–18", "无", "无"],

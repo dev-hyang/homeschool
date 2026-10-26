@@ -7,7 +7,7 @@ import { showSheet } from "./sheet.js";
 /* ============ 介绍页：设计思路与使用说明（设置页和未登录引导里打开） ============
    正文是应用自带的中文内容：繁体界面逐字转换，英文界面保持中文，只翻译栏目标题。 */
 function openAbout(){
-  const A = ABOUT, c = s => tc(esc(s));
+  const A = ABOUT, c = s => esc(tc(s));
   $("#sheetIn").innerHTML = `<div class="sheet-head"><h3 id="sheetTitle">${esc(t("关于家庭学堂"))}</h3><span><button class="iconbtn" data-act="close" aria-label="${esc(t("关闭"))}">${esc(t("关闭"))}</button></span></div>
   <p>${c(A.intro)}</p>
   <h2>${t("设计原则")}</h2>

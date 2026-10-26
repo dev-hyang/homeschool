@@ -1,4 +1,4 @@
-import { t, tc } from "./core/i18n.js";
+import { t, tc, tb } from "./core/i18n.js";
 import { S, childName, stageOf } from "./core/state.js";
 import { esc } from "./core/util.js";
 import { GOAL_TEMPLATES, SCOPE_PREK } from "./data/seeds.js";
@@ -39,7 +39,7 @@ function nextHTML(sj, cid, units){
   if (!c.total) return `<div class="panel" style="margin-top:10px"><p class="small muted">${t("课程库里「{s}」在{st}没有预设单元，用“粘贴教材目录”或自己写。", { s: label, st: stageName || t("这个阶段") })}</p></div>`;
   if (!c.next) return `<div class="panel" style="margin-top:10px"><p class="small">${t("{st} 阶段「{s}」的 {n} 个单元都已生成", { st: stageName, s: label, n: c.total })}${allDone ? t("并完成") : ""}。${c.stage === "school" ? t("K 以后的内容来自你们选的教材，用“粘贴教材目录”继续。") : t("孩子进入下一阶段后这里会换成新的单元链；也可以用“粘贴教材目录”加自己的。")}</p></div>`;
   const row = tr => { const n = tr.next; if (!n) return `<div class="row" style="margin-top:6px"><div class="v small muted">${t("{track}轨道的 {n} 个单元都已生成。", { track: tc(tr.track), n: tr.total })}</div></div>`;
-    return `<div class="row" style="margin-top:6px"><div class="v"><span class="small muted">${stageName} · ${label}${tr.track ? ` · ${tc(tr.track)}` : ""} · ${t("第 {i}/{n} 单元", { i: n.index + 1, n: c.total })}</span><div><b>${t("下一单元：")}${tc(n.title)}</b></div><div class="small muted">${n.weeks ? t("建议 {w} 周", { w: n.weeks }) : ""}${n.lessons.length ? ` · ${t("{n} 节课时", { n: n.lessons.length })}` : ` · ${t("骨架单元，课时用“粘贴教材目录”填")}`}</div></div>
+    return `<div class="row" style="margin-top:6px"><div class="v"><span class="small muted">${stageName} · ${label}${tr.track ? ` · ${tc(tr.track)}` : ""} · ${t("第 {i}/{n} 单元", { i: n.index + 1, n: c.total })}</span><div><b>${t("下一单元：")}${tb(n.title)}</b></div><div class="small muted">${n.weeks ? t("建议 {w} 周", { w: n.weeks }) : ""}${n.lessons.length ? ` · ${t("{n} 节课时", { n: n.lessons.length })}` : ` · ${t("骨架单元，课时用“粘贴教材目录”填")}`}</div></div>
       <button class="btn ${allDone || !units.length ? "primary" : ""}" data-act="gen-next" data-sj="${sj}" data-track="${esc(tr.track)}">${t("生成")}</button></div>`; };
   return `<div class="panel ${allDone ? "next-hot" : ""}" style="margin-top:10px">${allDone ? `<div class="small muted">${t("当前单元已完成")}</div>` : ""}${c.tracks.map(row).join("")}</div>`;
 }
@@ -54,7 +54,7 @@ function viewCourse(){
   return `<h2>${t("课程")} · ${esc(childName())}</h2>
   <p class="small muted">${yearLine()}${S.hs.pacing ? "" : " " + t("节奏字段需要迁移 006。")}</p>
   <div class="panel mlist">
-    ${mrow('data-tab="course-units"', t("单元与课时"), mine.length ? t("{a} 个领域 · 进行中 {b} 个单元 · 共 {c} 个", { a: subjects, b: going, c: mine.length }) + (nextUndone ? ` · ${t("下一课")}：${esc(nextUndone.title)}` : "") : t("还没有单元"), "▤")}
+    ${mrow('data-tab="course-units"', t("单元与课时"), mine.length ? t("{a} 个领域 · 进行中 {b} 个单元 · 共 {c} 个", { a: subjects, b: going, c: mine.length }) + (nextUndone ? ` · ${t("下一课")}：${esc(tb(nextUndone.title))}` : "") : t("还没有单元"), "▤")}
     ${mrow('data-tab="course-scope"', t("年度范围（Pre-K 建议）"), t("36 周的单元地图 · 已加 {a}/{b}", { a: scopeHave, b: scopeAll.length }), "▦")}
     ${mrow('data-tab="course-goals"', t("学习目标"), goals.length ? t("达成 {a}/{b}", { a: goals.filter(g => g.achieved_on).length, b: goals.length }) : t("还没有目标"), "✓")}
   </div>
@@ -69,7 +69,7 @@ function viewUnits(){
   const units = mine.filter(u => u.subject === sj).sort((a, b) => (a.term || 9) - (b.term || 9) || a.sort - b.sort);
   const lessonRow = l => `<div class="lesson ${l.status}">
     <span class="st" aria-hidden="true">${l.status === "done" ? "✓" : l.status === "skip" ? "–" : "○"}</span>
-    <button class="main" data-act="lesson-edit" data-lid="${esc(l.id)}"><span class="title">${esc(l.title)}</span>${l.faith_note || l.verse_ref ? `<span class="meta">${esc(l.faith_note)}${l.faith_note && l.verse_ref ? " · " : ""}${esc(l.verse_ref)}</span>` : ""}${l.status === "done" ? `<span class="meta">${t("完成于 {d}", { d: esc(l.done_on || "") })}${l.minutes ? ` · ${t("{n} 分钟", { n: l.minutes })}` : ""}</span>` : ""}</button>
+    <button class="main" data-act="lesson-edit" data-lid="${esc(l.id)}"><span class="title">${esc(tb(l.title))}</span>${l.faith_note || l.verse_ref ? `<span class="meta">${esc(tb(l.faith_note))}${l.faith_note && l.verse_ref ? " · " : ""}${esc(tb(l.verse_ref))}</span>` : ""}${l.status === "done" ? `<span class="meta">${t("完成于 {d}", { d: esc(l.done_on || "") })}${l.minutes ? ` · ${t("{n} 分钟", { n: l.minutes })}` : ""}</span>` : ""}</button>
     <span class="acts">${l.status === "done"
       ? `<button class="chip" data-act="lesson-undo" data-lid="${esc(l.id)}">${t("撤销")}</button>`
       : `<button class="chip" data-act="lesson-schedule" data-lid="${esc(l.id)}">${t("排到今天")}</button><button class="chip" data-act="lesson-done" data-lid="${esc(l.id)}">${t("完成")}</button>`}</span></div>`;
@@ -79,7 +79,7 @@ function viewUnits(){
     const shown = open ? ls : (next ? [next] : []);
     const toggle = ls.length > 1 ? `<button class="chip" data-act="unit-toggle" data-uid="${esc(u.id)}" aria-expanded="${open}">${open ? t("收起") : t("展开 {n} 节", { n: ls.length })}</button>` : "";
     return `<div class="panel unit">
-      <div class="row"><div class="v"><b>${esc(u.title)}</b>${u.term ? ` <span class="small muted">· ${t("第 {n} 学期", { n: u.term })}</span>` : ""}${u.child_id == null ? ` <span class="small muted">· ${t("全家")}</span>` : ""}${u.note && open ? `<div class="small muted">${esc(u.note)}</div>` : ""}</div><button class="chip" data-act="unit-edit" data-uid="${esc(u.id)}">${t("编辑")}</button></div>
+      <div class="row"><div class="v"><b>${esc(tb(u.title))}</b>${u.term ? ` <span class="small muted">· ${t("第 {n} 学期", { n: u.term })}</span>` : ""}${u.child_id == null ? ` <span class="small muted">· ${t("全家")}</span>` : ""}${u.note && open ? `<div class="small muted">${esc(tb(u.note))}</div>` : ""}</div><button class="chip" data-act="unit-edit" data-uid="${esc(u.id)}">${t("编辑")}</button></div>
       <div class="progress" aria-label="${t("进度")} ${p.done}/${p.total}"><span style="width:${pct}%;background:${subject(u.subject).color}"></span></div>
       <div class="small muted" style="margin:4px 0 6px">${p.done}/${p.total} ${t("课时")} ${paceHTML(u)}</div>
       ${shown.map(lessonRow).join("") || (ls.length ? `<p class="muted small">${t("课时都完成了。")}</p>` : `<p class="muted small">${t("还没有课时。")}</p>`)}
@@ -111,7 +111,7 @@ function viewGoals(){
   return `<h2>${t("学习目标")} · ${esc(childName())}</h2>
   <div class="panel">
     ${goals.length ? goals.map(g => `<div class="task ${g.achieved_on ? "done" : ""}"><span class="bar" style="background:${subject(g.area).color}"></span>
-      <button class="main" data-act="goal-edit" data-gid="${esc(g.id)}"><span class="title">${esc(g.title)}</span><span class="meta">${esc(subject(g.area).short)}${g.achieved_on ? ` · ${t("达成于 {d}", { d: esc(g.achieved_on) })}` : g.target_on ? ` · ${t("目标 {d}", { d: esc(g.target_on) })}` : ""}${g.evidence ? ` · ${esc(g.evidence)}` : ""}</span></button>
+      <button class="main" data-act="goal-edit" data-gid="${esc(g.id)}"><span class="title">${esc(tb(g.title))}</span><span class="meta">${esc(subject(g.area).short)}${g.achieved_on ? ` · ${t("达成于 {d}", { d: esc(g.achieved_on) })}` : g.target_on ? ` · ${t("目标 {d}", { d: esc(g.target_on) })}` : ""}${g.evidence ? ` · ${esc(tb(g.evidence))}` : ""}</span></button>
       <span class="acts"><button class="iconbtn ${g.achieved_on ? "" : "ok"}" data-act="goal-toggle" data-gid="${esc(g.id)}" aria-label="${g.achieved_on ? t("撤销达成") : t("标记达成")}">${g.achieved_on ? "↺" : "✓"}</button></span></div>`).join("")
       : `<p class="muted">${t("还没有目标。学前阶段用清单而不是考试。")}</p>`}
     <div class="btns" style="margin-top:8px"><button class="btn" data-act="goal-add">＋ ${t("目标")}</button>${goals.length ? "" : Object.entries(GOAL_TEMPLATES).map(([k, g]) => `<button class="btn" data-act="goal-template" data-tpl="${k}">${t("套用：")}${tc(g.name)}</button>`).join("")}</div>

@@ -1,4 +1,4 @@
-import { addContent, setRefFormatter } from "../core/i18n.js";
+import { addContent, addRules, setRefFormatter } from "../core/i18n.js";
 import { SISTER_APPS } from "../core/config.js";
 import { refEn } from "./bible.js";
 import { ANCHOR_EN, ANCHOR_ZH, FLOW_TEMPLATES, GUIDE, NAP_TEXT, PARENT_LINES, PRINCIPLES, READINGS, SITUATIONS, SONG_IDEAS, TEXT_TEMPLATE } from "./bedtime.js";
@@ -9,6 +9,11 @@ import { PLANS } from "./plans.js";
 import { ANGER, CORE, HARD } from "./principle.js";
 import { ROUTINE_TEMPLATES } from "./seeds.js";
 import { CONFLICTS_EN, EMOTIONS_EN } from "./en-flows.js";
+import { SEEDS_EN } from "./en-library.js";
+import { IDEAS_EN } from "./en-ideas.js";
+import { LAW_EN } from "./en-law.js";
+import { ABOUT_EN, VERSE_EN } from "./en-about.js";
+import { CUR_EN, RULES as CUR_RULES } from "./en-curriculum.js";
 import { BEDTIME_EN, MUSIC_EN, PLANS_EN, PRINCIPLE_EN, ROUTINES_EN, SISTER_EN } from "./en-content.js";
 
 /* ============ 「中文原文 → 英文」登记表 ============
@@ -36,4 +41,6 @@ align(FLOW_TEMPLATES, BEDTIME_EN.FLOW_TEMPLATES, "flowTemplates"); align(TEXT_TE
 align(PRINCIPLES, BEDTIME_EN.PRINCIPLES, "principles"); align(SITUATIONS, BEDTIME_EN.SITUATIONS, "situations"); align(READINGS, BEDTIME_EN.READINGS, "readings");
 align(PARENT_LINES, BEDTIME_EN.PARENT_LINES, "parentLines"); align(GUIDE, BEDTIME_EN.GUIDE, "guide"); align(SONG_IDEAS, BEDTIME_EN.SONG_IDEAS, "songIdeas");
 
+for (const d of [CUR_EN, SEEDS_EN, IDEAS_EN, LAW_EN, ABOUT_EN, VERSE_EN]) for (const [zh, en] of Object.entries(d)) addContent(zh, en);
+addRules(CUR_RULES);
 export { stats as CONTENT_STATS };
