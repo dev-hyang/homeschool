@@ -49,7 +49,8 @@ function viewFlows(){
   return `${h2(t("定制流程"))}
   <p class="small muted">${t("把家里反复出现的情境做成「流程 + 模板 + 记录」：事先想好怎么做、怎么说，当场照着做，事后记一笔，过几周回头看哪些做法值得继续。每个流程是下面的一个子层级，以后会陆续补充。")}</p>
   ${hubAskHTML()}
-  <div class="panel mlist" style="margin-top:10px">${FLOWS.map(f => mrow(`data-tab="${f.tab}"`, t(f.name), desc[f.id] || esc(tc(f.desc)), f.icon)).join("")}</div>`;
+  <div class="panel mlist" style="margin-top:10px">${FLOWS.map(f => mrow(`data-tab="${f.tab}"`, t(f.name), desc[f.id] || esc(tc(f.desc)), f.icon)).join("")}
+    ${mrow('data-tab="bt-songs"', t("歌单"), songs().length ? t("{n} 首 · 睡前、冲突、情绪和唤醒都用这里的歌", { n: songs().length }) : t("还没有歌。放几首自己的 MP3：睡前、冲突、情绪和唤醒都用这里的歌"), "♪")}</div>`;
 }
 
 /* ============ 话题卡 ============ */

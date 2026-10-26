@@ -24,7 +24,7 @@ const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", cal
 // 子页 → 所属页：顶上一条完整路径（‹ 我的 / 报告），底部仍高亮所属的页签。咩咩咩从哪进就以哪为父页（S.from 记录）
 const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me", ask: "me",
   "res-scriptures": "resources", "res-sources": "resources", flows: "resources", "flow-conflict": "flows", "flow-emotion": "flows", "flow-trend": "flows", "me-print": "me",
-  bedtime: "flows", "bt-flow": "bedtime", "bt-songs": "bedtime", "bt-texts": "bedtime", "bt-readings": "bedtime", "bt-logs": "bedtime", "bt-cases": "bedtime" };
+  bedtime: "flows", "bt-flow": "bedtime", "bt-songs": "flows", "bt-texts": "bedtime", "bt-readings": "bedtime", "bt-logs": "bedtime", "bt-cases": "bedtime" };
 const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", "cal-routines": "周例行", reports: "报告", law: "法规", ask: "咩咩咩",
   "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-emotion": "情绪管理", "flow-trend": "趋势与分析", "me-print": "打印",
   bedtime: "睡前安然", "bt-flow": "流程", "bt-songs": "歌单", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };

@@ -26,7 +26,7 @@ async function openPlayer(api){
   const c = api.cfg;
   P = { api, c, flow: api.flow || { name: "", kind: "night" }, text: api.text, steps: c.steps.filter(s => !s.skip).map(s => ({ ...s })), i: 0, startedAt: now(), stepStart: now(), actual: [], offset: {}, played: new Set(),
     audio: null, url: null, textOn: true, lyricsOn: false, casesOn: false, flagged: false, fading: false, ext: 0, done: false, timer: null, blocked: false, loading: false,
-    readIdx: Math.max(0, api.readings.findIndex(r => r.ref === c.reading)), kids: new Set(api.kids.map(k => k.id)), led: S.user ? memberName(S.user.id) : (api.members[0] || ""), note: "", childSt: "", parentSt: "", saving: false };
+    readIdx: Math.max(0, api.readings.findIndex(r => r.ref === c.reading)), kids: new Set(api.preKids || api.kids.map(k => k.id)), led: S.user ? memberName(S.user.id) : (api.members[0] || ""), note: "", childSt: "", parentSt: "", saving: false };
   const host = document.createElement("div"); host.id = "btplay"; host.className = "btp"; document.body.appendChild(host);
   document.body.classList.add("bt-playing");
   P.timer = setInterval(tick, 1000);

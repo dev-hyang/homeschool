@@ -332,6 +332,11 @@ const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
 const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${extra}</span>` : ""}</h2>`;
 
+/* 播放页默认「谁参加了」：今天页「参加」里点选的孩子；没选过就是顶上选中的那一个孩子（只有一个孩子或没选时是全部） */
+function tonightKids(){
+  const all = kids().map(k => k.id), d = S.hs.devotion, pick = d && Array.isArray(d.children) && d.children.length ? d.children : (S.childId ? [S.childId] : all);
+  const ok = pick.filter(id => all.includes(id)); return ok.length ? ok : all;
+}
 /* ---- 今日敬拜里的一行：放在「祷告」下面、「参加」上面（js/today.js 的 devotionHTML）。点「开始」直接进播放页，点文字去设置 ---- */
 function bedtimeRowHTML(){
   const c = cfg(), n = activeSteps(c).length, last = lastLogFor(c.flowKind), today = dayKey(Date.now());
@@ -369,7 +374,6 @@ function viewBedtime(){
     ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
   <div class="panel mlist" style="margin-top:10px">
     ${mrow('data-tab="bt-flow"', t("流程"), c.flows.length > 1 ? t("{k} 个流程：{names}", { k: c.flows.length, names: esc(c.flows.map(f => `${tb(f.name)} ${flowMin(f)}`).join(" · ")) }) : t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
-    ${mrow('data-tab="bt-songs"', t("歌单"), songs().length ? t("{n} 首 · 这台设备已下载 {k} 首", { n: songs().length, k: cached }) : t("还没有歌。放几首自己的 MP3，固定两三首就够"), "♪")}
     ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(tb(currentText(c).name)), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
     ${mrow('data-tab="bt-readings"', t("睡前经文"), t("今晚：{ref} · 共 {n} 段", { ref: esc(tc(c.reading)), n: allReadings(c).length }), "📖")}
     ${mrow('data-tab="bt-logs"', t("记录"), S.bt.logs.length ? t("最近 {n} 晚 · 本周 {w} 晚", { n: S.bt.logs.length, w: week }) : t("还没有记录"), "▦")}
@@ -444,6 +448,7 @@ function viewSongs(){
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="btn" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
   <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${bytes ? ` ${t("已用 {s}。", { s: fmtSize(bytes) })}` : ""} ${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
+  <p class="small muted" style="margin:0 0 8px">${t("想用来唤醒孩子（午睡醒来 / 早上）：点开歌，用在哪一段里勾上「轻柔唤醒」，然后在今天页「在睡」那一行点 ♪ 一键放。")}</p>
   <p class="small muted" style="margin:0 0 8px">${t("每首歌：向左滑删除，向右滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
   <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
   <h2>${t("可以去找的歌")}</h2>
@@ -624,7 +629,7 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), preKids: tonightKids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
     case "bt-flow-sel": selectFlow(d.id); render(); break;
     case "bt-flow-new": openForm("新建流程", [{ k: "name", label: "流程名称", type: "text", ph: "午睡 / 晚觉 / 出门前" }, { k: "tpl", label: "从哪个模板开始", type: "seg", raw: true, opts: [...Object.entries(FLOW_TEMPLATES).map(([k, tp]) => [k, tc(tp.name)]), ["blank", t("空白")]] }], { name: "", tpl: "nap" },
       async f => { const tp = FLOW_TEMPLATES[f.tpl], name = (f.name || (tp && tp.flowName) || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
