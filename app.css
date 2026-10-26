@@ -700,7 +700,10 @@ body.bt-playing{overflow:hidden}
 .bt-pick .btn.primary.sm.bt-go{flex:none;min-height:36px;padding:6px 16px;font-size:14px}
 /* 睡前 → 在睡：😴 + 唤醒 */
 .wk-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
-.wk-card{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--slate-soft)}
+.wk-card{display:flex;flex-direction:column;gap:8px;padding:8px 10px;border-radius:10px;background:var(--slate-soft)}
+.wk-top{display:flex;align-items:center;gap:10px}
+.wk-acts{display:flex;align-items:center;gap:8px}
+.wk-now .wk-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-ic{font-size:26px;line-height:1}
 .wk-t{flex:1;min-width:0;display:flex;flex-direction:column}
 .wk-card .btn.primary.sm{flex:none;min-height:36px;padding:6px 16px;font-size:14px}

@@ -650,13 +650,14 @@ const EN = {
   "自主入睡": "On their own", "奶睡": "Nursed to sleep", "抱睡": "Held to sleep", "拍睡/摇睡": "Patted / rocked", "婴儿床": "Crib", "怀里": "In arms", "推车/安全座椅": "Stroller / car seat", "大床": "Big bed", "夜醒次数、哭闹…": "Night wakings, crying…",
   "记下醒来": "Record waking", "记下了，早安": "Saved. Good morning.", "已保存，小月亮里同步更新": "Saved; updated in Baby Log too", "请填入睡时间": "Enter the time they fell asleep", "醒来时间要晚于入睡时间": "Wake time must be after sleep time", "删除这条": "Delete this", "删除这条睡眠记录？小月亮里也会删掉。": "Delete this sleep record? It is removed from Baby Log too.",
   "改的就是小月亮里的这条睡眠记录，那边会同步更新。": "This edits the same sleep record in Baby Log, which updates there too.", "小月亮里已记下：{n} 开始睡了": "Recorded in Baby Log: {n} started sleeping",
-  "轻柔唤醒": "Gentle wake", "轻柔唤醒音乐": "Gentle wake music", "可以去找的唤醒歌": "Wake-up songs to look for", "音量 30 秒慢慢升上来；点「停止」或保存后到今天页也能停。": "Volume fades up over 30 seconds; stop it here or later from the Today page.",
+  "轻柔唤醒": "Gentle wake", "轻柔唤醒音乐": "Gentle wake music", "可以去找的唤醒歌": "Wake-up songs to look for", "音量 30 秒慢慢升上来；放完自动接下一首，整个唤醒歌单循环到你点「停止」。": "Volume fades up over 30 seconds; it moves to the next song automatically and loops the whole wake-up list until you tap Stop.",
   "歌单里还没有标了「轻柔唤醒」的歌：在睡前页的歌单里加歌时勾上这个标签。": "No songs tagged “Gentle wake” yet: tick that tag when adding a song in the Bedtime song list.",
   "原则：中速偏慢、大调、原声乐器（吉他、钢琴、竖琴），没有突然的鼓点和高音；不要比催眠曲更慢，也不要像闹钟。音量从很小慢慢升上来，同时拉开窗帘、轻声叫名字。": "Aim for: moderate-slow tempo, major key, acoustic instruments (guitar, piano, harp), no sudden drums or high notes; not slower than a lullaby, not like an alarm. Fade the volume up slowly while opening the curtains and softly saying their name.",
   "完成后记下「开始睡」✓": "Record “started sleeping” when done ✓", "完成后记下「开始睡」": "Record “started sleeping” when done", "记下「开始睡」= 流程做完时，给每个参加的孩子在小月亮里记一条睡眠（自主入睡、还没醒）；今天页上那一行变成「在睡 + 唤醒」，醒来时点「唤醒」记下醒来时间，也可以补记、修改。": "“Started sleeping” = when the routine ends, Baby Log gets a sleep record for each child who took part (fell asleep on their own, not yet awake). The Today row then shows “asleep + Wake”; tap Wake to record the wake time, or edit it later.",
   "{n} 首 · 睡前、冲突、情绪和唤醒都用这里的歌": "{n} songs · used by bedtime, conflict, emotions and waking", "还没有歌。放几首自己的 MP3：睡前、冲突、情绪和唤醒都用这里的歌": "No songs yet. Add a few of your own MP3s: bedtime, conflict, emotions and waking all use them.",
   "想用来唤醒孩子（午睡醒来 / 早上）：点开歌，用在哪一段里勾上「轻柔唤醒」，然后在今天页「在睡」那一行点 ♪ 一键放。": "To wake a child with a song (after a nap / in the morning): open the song, tick “Gentle wake” under where to use it, then tap ♪ on the asleep row on the Today page to play it in one tap.",
   "放一首轻柔唤醒的歌": "Play a gentle wake-up song", "还没有唤醒歌：在「歌单」里给歌勾上「轻柔唤醒」标签": "No wake-up songs yet: tick “Gentle wake” on a song in the song list",
+  "上一首": "Previous", "下一首": "Next",
   // ---- 年龄段、品牌名 ----
   "2 岁前": "Under 2", "2–3 岁": "Ages 2–3", "3–5 岁": "Ages 3–5", "5–8 岁": "Ages 5–8", "9–12 岁": "Ages 9–12", "13 岁起": "13 and up", "开场带领词（拥抱与敬拜）": "Opening words (hug & worship)", "读经引导": "Reading guide", "祷告词": "Prayer", "结束的话（音乐与安睡）": "Closing words (music & sleep)", "豆包": "Doubao", "通义千问": "Qwen (Tongyi)",
 };
