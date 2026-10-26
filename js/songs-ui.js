@@ -1,4 +1,5 @@
-/* ============ 歌单行的手势 ============
+/* ============ 行的手势：歌单、睡前流程的步骤 ============
+   步骤行（data-kind="step"）只有「向左滑删除」和「长按 ⋮⋮ 拖动排序」，向右滑不动；歌单行（默认）见下。
    · 手指向左滑：行向左走，右边露出红色「删除」，滑过约三分之一行宽松手 → 删除（先确认）；
    · 手指向右滑：行向右走，左边露出蓝色「加到流程」，滑过约三分之一行宽松手 → 打开「加到流程」选择页（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲）；
    · 长按最右边的 ⋮⋮（约 0.4 秒，手机会轻震一下）→ 这一行浮起，上下拖动调顺序，松手保存；
@@ -25,7 +26,7 @@ function move(e){
     if (Math.abs(dx) > START && Math.abs(dx) > Math.abs(dy) * 1.3) { st.kind = "swipe"; try { st.row.setPointerCapture(e.pointerId); } catch (x) { /* 忽略 */ } st.row.classList.add("swiping"); }
     else if (Math.abs(dy) > START) { st = null; return; }
   }
-  if (st.kind === "swipe") { setX(st.row, dx); st.row.classList.toggle("ready", Math.abs(dx) > threshold(st.row)); }
+  if (st.kind === "swipe") { const x = st.row.dataset.kind === "step" && dx > 0 ? 0 : dx; setX(st.row, x); st.row.classList.toggle("ready", Math.abs(x) > threshold(st.row)); }   // 步骤行只能向左滑（删除）
   else if (st.kind === "press" && Math.hypot(dx, dy) > 8) { clearTimeout(st.timer); st = null; }   // 长按之前就动了：不是长按
   else if (st.kind === "drag") dragMove(e);
 }
@@ -37,7 +38,8 @@ function up(e){
     const dx = e.clientX - st.x0, th = threshold(row), id = row.dataset.id;
     swallow = true; setTimeout(() => { swallow = false; }, 350);
     row.classList.remove("swiping", "ready"); setX(row, 0);
-    if (dx < -th && cb.onDelete) cb.onDelete(id); else if (dx > th && cb.onAdd) cb.onAdd(id);
+    const kind = row.dataset.kind || "song";
+    if (dx < -th && cb.onDelete) cb.onDelete(id, kind); else if (dx > th && kind !== "step" && cb.onAdd) cb.onAdd(id, kind);
   } else if (kind === "drag") endDrag();
   st = null;
 }
@@ -63,7 +65,7 @@ function dragMove(e){
 function endDrag(abort){
   const row = st.row, list = st.list; row.style.transform = ""; row.classList.remove("dragging");
   swallow = true; setTimeout(() => { swallow = false; }, 350);
-  if (!abort && cb.onReorder) cb.onReorder([...list.querySelectorAll(".song-row")].map(r => r.dataset.id), row.dataset.id);
+  if (!abort && cb.onReorder) cb.onReorder([...list.querySelectorAll(".song-row")].map(r => r.dataset.id), row.dataset.id, row.dataset.kind || "song");
 }
 /* 键盘：⋮⋮ 上按 ↑ ↓ */
 function key(e){
@@ -72,7 +74,7 @@ function key(e){
   const row = rowOf(h), rows = [...row.parentElement.querySelectorAll(".song-row")], i = rows.indexOf(row), j = i + (e.key === "ArrowUp" ? -1 : 1);
   if (j < 0 || j >= rows.length) return;
   const ids = rows.map(r => r.dataset.id); [ids[i], ids[j]] = [ids[j], ids[i]];
-  if (cb.onReorder) cb.onReorder(ids, row.dataset.id);
+  if (cb.onReorder) cb.onReorder(ids, row.dataset.id, row.dataset.kind || "song");
 }
 
 function initSongRows(callbacks){

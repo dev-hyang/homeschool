@@ -384,10 +384,11 @@ function viewFlow(){
     if (sg) return `<span class="bt-pill song">♪ ${esc(sg.title)}</span>`;
     if (s.song.startsWith("tag:")) return `<span class="bt-pill song none">♪ ${esc(t(SONG_TAGS[s.song.slice(4)] || ""))} <small>${t("歌单里还没有")}</small></span>`;
     return `<span class="bt-pill none">${t("（这首歌已删除）")}</span>`; };
-  const row = (s, i) => `<div class="bt-step ${s.skip ? "skip" : ""}"><span class="bt-badge">${i + 1}</span>
+  const row = (s, i) => `<div class="song-row bt-step-row" data-id="${esc(s.id)}" data-kind="step"><div class="song-bg" aria-hidden="true"><span class="sb-del">🗑 ${t("删除")}</span></div>
+    <div class="song-in bt-step ${s.skip ? "skip" : ""}"><span class="bt-badge">${i + 1}</span>
     <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="bt-st-name">${esc(s.name)}${s.skip ? ` <small>${t("已跳过")}</small>` : ""}</span>
       <span class="bt-pills"><span class="bt-pill">⏱ ${t("{n} 分", { n: s.minutes })}</span>${s.text ? `<span class="bt-pill">📝 ${t(TEXT_LABEL[s.text])}</span>` : ""}${songBit(s)}${s.loop ? `<span class="bt-pill">↻ ${t("循环")}</span>` : ""}</span></button>
-    <span class="bt-mv"><button class="iconbtn sm" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="-1" aria-label="${t("上移")}" ${i === 0 ? "disabled" : ""}>↑</button><button class="iconbtn sm" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="1" aria-label="${t("下移")}" ${i === c.steps.length - 1 ? "disabled" : ""}>↓</button></span></div>`;
+    <span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></div></div>`;
   const bar = active.length ? `<div class="bt-bar" role="img" aria-label="${t("各步骤的时间占比")}">${active.map((s, i) => `<span style="flex:${Math.max(1, +s.minutes || 1)};background:${STEP_COLORS[i % 5]}" title="${esc(s.name)} · ${t("{n} 分", { n: s.minutes })}"></span>`).join("")}</div>` : "";
   return `${h2(t("流程"), esc(c.flowName))}
   ${offlineHTML()}
@@ -400,7 +401,7 @@ function viewFlow(){
   <div class="panel bt-stepcard">
     <div class="bt-sc-head"><b>${t("「{name}」的步骤", { name: esc(c.flowName) })}</b><span class="bt-total ${over ? "over" : ""}">${t("合计约 {m} 分钟", { m })}</span></div>
     ${bar}
-    <p class="small ${over ? "" : "muted"} bt-cap-line" style="${over ? "color:var(--rose)" : ""}">${over ? t("超过了 {cap} 分钟的上限，睡前流程宜短不宜长", { cap: c.cap }) : t("上限 {cap} 分钟 · 点一步修改，↑↓ 调顺序；年幼的孩子可以把某步设为跳过", { cap: c.cap })}</p>
+    <p class="small ${over ? "" : "muted"} bt-cap-line" style="${over ? "color:var(--rose)" : ""}">${over ? t("超过了 {cap} 分钟的上限，睡前流程宜短不宜长", { cap: c.cap }) : t("上限 {cap} 分钟 · 点一步修改，长按 ⋮⋮ 拖动调顺序，向左滑删除；年幼的孩子可以把某步设为跳过", { cap: c.cap })}</p>
     <div class="bt-steps2">${c.steps.map(row).join("") || `<div class="empty">${t("这个流程还没有步骤")}</div>`}</div>
     <button class="bt-add" data-act="bt-step-add">＋ ${t("添加步骤")}</button>
   </div>
@@ -718,9 +719,9 @@ function openPickSongsForTopic(topicId, name){
 const previewing = id => previewId === id;
 async function reorderSongs(ids){ for (let i = 0; i < ids.length; i++) { const s = song(ids[i]); if (s && s.sort !== i) await upsertSong({ ...s, sort: i }); } }
 initSongRows({
-  onDelete: async id => { const s = song(id); if (!s) return; if (!confirm(t("删除「{t}」和它的音频？流程里用到它的步骤改为不放歌。", { t: s.title }))) return; try { await deleteSong(s); toast(t("已删除")); } catch (e) { /* 已 toast */ } render(); },
+  onDelete: async (id, kind) => { if (kind === "step") { const c = cfg(), st = c.steps.find(x => x.id === id); if (st && confirm(t("删除这一步？"))) { try { await saveSteps(c.steps.filter(x => x.id !== id)); } catch (e) { /* 已 toast */ } } render(); return; } const s = song(id); if (!s) return; if (!confirm(t("删除「{t}」和它的音频？流程里用到它的步骤改为不放歌。", { t: s.title }))) return; try { await deleteSong(s); toast(t("已删除")); } catch (e) { /* 已 toast */ } render(); },
   onAdd: id => openAddToFlow(id),
-  onReorder: async (ids, movedId) => { try { await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
+  onReorder: async (ids, movedId, kind) => { try { if (kind === "step") { const c = cfg(), by = new Map(c.steps.map(x => [x.id, x])); await saveSteps(ids.map(i => by.get(i)).filter(Boolean)); } else await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
 });
 
 export { openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

@@ -664,8 +664,8 @@ body.bt-playing{overflow:hidden}
 .bt-bar span{display:block;min-width:4px}
 .bt-cap-line{margin:0 0 4px;line-height:1.4}
 .bt-steps2{display:flex;flex-direction:column}
-.bt-step{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
-.bt-step:first-child{border-top:0}
+.bt-step{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:10px 0}
+.bt-steps2 .song-row{border-bottom:1px solid var(--line)} .bt-steps2 .song-row:last-child{border-bottom:0}
 .bt-step .main{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0}
 .bt-step .main:focus-visible{outline:3px solid var(--slate);outline-offset:2px;border-radius:6px}
 .bt-badge{width:28px;height:28px;border-radius:50%;background:var(--slate-soft);color:var(--slate);display:inline-flex;align-items:center;justify-content:center;font-family:var(--f-num);font-weight:700;font-size:14px}
@@ -700,3 +700,4 @@ body.bt-playing{overflow:hidden}
 .bt-pick .btn.primary.sm.bt-go{flex:none;min-height:36px;padding:6px 16px;font-size:14px}
 .bt-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
 .bt-card-foot .small{min-width:0;overflow-wrap:anywhere}
+.song-handle{font-size:22px;min-width:38px;height:44px}
