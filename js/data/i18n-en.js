@@ -639,5 +639,9 @@ const EN = {
   "「{name}」的步骤": "Steps of “{name}”", "上限 {cap} 分钟 · 点一步修改，长按 ⋮⋮ 拖动调顺序，向左滑删除；年幼的孩子可以把某步设为跳过": "Cap {cap} min · tap a step to edit, long-press ⋮⋮ and drag to reorder, swipe left to delete; for little ones a step can be skipped", "会覆盖当前流程的步骤": "overwrites the current routine’s steps",
   "你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。": "Step edits save automatically into the selected routine; switching to or creating another never affects what you saved. To keep a copy before trying other changes, tap “Save as”; applying a template overwrites the current routine’s steps, so save a copy first to keep them.",
   "另存为": "Save as", "各步骤的时间占比": "Share of time per step", "套用模板": "Apply a template", "循环": "loop", "改动怎么保存？": "How are changes saved?", "新建": "New", "歌单里还没有": "none in Songs yet", "流程与歌单": "Routine & songs",
+
+  // ---- 午睡用语 ----
+  "完成": "Done", "午安": "Good afternoon", "孩子这次的状态": "Child this time", "大人这次的状态": "Parent this time", "记下这次 ✓": "Log this ✓", "记下了。午安。": "Logged. Good afternoon.", "今天已完成 · {n} 分钟": "Done today · {n} min", "专用带领词": "own leading words", "这个流程的带领词": "This routine’s leading words",
+  "去掉这个流程专用的带领词？午睡会回到内置的午睡版，其他流程回到当前选的带领词版本。": "Remove this routine’s own leading words? Naps return to the built-in nap version; other routines return to the selected leading-words version.", "不肯睡": "Won’t sleep",
 };
 export { EN };

@@ -5,7 +5,7 @@ import { t, tc } from "./core/i18n.js";
 import { S } from "./core/state.js";
 import { $, D, dayKey, esc, loadJSON, newId, saveJSON, toast } from "./core/util.js";
 import { fetchPassage, parseRef } from "./data/bible.js";
-import { ANCHOR_EN, ANCHOR_REF, ANCHOR_ZH, FLOW_TEMPLATES, GUIDE, OUTCOMES, PARENT_LINES, PRINCIPLES, READINGS, SITUATIONS, SONG_IDEAS, SONG_TAGS, TEXT_TEMPLATE } from "./data/bedtime.js";
+import { NAP_TEXT, ANCHOR_EN, ANCHOR_REF, ANCHOR_ZH, FLOW_TEMPLATES, GUIDE, OUTCOMES, PARENT_LINES, PRINCIPLES, READINGS, SITUATIONS, SONG_IDEAS, SONG_TAGS, TEXT_TEMPLATE } from "./data/bedtime.js";
 import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
 import { CONFLICTS, SIDES } from "./data/flows.js";
@@ -55,7 +55,7 @@ const normSteps = list => list.filter(s => s && s.name).map(s => ({ id: s.id || 
    cfg().steps / flowName / flowKind 永远指当前选中的那个流程，所以流程页、播放页、今天页的老代码不用改。 */
 function normalize(raw){
   const r = raw && typeof raw === "object" ? raw : {};
-  let flows = Array.isArray(r.flows) ? r.flows.filter(f => f && f.id && Array.isArray(f.steps)).map(f => ({ id: String(f.id), name: String(f.name || "").slice(0, 20) || "睡前", kind: f.kind === "nap" ? "nap" : "night", steps: normSteps(f.steps) })) : [];
+  let flows = Array.isArray(r.flows) ? r.flows.filter(f => f && f.id && Array.isArray(f.steps)).map(f => ({ id: String(f.id), name: String(f.name || "").slice(0, 20) || "睡前", kind: f.kind === "nap" ? "nap" : "night", steps: normSteps(f.steps), texts: f.texts && typeof f.texts === "object" ? Object.fromEntries(["open", "reading", "prayer", "close"].map(k => [k, String(f.texts[k] || "").slice(0, 2000)])) : undefined })) : [];
   if (!flows.length) flows = [{ id: "main", name: r.flowName && r.flowName === FLOW_TEMPLATES.starter.name ? FLOW_TEMPLATES.starter.flowName : FLOW_TEMPLATES.full.flowName, kind: "night", steps: Array.isArray(r.steps) && r.steps.length ? normSteps(r.steps) : withIds(FLOW_TEMPLATES.full.steps, "d") }];   // 默认步骤用固定编号，没保存过也能点中
   const want = loadJSON(FLOW_KEY, ""), flow = flows.find(f => f.id === want) || flows[0];
   const versions = Array.isArray(r.versions) ? r.versions.filter(v => v && v.id) : [];
@@ -81,6 +81,12 @@ const flowOfLog = l => (l && l.steps && l.steps[0] && l.steps[0].flow) || "";
 const isNapLog = l => !!(l && l.steps && l.steps[0] && l.steps[0].kind === "nap");
 /** 选流程的小按钮：今天页、睡前页、流程页都用；点一下就选中（只记在这台设备） */
 const flowChips = (c, always) => c.flows.length < 2 && !always ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(f.name)} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
+/* 这个流程自己的带领词：午睡流程默认用 NAP_TEXT（不说「今晚」），也可以给任何流程单独设一套；没有的就用当前选的带领词版本 */
+function flowText(c = cfg()){
+  const base = currentText(c), f = c.flows.find(x => x.id === c.flow), own = f && f.texts ? f.texts : (c.flowKind === "nap" ? NAP_TEXT : null);
+  return own ? { ...base, ...own, id: null, builtin: false, name: `${c.flowName} · ${t("专用带领词")}` } : base;
+}
+const lastLogFor = kind => S.bt.logs.find(l => isNapLog(l) === (kind === "nap")) || null;
 /* 带领词：当前版本，没有自家版本时直接用内置模板 */
 function currentText(c = cfg()){ const v = c.versions.find(x => x.id === c.version); return v || { id: null, name: TEXT_TEMPLATE.name + t("（内置模板）"), ...TEXT_TEMPLATE, builtin: true }; }
 /* 状况模板：内置的可以被同 id 的自家版本覆盖（恢复 = 删掉覆盖），再加自家新增的 */
@@ -323,8 +329,8 @@ const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small mu
 
 /* ---- 今日敬拜里的一行：放在「祷告」下面、「参加」上面（js/today.js 的 devotionHTML）。点「开始」直接进播放页，点文字去设置 ---- */
 function bedtimeRowHTML(){
-  const c = cfg(), n = activeSteps(c).length, last = lastLog(), today = dayKey(Date.now());
-  const lastTxt = !last ? t("还没做过") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
+  const c = cfg(), n = activeSteps(c).length, last = lastLogFor(c.flowKind), today = dayKey(Date.now());
+  const lastTxt = !last ? t("还没做过") : last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
   // 流程名长就把字号缩小一点，保证一行放得下（按字数分档）
   const len = [...c.flowName].length, fs = len <= 6 ? 16 : len <= 8 ? 15 : len <= 10 ? 14 : len <= 13 ? 13 : len <= 16 ? 12 : 11;
   const icon = f => f.kind === "nap" ? "☀" : "🌙";
@@ -340,7 +346,7 @@ function bedtimeRowHTML(){
 
 /* ---- 入口页 ---- */
 function viewBedtime(){
-  const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLog(), ph = guidePhase(c), today = dayKey(Date.now());
+  const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLogFor(c.flowKind), ph = guidePhase(c), today = dayKey(Date.now());
   const week = nightsIn(dayKey(Date.now() - 6 * D), today).length;
   const cached = songs().filter(s => s.path && S.bt.cached.has(s.id)).length;
   return `${h2(t("睡前安然"), esc(tc(ANCHOR_REF)))}
@@ -351,7 +357,7 @@ function viewBedtime(){
     <div class="bt-card-row"><div><b>${esc(c.flowName)} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${t("带领词")}：${esc(currentText(c).name)} · ${t("经文")}：${esc(tc(c.reading))}${c.anchor ? `（${t("先读")} ${esc(tc(ANCHOR_REF))}）` : ""}</div></div>
       <button class="btn primary" data-act="bt-start" ${n ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(c.flowName)}</button></div>
     ${m > c.cap ? `<p class="small" style="color:var(--rose);margin:8px 0 0">${t("合计 {m} 分钟，超过了 {cap} 分钟的上限：睡前流程宜短不宜长，去流程里减一减。", { m, cap: c.cap })}</p>` : ""}
-    <p class="small muted" style="margin:8px 0 0">${last ? (last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min })) : t("还没做过")}${week ? ` · ${t("本周 {n} 晚", { n: week })}` : ""}</p>
+    <p class="small muted" style="margin:8px 0 0">${last ? (last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min })) : t("还没做过")}${week ? ` · ${t("本周 {n} 晚", { n: week })}` : ""}</p>
   </div>
   <div class="panel" style="margin-top:10px"><b>${esc(tc(ph.g.title))}</b>${ph.day ? ` <span class="small muted">${t("第 {n} 天", { n: ph.day })}</span>` : ""}<p class="small" style="margin:4px 0 0">${esc(tc(ph.g.text))}</p>
     ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
@@ -395,7 +401,7 @@ function viewFlow(){
   <div class="panel bt-flowcard">
     <div class="bt-fc-label">${t("选择流程")}</div>
     ${flowChips(c, true)}
-    <div class="bt-tools"><button class="chip" data-act="bt-flow-new">＋ ${t("新建")}</button><button class="chip" data-act="bt-flow-copy">${t("另存为")}</button><button class="chip" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="chip danger" data-act="bt-flow-del">${t("删除")}</button>` : ""}</div>
+    <div class="bt-tools"><button class="chip" data-act="bt-flow-new">＋ ${t("新建")}</button><button class="chip" data-act="bt-flow-copy">${t("另存为")}</button><button class="chip" data-act="bt-flow-texts">${t("带领词")}</button><button class="chip" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="chip danger" data-act="bt-flow-del">${t("删除")}</button>` : ""}</div>
     <details class="bt-tip"><summary>${t("改动怎么保存？")}</summary><p class="small">${t("你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。")}</p></details>
   </div>
   <div class="panel bt-stepcard">
@@ -611,16 +617,20 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: currentText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
     case "bt-flow-sel": selectFlow(d.id); render(); break;
     case "bt-flow-new": openForm("新建流程", [{ k: "name", label: "流程名称", type: "text", ph: "午睡 / 晚觉 / 出门前" }, { k: "tpl", label: "从哪个模板开始", type: "seg", raw: true, opts: [...Object.entries(FLOW_TEMPLATES).map(([k, tp]) => [k, tc(tp.name)]), ["blank", t("空白")]] }], { name: "", tpl: "nap" },
       async f => { const tp = FLOW_TEMPLATES[f.tpl], name = (f.name || (tp && tp.flowName) || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
-        const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: tp ? tp.kind : "night", steps: tp ? withIds(tp.steps) : [] }; await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已新建，可以改步骤了")); }); break;
+        const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: tp ? tp.kind : "night", steps: tp ? withIds(tp.steps) : [], texts: tp && tp.kind === "nap" ? { ...NAP_TEXT } : undefined }; await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已新建，可以改步骤了")); }); break;
     case "bt-flow-copy": { const cur = c.flows.find(x => x.id === c.flow); if (!cur) break;
       openForm("另存为新流程", [{ k: "name", label: "新流程的名字", type: "text", ph: "例如：晚觉 #2" }], { name: `${cur.name} #${c.flows.length + 1}` },
         async f => { const name = (f.name || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
           const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: cur.kind, steps: cur.steps.map(x => ({ ...x, id: stepId() })) };
           await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已另存为「{name}」，现在选中的是它", { name: nf.name })); }); break; }
+    case "bt-flow-texts": { const cur = flowText(c), f = c.flows.find(x => x.id === c.flow);
+      openForm("这个流程的带领词", verFields.slice(1), { open: cur.open, reading: cur.reading, prayer: cur.prayer, close: cur.close },
+        async v => { await saveFlows(c.flows.map(x => x.id === c.flow ? { ...x, texts: { open: v.open || "", reading: v.reading || "", prayer: v.prayer || "", close: v.close || "" } } : x)); closeSheet(); toast(t("已保存")); },
+        f && f.texts ? async () => { if (confirm(t("去掉这个流程专用的带领词？午睡会回到内置的午睡版，其他流程回到当前选的带领词版本。"))) { await saveFlows(c.flows.map(x => x.id === c.flow ? { ...x, texts: undefined } : x)); closeSheet(); } } : undefined); break; }
     case "bt-flow-rename": openForm("流程名称", [{ k: "name", label: "流程名称", type: "text" }], { name: c.flowName }, async f => { if (!f.name) { toast(t("请填流程名称")); return; } await saveFlows(c.flows.map(x => x.id === c.flow ? { ...x, name: f.name.slice(0, 20) } : x)); closeSheet(); }); break;
     case "bt-flow-del": { if (c.flows.length < 2 || !confirm(t("删除流程「{name}」和它的步骤？", { name: c.flowName }))) break; const left = c.flows.filter(x => x.id !== c.flow); selectFlow(left[0].id); await saveFlows(left); render(); break; }
     /* 歌单：加到流程 / 话题的推荐歌曲 */
@@ -633,7 +643,7 @@ async function btAct(act, btn){
     case "bt-anchor": await saveCfg({ anchor: !c.anchor }); render(); break;
     case "bt-mirror": await saveCfg({ mirror: !c.mirror }); render(); break;
     /* 流程 */
-    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换「{cur}」现有的步骤？替换后原来的步骤就没了；想保留请先「另存为新流程」。", { name: tc(tp.name), cur: c.flowName }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps) } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
+    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换「{cur}」现有的步骤？替换后原来的步骤就没了；想保留请先「另存为新流程」。", { name: tc(tp.name), cur: c.flowName }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps), texts: tp.kind === "nap" ? { ...NAP_TEXT } : undefined } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
     case "bt-step-add": openForm("添加步骤", stepFields(), { name: "", minutes: 3, text: "", song: "", hint: "", loop: false, skip: false }, async f => { if (!f.name) { toast(t("请填名字")); return; } await saveSteps([...c.steps, { id: stepId(), ...f, minutes: +f.minutes || 0 }], ""); closeSheet(); }); break;
     case "bt-step-edit": { const s = c.steps.find(x => x.id === d.id); if (!s) break;
       openForm("这一步", stepFields(), s, async f => { await saveSteps(c.steps.map(x => x.id === s.id ? { ...x, ...f, minutes: +f.minutes || 0 } : x), ""); closeSheet(); }, async () => { if (confirm(t("删除这一步？"))) { await saveSteps(c.steps.filter(x => x.id !== s.id), ""); closeSheet(); } }); break; }

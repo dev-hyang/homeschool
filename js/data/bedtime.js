@@ -112,6 +112,26 @@ const SITUATIONS = [
 /* 处理结果：记录时选一个 */
 const OUTCOMES = [["calm", "平静下来了"], ["partly", "勉强过去了"], ["none", "没什么用"], ["worse", "更糟了"]];
 
+/* ---- 午睡版带领词：白天小睡不说「今晚」「今天结束了」。午睡流程默认用这一套（可在流程页「带领词」里改成自家的）---- */
+const NAP_TEXT = {
+  open: `亲爱的孩子，我们玩了一阵子，现在身体累了，需要休息一会儿。
+
+神爱你，祂在你睡觉的时候也看顾你。你可以放心地闭上眼睛。`,
+  reading: `爸爸或妈妈慢慢读一遍，再邀请孩子跟读：
+
+「我必安然躺下睡觉，因为独有你耶和华使我安然居住。」
+
+然后说：「现在可以安心休息，神看顾我们。」`,
+  prayer: `主啊，谢谢你让我们玩得开心。
+
+现在我们要休息了，求你保守我们安然睡觉，醒来的时候有精神、有平安的心。
+
+奉主耶稣的名祷告，阿们。`,
+  close: `现在是安静休息的时间。闭上眼睛，身体放松。
+
+睡醒以后，我们再一起玩。愿主看顾你，午安。`
+};
+
 /* ---- 推荐的睡前经文：ref 出处 · lead 给父母的一句引导 · ask 可以问孩子的一句 ---- */
 const READINGS = [
   { ref: "诗篇 4:8", lead: "全家睡前的属灵锚点：神看顾我，我可以安然躺下。", ask: "今晚我们可以把什么事情交给神呢？" },
@@ -164,4 +184,4 @@ const SONG_IDEAS = [
   ["钢琴 / 竖琴纯音乐敬拜", "任意", "rest", "最后一步循环用：慢速、轻柔、没有突然的鼓点和高音"]
 ];
 
-export { ANCHOR_REF, ANCHOR_ZH, ANCHOR_EN, FLOW_TEMPLATES, TEXT_TEMPLATE, PRINCIPLES, SITUATIONS, OUTCOMES, READINGS, PARENT_LINES, GUIDE, SONG_TAGS, SONG_IDEAS };
+export { NAP_TEXT, ANCHOR_REF, ANCHOR_ZH, ANCHOR_EN, FLOW_TEMPLATES, TEXT_TEMPLATE, PRINCIPLES, SITUATIONS, OUTCOMES, READINGS, PARENT_LINES, GUIDE, SONG_TAGS, SONG_IDEAS };

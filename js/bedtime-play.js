@@ -14,6 +14,7 @@ import { render } from "./views.js";
    父母要念的话（带领词 / 经文 / 祷告）用暗灰色显示，可以一键收起；歌词和「遇到状况」默认收着。 */
 let P = null;
 const playerOpen = () => !!P;
+const nap = () => !!(P && P.flow && P.flow.kind === "nap");   // 午睡：不说「今晚」「晚安」
 const now = () => Date.now();
 const secs = () => P ? Math.floor((now() - P.stepStart) / 1000) : 0;
 const step = () => P && P.steps[P.i];
@@ -123,8 +124,9 @@ function textHTML(st){
     const r = P.api.readings[P.readIdx] || P.api.readings[0];
     if (P.c.anchor && r.ref !== ANCHOR_REF) out.push(verseBlock(ANCHOR_REF));
     out.push(verseBlock(r.ref, `<span class="btp-nav"><button data-act="btp-read-prev" aria-label="${t("上一段")}">‹</button><button data-act="btp-read-next" aria-label="${t("下一段")}">›</button></span>`));
-    if (r.lead) out.push(`<p class="btp-hint">${esc(tc(r.lead))}</p>`);
-    if (r.ask) out.push(`<p class="btp-ask">${t("问")}：${esc(tc(r.ask))}</p>`);
+    const night = /今晚|睡前|晚上/;   // 午睡时不显示带「今晚 / 睡前」字样的引导
+    if (r.lead && !(nap() && night.test(r.lead))) out.push(`<p class="btp-hint">${esc(tc(r.lead))}</p>`);
+    if (r.ask && !(nap() && night.test(r.ask))) out.push(`<p class="btp-ask">${t("问")}：${esc(tc(r.ask))}</p>`);
     out.push(`<div class="btp-pre small">${esc(tc(T.reading))}</div>`);
   }
   else if (k === "prayer") out.push(`<div class="btp-pre">${esc(tc(T.prayer))}</div>`);
@@ -146,7 +148,7 @@ function draw(){
     ${P.lyricsOn && s && s.lyrics ? `<div class="btp-pre btp-lyrics">${esc(s.lyrics)}</div>` : ""}` : ""}
   <div class="btp-body ${P.textOn ? "" : "hide"}">${textHTML(st)}</div>
   ${P.casesOn ? casesHTML() : ""}
-  <div class="btp-acts"><button class="btp-next" data-act="btp-next">${P.i + 1 >= P.steps.length ? t("今晚完成") : t("下一步")} ›</button></div>
+  <div class="btp-acts"><button class="btp-next" data-act="btp-next">${P.i + 1 >= P.steps.length ? (nap() ? t("完成") : t("今晚完成")) : t("下一步")} ›</button></div>
   <div class="btp-tools"><button data-act="btp-prev" ${P.i === 0 ? "disabled" : ""}>‹ ${t("上一步")}</button><button data-act="btp-text" aria-pressed="${P.textOn}">${P.textOn ? t("收起文字") : t("显示文字")}</button><button data-act="btp-cases" aria-pressed="${P.casesOn}">${t("遇到状况")}</button><label class="btp-vol">${t("音量")} <input id="btpVol" type="range" min="0" max="1" step="0.05" value="${P.volume == null ? 0.6 : P.volume}"></label></div>`;
 }
 /* 「遇到状况」：原则一句 + 每种状况的做法 / 话 + 「记一笔」内联小表单（谁、结果、几分钟、一句话），存了就回到列表 */
@@ -167,18 +169,18 @@ function finishHTML(){
   const rows = P.steps.map((s, i) => `<tr><td>${esc(s.name)}</td><td class="num">${s.minutes}</td><td class="num">${P.actual[i] == null ? "–" : Math.round(P.actual[i])}</td></tr>`).join("");
   const leds = [...new Set([...P.api.members, "爸爸", "妈妈"])];
   return `
-  <div class="btp-top"><span>${t("今晚完成")}</span><button class="btp-x" data-act="btp-close">${t("不记录，关闭")}</button></div>
-  <h1 class="btp-name">${t("晚安")}</h1>
+  <div class="btp-top"><span>${nap() ? t("完成") : t("今晚完成")}</span><button class="btp-x" data-act="btp-close">${t("不记录，关闭")}</button></div>
+  <h1 class="btp-name">${nap() ? t("午安") : t("晚安")}</h1>
   <p class="btp-parent">${esc(tc(P.api.parentLine()))}</p>
   <div class="btp-sum"><table><thead><tr><th>${t("步骤")}</th><th class="num">${t("计划")}</th><th class="num">${t("实际")}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th>${t("合计（分钟）")}</th><th class="num">${planned}</th><th class="num">${total}</th></tr></tfoot></table></div>
   <div class="btp-form">
     <div class="lab">${t("谁参加了")}</div><div class="seg">${P.api.kids.map(k => `<button data-act="btp-kid" data-id="${esc(k.id)}" aria-pressed="${P.kids.has(k.id)}">${esc(k.name || t("宝宝"))}</button>`).join("")}</div>
     <div class="lab">${t("谁带的")}</div><div class="seg">${leds.map(m => `<button data-act="btp-led" data-v="${esc(m)}" aria-pressed="${P.led === m}">${esc(m)}</button>`).join("")}</div>
-    <div class="lab">${t("孩子今晚的状态")}</div><div class="seg">${SIDES.night.child.map(x => `<button data-act="btp-cs" data-v="${esc(x)}" aria-pressed="${P.childSt === x}">${t(x)}</button>`).join("")}</div>
-    <div class="lab">${t("大人今晚的状态")}</div><div class="seg">${SIDES.night.parent.map(x => `<button data-act="btp-ps" data-v="${esc(x)}" aria-pressed="${P.parentSt === x}">${t(x)}</button>`).join("")}</div>
+    <div class="lab">${nap() ? t("孩子这次的状态") : t("孩子今晚的状态")}</div><div class="seg">${(nap() ? SIDES.nap : SIDES.night).child.map(x => `<button data-act="btp-cs" data-v="${esc(x)}" aria-pressed="${P.childSt === x}">${t(x)}</button>`).join("")}</div>
+    <div class="lab">${nap() ? t("大人这次的状态") : t("大人今晚的状态")}</div><div class="seg">${(nap() ? SIDES.nap : SIDES.night).parent.map(x => `<button data-act="btp-ps" data-v="${esc(x)}" aria-pressed="${P.parentSt === x}">${t(x)}</button>`).join("")}</div>
     <div class="lab">${t("一句备注（可空）：今天处理了什么、孩子说了什么感恩的事")}</div><textarea id="btpNote" rows="2">${esc(P.note)}</textarea>
   </div>
-  <div class="btp-acts"><button class="btp-next" data-act="btp-save" ${P.saving ? "disabled" : ""}>${P.saving ? t("保存中…") : t("记下今晚 ✓")}</button></div>
+  <div class="btp-acts"><button class="btp-next" data-act="btp-save" ${P.saving ? "disabled" : ""}>${P.saving ? t("保存中…") : (nap() ? t("记下这次 ✓") : t("记下今晚 ✓"))}</button></div>
   <div class="btp-tools">${P.song && !P.keepMusic ? `<button data-act="btp-extend">${t("再放 5 分钟")}</button>` : ""}<button data-act="btp-close">${t("不记录，关闭")}</button></div>`;
 }
 
@@ -216,7 +218,7 @@ async function playAct(act, btn){
       const r = P.api.readings[P.readIdx] || {}, log = { date: dayKey(P.startedAt), started_at: new Date(P.startedAt).toISOString(), ended_at: new Date(P.endedAt).toISOString(),
         planned_min: P.steps.reduce((a, s) => a + (+s.minutes || 0), 0), actual_min: Math.max(1, Math.round((P.endedAt - P.startedAt) / 60000)), children: [...P.kids], led_by: P.led || "",
         version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]), flow: P.flow.name, kind: P.flow.kind })), note: P.note };
-      try { await P.api.saveLog(log); closePlayer(); toast(t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
+      try { await P.api.saveLog(log); closePlayer(); toast(nap() ? t("记下了。午安。") : t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
       break; }
     case "btp-close": closePlayer(); render(); break;
   }
