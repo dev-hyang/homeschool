@@ -9,6 +9,7 @@ import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 import { t, t as tr } from "./core/i18n.js";
+import { attachBedtimeRealtime, loadBedtime } from "./bedtime.js";
 import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { CC_PARTS, VERSE_SETS, fetchChildrensCatechism, parseCatechism } from "./data/verse-sets.js";
 import { CC_ZH, CC_ZH_PENDING, CC_ZH_REVIEWED } from "./data/cc-zh.js";
@@ -61,6 +62,7 @@ async function loadAll(){
   }
   await ensureTodayTasks();
   await autoAssignVerses();
+  await loadBedtime();   // 睡前安然：歌单与完成记录（迁移 019；表没建时只提示）
 }
 
 /* ---- 学年：开学日、周数、学期长度、假期（settings.year）---- */
@@ -583,15 +585,17 @@ async function ensureMonth(ym){
   const cur = S.hs.ranges[ym]; if (cur && (cur.loaded || cur.loading)) return cur;
   S.hs.ranges[ym] = { loading: true, loaded: false, tasks: [], devotions: [] };
   const { from, to } = monthRange(ym), f = fid();
-  const [t, d] = await Promise.all([
+  const [t, d, b] = await Promise.all([
     SB.client.from("hs_tasks").select("*").eq("family_id", f).gte("date", from).lte("date", to),
-    SB.client.from("hs_devotions").select("*").eq("family_id", f).gte("date", from).lte("date", to)
+    SB.client.from("hs_devotions").select("*").eq("family_id", f).gte("date", from).lte("date", to),
+    SB.client.from("hs_bedtime_logs").select("*").eq("family_id", f).gte("date", from).lte("date", to)   // 表还没建时 error，当空
   ]);
-  S.hs.ranges[ym] = { loading: false, loaded: true, tasks: t.data || [], devotions: d.data || [] };
+  S.hs.ranges[ym] = { loading: false, loaded: true, tasks: t.data || [], devotions: d.data || [], bedtime: b.error ? [] : (b.data || []) };
   // keep today's in-memory tasks authoritative
   return S.hs.ranges[ym];
 }
-function monthData(ym){ const r = S.hs.ranges[ym]; if (!r || !r.loaded) return null; const ids = new Set(S.hs.tasks.map(t => t.id)); return { tasks: [...r.tasks.filter(t => !ids.has(t.id)), ...S.hs.tasks.filter(t => t.date >= monthRange(ym).from && t.date <= monthRange(ym).to)], devotions: r.devotions.map(d => (S.hs.devotion && d.date === S.hs.devotion.date) ? S.hs.devotion : d).concat(S.hs.devotion && !r.devotions.some(d => d.date === S.hs.devotion.date) && S.hs.devotion.date >= monthRange(ym).from && S.hs.devotion.date <= monthRange(ym).to ? [S.hs.devotion] : []) }; }
+function monthData(ym){ const r = S.hs.ranges[ym]; if (!r || !r.loaded) return null; const ids = new Set(S.hs.tasks.map(t => t.id)); return { tasks: [...r.tasks.filter(t => !ids.has(t.id)), ...S.hs.tasks.filter(t => t.date >= monthRange(ym).from && t.date <= monthRange(ym).to)], devotions: r.devotions.map(d => (S.hs.devotion && d.date === S.hs.devotion.date) ? S.hs.devotion : d).concat(S.hs.devotion && !r.devotions.some(d => d.date === S.hs.devotion.date) && S.hs.devotion.date >= monthRange(ym).from && S.hs.devotion.date <= monthRange(ym).to ? [S.hs.devotion] : []),
+  bedtime: [...(r.bedtime || []).filter(l => !S.bt.logs.some(x => x.id === l.id)), ...S.bt.logs.filter(l => l.date >= monthRange(ym).from && l.date <= monthRange(ym).to)] }; }
 async function toggleDayOff(date){
   const cur = new Set(S.hs.settings.daysOff || []); cur.has(date) ? cur.delete(date) : cur.add(date);
   await saveSettings({ daysOff: [...cur].sort() });
@@ -617,6 +621,7 @@ async function mirrorToBabyLog(t){
 
 /* ---- 实时：另一位家长勾了任务或敬拜，这边几秒内更新 ---- */
 function attachRealtime(channel, onChange){
+  attachBedtimeRealtime(channel, onChange);
   channel
     .on("postgres_changes", { event: "*", schema: "public", table: "hs_tasks", filter: "family_id=eq." + fid() }, payload => {
       if (payload.eventType === "DELETE") { const id = payload.old && payload.old.id; if (id) S.hs.tasks = S.hs.tasks.filter(t => t.id !== id); }

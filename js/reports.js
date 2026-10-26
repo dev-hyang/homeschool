@@ -28,7 +28,7 @@ function monthStats(ym, cid){
   const reading = done.filter(x => x.subject === "language" && /读|book|read/i.test(x.title)).length;
   const minutes = done.reduce((a, x) => a + (+x.minutes || 0), 0);
   const activeDays = new Set(done.map(x => x.date)).size;
-  return { days: days.size, devos: devos.length, tasks: done.length, totalTasks: tasks.length, skipped: tasks.filter(x => x.status === "skip").length, missed: tasks.filter(x => x.status === "todo" && x.date < today).length, minutes, perDay: activeDays ? Math.round(minutes / activeDays) : 0, bySubject, learned, lessons, goals, reading };
+  return { days: days.size, devos: devos.length, tasks: done.length, totalTasks: tasks.length, skipped: tasks.filter(x => x.status === "skip").length, missed: tasks.filter(x => x.status === "todo" && x.date < today).length, minutes, perDay: activeDays ? Math.round(minutes / activeDays) : 0, bySubject, learned, lessons, goals, reading, nights: (md.bedtime || []).filter(l => (l.children || []).includes(cid)).length };
 }
 
 const RANGE = { toddler: [20, 40], prek: [45, 90], school: [120, 180] };
@@ -47,7 +47,7 @@ function viewReports(){
   return `<h2>${t("报告")} · ${esc(childName())}</h2>${nav(ym)}
   <div class="stats">
     ${stat(t("出勤天数"), st.days, t("天"))}${stat(t("家庭敬拜"), st.devos, t("天"))}${stat(t("完成任务"), `${st.tasks}<small>/${st.totalTasks}</small>`, "")}
-    ${stat(t("学习时长"), st.minutes, t("分钟"))}${stat(t("背会经文"), st.learned, t("节"))}${stat(t("完成课时"), st.lessons, t("课"))}${stat(t("达成目标"), st.goals, t("项"))}${stat(t("阅读任务"), st.reading, t("次"))}
+    ${stat(t("学习时长"), st.minutes, t("分钟"))}${stat(t("背会经文"), st.learned, t("节"))}${stat(t("完成课时"), st.lessons, t("课"))}${stat(t("达成目标"), st.goals, t("项"))}${stat(t("阅读任务"), st.reading, t("次"))}${stat(t("睡前安然"), st.nights, t("晚"))}
   </div>
 
   <h2>${t("节奏")}</h2>

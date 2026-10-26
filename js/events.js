@@ -18,6 +18,7 @@ import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, g
 import { openBackfill, openScriptures, renderLibList } from "./library.js";
 import { render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
+import { btAct, btChange, stopPreview } from "./bedtime.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -30,6 +31,7 @@ document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key =
 // 卡库的下拉 / 搜索：类型和每批设置整页重画（图表跟着变），状态 / 排序 / 搜索只刷新列表
 document.addEventListener("change", async ev => {
   if (await bkChange(ev)) return;   // 备份设置 / 选了备份文件
+  if (btChange(ev)) return;         // 睡前安然：选了音频文件、播放页的音量 / 备注
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
   if (id === "libKind") { S.scrFilter.kind = v; openScriptures(); }
   else if (id === "libSt") { S.scrFilter.st = v; renderLibList(); }
@@ -45,7 +47,7 @@ document.addEventListener("click", async ev => {
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
-  if (d.tab) { close(); S.printView = null; if (d.from) (S.from ||= {})[d.tab] = d.from; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
+  if (d.tab) { close(); stopPreview(); S.printView = null; if (d.from) (S.from ||= {})[d.tab] = d.from; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
   if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
   if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
@@ -70,6 +72,7 @@ document.addEventListener("click", async ev => {
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
   if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 咩咩咩（js/ask.js）
+  if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {
     switch (d.act) {
       case "settings": openSettings(); break;

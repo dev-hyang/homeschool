@@ -443,3 +443,85 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 .bk-more{margin-top:6px}.bk-more>summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0;list-style:none}
 .bk-more>summary::before{content:"▸ ";}.bk-more[open]>summary::before{content:"▾ ";}
 .bk-err{margin:6px 0;color:#b4506a;font-size:13px}.bk-err .btn,.bk-err .chip{margin-left:6px}
+
+/* ============ 睡前安然（js/bedtime.js、js/bedtime-play.js） ============ */
+.bt-card-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bt-card-row > div{flex:1;min-width:0}
+.bt-card-row .btn.primary{flex:none}
+.bt-hero{border-color:var(--slate)}
+.bt-verse{font-family:var(--f-head);font-size:19px;line-height:1.5;margin:0 0 12px}
+.bt-text{margin:10px 0}
+.bt-pre{white-space:pre-wrap;line-height:1.7;font-size:15px}
+.month .cell .dots{display:flex;gap:3px;min-height:6px}
+.month .devo-dot.bt{background:var(--honey)}
+/* 播放页：整页深色，固定在最上层；灯调暗后屏幕上没有吸引孩子的东西。只有深色，不随主题变 */
+body.bt-playing{overflow:hidden}
+.btp{position:fixed;inset:0;z-index:60;background:#0a0d12;color:#b9c2cf;padding:calc(14px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto;-webkit-overflow-scrolling:touch;font-size:17px;line-height:1.6}
+.btp .muted{color:#6f7a88}
+.btp-top{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;color:#6f7a88}
+.btp-top .btp-x,.btp-tools button,.btp-song-acts button,.btp-nav button{border:1px solid #2a3340;background:transparent;color:#9aa5b4;border-radius:999px;padding:8px 14px;min-height:40px;cursor:pointer;font-size:14px}
+.btp-tools button[aria-pressed="true"],.btp-song-acts button[aria-pressed="true"]{background:#1d2633;color:#d6dde7;border-color:#3a4555}
+.btp-tools button:disabled{opacity:.35;cursor:default}
+.btp-name{font-family:var(--f-head);font-size:clamp(30px,8vw,44px);line-height:1.2;color:#e7ecf3;margin:18px 0 12px;font-weight:700}
+.btp-bar{height:4px;border-radius:2px;background:#1d2633;overflow:hidden}
+.btp-bar span{display:block;height:100%;background:#4f7fb8;transition:width 1s linear}
+.btp.over .btp-bar span{background:#d9a93a}
+.btp-time{font-size:14px;color:#8a95a5;margin:8px 0 14px;font-variant-numeric:tabular-nums}
+.btp-time .over{color:#e8c25a;font-weight:600}
+.btp-song{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-top:1px solid #1d2633;border-bottom:1px solid #1d2633;font-size:15px;color:#9aa5b4}
+.btp-song-acts{display:inline-flex;gap:6px;flex-wrap:wrap}
+.btp-song-acts button{min-width:44px}
+.btp-lyrics{color:#8a95a5;font-size:15px;margin:10px 0 0;padding:10px 0;border-bottom:1px solid #1d2633}
+.btp-body{margin:14px 0 0}
+.btp-body.hide{display:none}
+.btp-hint{color:#7f8a99;font-size:15px;margin:0 0 10px}
+.btp-ask{color:#c9d2de;font-size:16px;margin:4px 0 10px}
+.btp-ref{font-size:14px;color:#6f7a88;margin:12px 0 2px;display:flex;align-items:center;gap:8px}
+.btp-nav{display:inline-flex;gap:4px;margin-left:auto}
+.btp-nav button{min-width:40px;min-height:34px;padding:4px 10px}
+.btp-verse{font-family:var(--f-head);font-size:21px;line-height:1.6;color:#dfe5ee;margin:0 0 6px}
+.btp-pre{white-space:pre-wrap;line-height:1.75;color:#aeb8c6;font-size:17px;margin:6px 0}
+.btp-pre.small{font-size:15px;color:#8a95a5}
+.btp-cases{margin:12px 0 0;padding:10px 12px;border:1px solid #2a3340;border-radius:12px;font-size:15px;color:#aeb8c6}
+.btp-cases p{margin:6px 0}
+.btp-acts{margin:22px 0 10px}
+.btp-next{width:100%;min-height:64px;border:0;border-radius:16px;background:#243447;color:#e7ecf3;font-size:20px;font-weight:600;cursor:pointer}
+.btp-next:active{background:#2c3f57}
+.btp-next:disabled{opacity:.5}
+.btp-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.btp-vol{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6f7a88;margin-left:auto}
+.btp-vol input{width:90px;accent-color:#4f7fb8}
+.btp-parent{color:#9aa5b4;font-size:15px;border-left:3px solid #2a3340;padding-left:10px;margin:0 0 16px}
+.btp-sum table{width:100%;border-collapse:collapse;font-size:15px}
+.btp-sum th,.btp-sum td{padding:6px 4px;border-bottom:1px solid #1d2633;text-align:left;color:#aeb8c6}
+.btp-sum th{color:#7f8a99;font-weight:500}
+.btp-sum .num{text-align:right;font-family:var(--f-num)}
+.btp-form .lab{font-size:13px;color:#7f8a99;margin:14px 0 6px}
+.btp-form .seg button{border:1px solid #2a3340;background:transparent;color:#aeb8c6;border-radius:10px;padding:9px 12px;min-height:42px;cursor:pointer;font-size:15px}
+.btp-form .seg button[aria-pressed="true"]{background:#3b5e8c;border-color:#3b5e8c;color:#fff}
+.btp-form textarea{width:100%;box-sizing:border-box;border:1px solid #2a3340;background:#111620;color:#dfe5ee;border-radius:10px;padding:10px 12px;font-size:16px;min-height:64px;resize:vertical}
+@media (prefers-reduced-motion:reduce){.btp-bar span{transition:none}}
+@media print{.btp{display:none}}
+/* 状况与应对 */
+.bt-principle{border-color:var(--honey)}
+.bt-sit{margin-top:10px}
+.bt-steps{margin:8px 0 4px;padding-left:20px;font-size:14.5px;line-height:1.55}
+.bt-steps li{margin:3px 0}
+.bt-say{font-family:var(--f-head);font-size:16px;line-height:1.55;margin:6px 0 0}
+.bt-trend{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.bt-up{color:var(--rose)} .bt-down{color:var(--sage)}
+.bt-keep{margin-top:6px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--sage-soft)}
+.bt-keep div{margin-top:2px}
+.btp-principle{font-size:15px;color:#c9d2de;margin:0 0 10px}
+.btp-case{padding:10px 0;border-top:1px solid #1d2633}
+.btp-case ol{margin:6px 0;padding-left:20px;font-size:15px;color:#aeb8c6}
+.btp-case p{margin:6px 0;font-size:15px}
+.btp-ev-open{border:1px solid #2a3340;background:transparent;color:#9aa5b4;border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer;font-size:14px}
+.btp-ev{margin-top:8px;padding:10px;border:1px solid #2a3340;border-radius:12px}
+.btp-ev .lab{font-size:13px;color:#7f8a99;margin:8px 0 4px}
+.btp-ev .seg button{border:1px solid #2a3340;background:transparent;color:#aeb8c6;border-radius:10px;padding:7px 11px;min-height:38px;cursor:pointer;font-size:14px}
+.btp-ev .seg button[aria-pressed="true"]{background:#3b5e8c;border-color:#3b5e8c;color:#fff}
+.btp-ev textarea{width:100%;box-sizing:border-box;border:1px solid #2a3340;background:#111620;color:#dfe5ee;border-radius:10px;padding:8px 10px;font-size:15px;min-height:48px;resize:vertical}
+.btp-ev-acts{display:flex;gap:8px;margin-top:8px}
+.btp-ev-acts button{border:1px solid #2a3340;background:#243447;color:#e7ecf3;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer;font-size:14px}
+.btp-ev-acts button:last-child{background:transparent;color:#9aa5b4}
