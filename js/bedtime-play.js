@@ -27,7 +27,7 @@ async function openPlayer(api){
   const host = document.createElement("div"); host.id = "btplay"; host.className = "btp"; document.body.appendChild(host);
   document.body.classList.add("bt-playing");
   P.timer = setInterval(tick, 1000);
-  for (const l of (c.lang === "both" ? ["zh", "en"] : [c.lang])) api.ensureVerse(c.reading, l).then(() => { if (P && !P.done) draw(); });
+  for (const l of (c.lang === "both" ? ["zh", "en"] : [c.lang])) api.ensureVerse(c.reading, l).then(ok => { if (ok && P && !P.done) draw(); });
   draw();
   await startStep(0);
 }
@@ -106,7 +106,11 @@ const timeHTML = (st, el, planned) => `${P.ext ? t("再放 {n} 分钟", { n: Mat
 /* ---- 画面 ---- */
 function verseBlock(ref, extra = ""){
   const c = P.c, parts = [];
-  for (const l of (c.lang === "both" ? ["zh", "en"] : [c.lang])) { const v = P.api.verseText(ref, l); parts.push(v ? `<p class="btp-verse">${esc(v.text)}</p>` : `<p class="btp-verse muted">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</p>`); if (!v) P.api.ensureVerse(ref, l).then(() => { if (P && !P.done) draw(); }); }
+  for (const l of (c.lang === "both" ? ["zh", "en"] : [c.lang])) { const v = P.api.verseText(ref, l);
+    if (v) { parts.push(`<p class="btp-verse">${esc(v.text)}</p>`); continue; }
+    const err = P.api.verseError(ref, l);
+    if (err) parts.push(`<p class="btp-verse muted small">${t("没抓到")}：${esc(err)}</p>`);
+    else { parts.push(`<p class="btp-verse muted">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</p>`); P.api.ensureVerse(ref, l).then(() => { if (P && !P.done) draw(); }); } }
   return `<div class="btp-ref">${esc(tc(ref))}${extra}</div>${parts.join("")}`;
 }
 function textHTML(st){

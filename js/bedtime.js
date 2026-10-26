@@ -106,12 +106,21 @@ function verseText(ref, lang){
   if (ref === ANCHOR_REF) return { text: lang === "en" ? ANCHOR_EN : ANCHOR_ZH, version: lang === "en" ? "ESV" : "和合本" };
   const v = verseStore()[vkey(ref, lang)]; return v ? { text: v, version: lang === "en" ? fetchVersions().en : fetchVersions().zh } : null;
 }
-const fetching = new Set();
+/* 抓取：正在抓的不重复抓；抓失败的记住原因、10 分钟内不再试（否则失败 → 重绘 → 再抓 → 再失败会把页面卡死）。
+   返回 true 表示这次真的抓到了新内容；多条同时抓完只合并成一次重绘（scheduleRender）。 */
+const fetching = new Set(), failed = new Map();
+const RETRY_MS = 10 * 60e3;
+let renderTimer = null;
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer = setTimeout(() => { if (BT_TABS.has(S.tab) && !playerOpen()) render(); }, 300); }
+const verseError = (ref, lang) => { const f = failed.get(vkey(ref, lang)); return f && Date.now() - f.ts < RETRY_MS ? f.msg : ""; };
+function retryVerse(ref){ for (const l of ["zh", "en"]) failed.delete(vkey(ref, l)); }
 async function ensureVerse(ref, lang){
-  if (verseText(ref, lang) || !navigator.onLine) return;
-  const k = vkey(ref, lang); if (fetching.has(k)) return; fetching.add(k);
-  try { const fv = fetchVersions(), r = await fetchPassage(ref, lang === "en" ? fv.en : fv.zh, S.hs.settings.esvProxy); const st = verseStore(); st[k] = r.text; saveJSON(VERSE_KEY, st); }
-  catch (e) { console.warn("verse", ref, e.message); }
+  if (verseText(ref, lang) || !navigator.onLine) return false;
+  const k = vkey(ref, lang); if (fetching.has(k)) return false;
+  const f = failed.get(k); if (f && Date.now() - f.ts < RETRY_MS) return false;
+  fetching.add(k);
+  try { const fv = fetchVersions(), r = await fetchPassage(ref, lang === "en" ? fv.en : fv.zh, S.hs.settings.esvProxy); const st = verseStore(); st[k] = r.text; saveJSON(VERSE_KEY, st); failed.delete(k); return true; }
+  catch (e) { console.warn("verse", ref, lang, e.message); failed.set(k, { ts: Date.now(), msg: e.message || String(e) }); return false; }
   finally { fetching.delete(k); }
 }
 // 今晚要读的都取回来（主锚点 + 今晚那段，中英都取）
@@ -467,7 +476,12 @@ function newVersion(from, name){ return { id: "v" + newId(), name: name || from.
 /* ---- 睡前经文 ---- */
 function viewReadings(){
   const c = cfg(), list = allReadings(c), lang = c.lang;
-  const show = r => { const parts = []; for (const l of (lang === "both" ? ["zh", "en"] : [lang])) { const v = verseText(r.ref, l); if (v) parts.push(`<span class="verse">${esc(v.text)} <span class="small muted">（${esc(v.version)}）</span></span>`); else { ensureVerse(r.ref, l).then(() => { if (S.tab === "bt-readings") render(); }); parts.push(`<span class="verse muted small">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</span>`); } } return parts.join(""); };
+  const show = r => { const parts = []; for (const l of (lang === "both" ? ["zh", "en"] : [lang])) { const v = verseText(r.ref, l);
+    if (v) parts.push(`<span class="verse">${esc(v.text)} <span class="small muted">（${esc(v.version)}）</span></span>`);
+    else { const err = verseError(r.ref, l);
+      if (err) parts.push(`<span class="verse small" style="color:var(--rose)">${t("没抓到")}（${l === "en" ? "EN" : "中"}）：${esc(err)} <button class="chip" data-act="bt-read-retry" data-ref="${esc(r.ref)}">${t("再试")}</button></span>`);
+      else { ensureVerse(r.ref, l).then(scheduleRender); parts.push(`<span class="verse muted small">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</span>`); } } }
+    return parts.join(""); };
   const row = r => `<div class="task ${r.ref === c.reading ? "done" : ""}"><span class="bar" style="background:${r.ref === c.reading ? "var(--sage)" : r.ref === ANCHOR_REF ? "var(--honey)" : "var(--line)"}"></span>
     <div class="main"><span class="title" style="text-decoration:none;color:var(--ink)"><b>${esc(tc(r.ref))}</b>${r.ref === c.reading ? ` <span class="pill ok">${t("今晚")}</span>` : ""}${r.ref === ANCHOR_REF && c.anchor ? ` <span class="pill lv">${t("每晚先读")}</span>` : ""}</span>${show(r)}<span class="meta">${esc(tc(r.lead))}${r.ask ? ` · ${t("问")}：${esc(tc(r.ask))}` : ""}</span></div>
     <span class="acts" style="flex-direction:column">${r.ref === c.reading ? "" : `<button class="chip" data-act="bt-read-use" data-ref="${esc(r.ref)}">${t("今晚读这段")}</button>`}${r.custom ? `<button class="chip" data-act="bt-read-edit" data-ref="${esc(r.ref)}">${t("编辑")}</button>` : ""}</span></div>`;
@@ -506,7 +520,7 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, text: currentText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, text: currentText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
     case "bt-cap": await saveCfg({ cap: +d.v }); render(); break;
     case "bt-lang": await saveCfg({ lang: d.v }); render(); break;
     case "bt-anchor": await saveCfg({ anchor: !c.anchor }); render(); break;
@@ -546,7 +560,8 @@ async function btAct(act, btn){
       openForm("这一笔", evFields(c), e, async f => { await saveEvent({ ...e, ...f, title: f.situation === "custom" ? f.title : "", children: f.children || [], minutes: f.minutes == null ? null : +f.minutes, keep: !!f.keep }); closeSheet(); }, async () => { if (confirm(t("删除这条记录？"))) { await deleteEvent(e.id); closeSheet(); } }); break; }
     case "bt-ev-keep": { const e = S.bt.events.find(x => x.id === d.id); if (!e) break; await saveEvent({ ...e, keep: !e.keep }); render(); break; }
     /* 经文 */
-    case "bt-read-use": await saveCfg({ reading: d.ref }); prefetchTonight().then(() => { if (S.tab === "bt-readings") render(); }); render(); break;
+    case "bt-read-use": await saveCfg({ reading: d.ref }); prefetchTonight().then(scheduleRender); render(); break;
+    case "bt-read-retry": retryVerse(d.ref); render(); break;
     case "bt-read-next": { const list = allReadings(c).filter(r => r.ref !== ANCHOR_REF || !c.anchor), i = list.findIndex(r => r.ref === c.reading); const nx = list[(i + 1) % list.length]; if (nx) { await saveCfg({ reading: nx.ref }); prefetchTonight().catch(() => {}); render(); } break; }
     case "bt-read-add": openForm("加一段睡前经文", readFields, { ref: "", lead: "", ask: "" }, async f => { if (!parseRef(f.ref)) { toast(t("看不懂这个出处，写成「诗篇 23:1-4」这样")); return; } if (allReadings(c).some(r => r.ref === f.ref)) { toast(t("已经有这段了")); return; } await saveCfg({ readings: [...c.readings, f] }); closeSheet(); ensureVerse(f.ref, "zh"); ensureVerse(f.ref, "en"); }); break;
     case "bt-read-edit": { const r = c.readings.find(x => x.ref === d.ref); if (!r) break; openForm("这段经文", readFields, r, async f => { await saveCfg({ readings: c.readings.map(x => x.ref === r.ref ? f : x), ...(c.reading === r.ref ? { reading: f.ref } : {}) }); closeSheet(); }, async () => { await saveCfg({ readings: c.readings.filter(x => x.ref !== r.ref), ...(c.reading === r.ref ? { reading: READINGS[1].ref } : {}) }); closeSheet(); }); break; }

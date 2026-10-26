@@ -598,6 +598,7 @@ const EN = {
   "比上个 30 天多 {n}": "{n} more than the previous 30 days", "比上个 30 天少 {n}": "{n} fewer than the previous 30 days", "和上个 30 天一样": "same as the previous 30 days",
   "删除这种状况？已有的记录保留。": "Delete this situation? Existing entries stay.", "请填情况": "Describe the situation", "什么情况": "Situation", "常见于（可空）": "Typical age (optional)", "推荐做法（一行一条）": "Recommended steps (one per line)", "可以这样说": "What to say", "不要（可空）": "Avoid (optional)", "经文提醒（可空）": "Verse reminder (optional)",
   "「其他」时写一下是什么情况": "If “Other”, describe it", "怎么处理的": "What you did", "这个做法值得继续用（会列在状况卡上）": "This approach is worth keeping (shown on the situation card)", "备注（可空）：孩子的反应、明天要跟进什么": "Note (optional): the child’s reaction, what to follow up tomorrow", "这一笔": "This entry",
+  "没抓到": "Not fetched", "再试": "Retry",
   "平静下来了": "Calmed down", "勉强过去了": "Got through it", "没什么用": "Didn’t help", "更糟了": "Got worse",
 };
 export { EN };
