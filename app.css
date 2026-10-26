@@ -305,13 +305,22 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .ask-entry{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .ai-ico{vertical-align:-4px;flex:none} .mrow .mi .ai-ico{vertical-align:middle}
 .ask-entry .ask-chip{font-weight:600;border-color:var(--slate);color:var(--slate);background:var(--slate-soft)}
-#askForm textarea{box-sizing:border-box;width:100%;min-height:84px;resize:vertical;padding:12px 14px;font-size:16px;line-height:1.6;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:var(--radius-sm)}
-#askForm textarea:focus{outline:none;border-color:var(--slate);box-shadow:0 0 0 4px var(--slate-soft)}
+.ask textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);background:var(--honey-soft);color:var(--ink);border-radius:var(--radius-sm);padding:12px;min-height:80px;font-size:16px;line-height:1.6;resize:vertical}
+.ask textarea:focus{outline:none;border-color:var(--slate);box-shadow:0 0 0 4px var(--slate-soft)}
 .chk{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-size:13.5px;line-height:1.4;color:var(--muted)}
 .chk input{margin-top:3px;flex:none;width:18px;height:18px;accent-color:var(--slate)}
-.ask-answer .ask-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
-.ask-text p{margin:6px 0;line-height:1.65} .ask-text h4{margin:10px 0 4px;font-size:15px} .ask-text ul,.ask-text ol{margin:6px 0;padding-left:1.3em} .ask-text li{margin:3px 0;line-height:1.55}
-.ask-answer .disclaimer{margin:10px 0 0;border-top:1px solid var(--line);padding-top:8px}
+.ask .chk{margin:8px 0 0}
+.ask .btns{margin-top:12px}
+.ai-cfg{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+.ai-cfg .lab{font-size:14px;color:var(--muted)}
+.ai-cfg label{display:block;margin-top:10px}
+.ai-cfg input{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:var(--radius-sm);padding:10px 12px;background:var(--surface);color:var(--ink);margin-top:6px;font-size:16px}
+.ai-sites{display:flex;flex-wrap:wrap;gap:6px}
+.ai-sites .chip,.ai-sites a.chip{text-decoration:none;color:inherit}
+.ai-answer .ai-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ai-answer .ai-head b{flex:1}
+.ai-text p{margin:6px 0}.ai-text ul,.ai-text ol{margin:6px 0;padding-left:20px}.ai-text li{margin:3px 0}.ai-text h4{margin:10px 0 4px;font-size:15px}
+.ai-ctx{white-space:pre-wrap;font:13px/1.5 var(--f-body);margin:0;color:var(--muted);overflow-wrap:anywhere}
 details.more{margin-top:24px}
 details.more summary{cursor:pointer;font-family:var(--f-head);font-size:19px;font-weight:700;margin:0 0 10px;display:flex;align-items:baseline;gap:10px;list-style:none;flex-wrap:wrap}
 details.more summary::-webkit-details-marker{display:none}
@@ -525,3 +534,8 @@ body.bt-playing{overflow:hidden}
 .btp-ev-acts{display:flex;gap:8px;margin-top:8px}
 .btp-ev-acts button{border:1px solid #2a3340;background:#243447;color:#e7ecf3;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer;font-size:14px}
 .btp-ev-acts button:last-child{background:transparent;color:#9aa5b4}
+
+/* 冲突管理 */
+.cf-why{margin:10px 0 4px;line-height:1.6}
+.cf-others{margin:4px 0}
+.cf-others summary{cursor:pointer;padding:4px 0}

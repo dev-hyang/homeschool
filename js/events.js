@@ -9,7 +9,7 @@ import { parsePlan } from "./data/plans.js";
 import * as hs from "./hs.js";
 import { setLawState } from "./law.js";
 import { download, reportCSV, shiftMonth } from "./reports.js";
-import { RES_LANGS, RES_TYPES, feedItem, ideaSourcesHTML } from "./resources.js";
+import { RES_LANGS, RES_TYPES, feedItem } from "./resources.js";
 import { setLocale } from "./core/i18n.js";
 import { CATS, ideas } from "./data/ideas.js";
 import { openAbout } from "./about.js";
@@ -19,6 +19,7 @@ import { openBackfill, openScriptures, renderLibList } from "./library.js";
 import { render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
+import { cfAct } from "./flows.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -47,7 +48,10 @@ document.addEventListener("click", async ev => {
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
-  if (d.tab) { close(); stopPreview(); S.printView = null; if (d.from) (S.from ||= {})[d.tab] = d.from; S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
+  if (d.tab) { close(); stopPreview(); const wasPrint = !!S.printView; S.printView = null; if (wasPrint && history.state && history.state.print) { try { history.back(); } catch (e) {} }
+    // data-from：子页记住从哪个页签进来的（面包屑）；没带 data-from 的入口（比如资源页的行）清掉旧记忆，路径回到默认层级。面包屑和迷你栏里的返回不清
+    if (d.from) (S.from ||= {})[d.tab] = d.from; else if (S.from && !btn.classList.contains("crumb-link") && !btn.closest(".minibar")) delete S.from[d.tab];
+    S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
   if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
   if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
@@ -72,6 +76,7 @@ document.addEventListener("click", async ev => {
   if (["scr-gen", "scr-set", "cc-set", "ncc-import", "scr-add", "seed-scriptures", "fetch-settings"].includes(d.act)) S.scrFilter.menu = "";   // 从“添加 / 设置”面板进了表单，回来时面板收起
   if (d.act && d.act.startsWith("bk-")) { await bkAct(d.act, btn); return; }   // 备份与恢复（js/backup.js）
   if (d.act && d.act.startsWith("ask-")) { await askAct(d.act, btn); return; }   // 咩咩咩（js/ask.js）
+  if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {
     switch (d.act) {
@@ -90,7 +95,7 @@ document.addEventListener("click", async ev => {
       case "devo-passage": openForm("今日读经", [{ k: "passage", label: "段落", type: "text", ph: "创世记 1" }, { k: "note", label: "备注", type: "text" }], { passage: hs.devotionDraft().passage, note: hs.devotionDraft().note }, async f => { await hs.saveDevotion({ passage: f.passage, note: f.note }); back(); }); break;
       case "devo-prayer": openForm("今天的祷告", [{ k: "prayer", label: "为谁、为什么祷告", type: "area", rows: 4 }], { prayer: hs.devotionDraft().prayer }, async f => { await hs.saveDevotion({ prayer: f.prayer }); back(); }); break;
       case "devo-hymn": openForm("本月诗歌", [{ k: "hymn", label: "诗歌名（可加链接或页码）", type: "text", ph: "耶稣爱我 Jesus Loves Me" }], { hymn: S.hs.settings.hymn || "" }, async f => { await hs.saveSettings({ hymn: f.hymn }); back(); }); break;
-      case "devo-verse": openScriptures(); break;
+      case "devo-verse": openScriptures("today"); break;
 
       /* 背诵 */
       case "review-remember": await hs.setProgress(d.sid, S.childId, "remember"); render(); toast(t("{name}背出来了 ✓", { name: childName() })); break;
@@ -112,7 +117,7 @@ document.addEventListener("click", async ev => {
       case "print-now": try { window.print(); } catch (e) {} break;
       case "scr-pause": await hs.setProgress(d.sid, S.childId, "pause"); openScriptures(); break;
       case "scr-resume": await hs.setProgress(d.sid, S.childId, "resume"); openScriptures(); break;
-      case "scriptures": openScriptures(); break;
+      case "scriptures": openScriptures(d.from); break;
       case "seed-scriptures": { const n = await hs.importSeedScriptures(); toast(n ? t("已导入 {n} 张经文卡", { n }) : t("起步经文卡都已经在库里了")); openScriptures(); break; }
       case "scr-start": await hs.setProgress(d.sid, S.childId, "start"); openScriptures(); break;
       case "scr-reset": { const p = hs.progressOf(d.sid, S.childId);   // 重新开始：回到“没开始”，复习次数和日期都清掉；已经复习过的先确认
@@ -187,7 +192,6 @@ document.addEventListener("click", async ev => {
       case "idea-shuffle": S.ideaFilter.seed++; render(); break;
       case "idea-all": S.ideaFilter.all = true; render(); break;
       case "idea-less": S.ideaFilter.all = false; render(); break;
-      case "idea-sources": openInfo("参考来源", ideaSourcesHTML()); break;
       case "feed-add": { const x = feedItem(+d.i); if (!x) break; const cat = S.ideaFilter.cat, c = CATS[cat];
         const title = cat === "outdoor" ? `户外：${x.title}` : cat === "chore" ? `家务：${x.title}` : x.title;
         await hs.upsertTask({ child_id: S.childId || null, title, subject: c.subject, note: `${x.excerpt ? x.excerpt + " " : ""}${x.url}` }); render(); toast(t("已加到{name}今天：{title}", { name: childName(), title: x.title })); break; }

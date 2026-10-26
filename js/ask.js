@@ -5,7 +5,7 @@
    不含孩子姓名（一律写「孩子」）、不含备注和任务里的自由文本。调用层在 js/ai.js（复制自牧羊人）。 */
 import { PROVIDERS, aiReady, aiSettings, askText, providerOf, saveAiSettings, testAi } from "./ai.js";
 import { t, locale } from "./core/i18n.js";
-import { S, ageText, stageOf } from "./core/state.js";
+import { S, ageText, childName, stageOf } from "./core/state.js";
 import { D, dayKey, esc, toast } from "./core/util.js";
 import { subject } from "./data/subjects.js";
 import { devotionDraft, dueReviews, isOffDay, learnedCount, learningCards, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
@@ -22,7 +22,7 @@ const aiIcon = (size = 22) => `<svg class="ai-ico" width="${size}" height="${siz
   <circle cx="23.2" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/><circle cx="40.8" cy="44.5" r="1.9" fill="#F4A3B1" opacity=".9"/>
   <path d="M25.5 11.5l6.5 8 6.5-8M32 19.5v9" fill="none" stroke="#D9655F" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-const st = () => (S.ask ||= { q: "", busy: false, answer: null, error: null, withContext: true, keyOpen: false, prov: null });
+const st = () => (S.ask ||= { q: "", busy: false, answer: null, error: null, withContext: true, cfg: false, draft: null });
 
 /* ---- 场景：一句默认问题 + 要带上的上下文块 ---- */
 const TOPICS = [
@@ -120,81 +120,77 @@ function renderAnswer(text){
     if (ln.trim()) out += /^#+\s/.test(ln) ? `<h4>${ln.replace(/^#+\s/, "")}</h4>` : `<p>${ln}</p>`;
   }
   flush();
-  return `<div class="ask-text">${out}</div>`;
+  return `<div class="ai-text">${out}</div>`;
 }
-function keyPanelHTML(){
-  const a = st(), s = aiSettings(), pid = a.prov || s.provider, p = providerOf(pid), own = !s.borrowed && !!s.key;
-  return `<details class="more" id="askKey" ${a.keyOpen ? "open" : ""}><summary>${t("AI 设置")}<span class="small muted">${aiReady() ? (s.borrowed ? t("沿用爱家小助手里填的 key") : t("已填 key · {p}", { p: p.name })) : t("填 API key 后直接出答案")}</span></summary>
-    <div class="panel">
-      <p class="small muted" style="margin-top:0">${t("key 只存在这台设备的浏览器里，不进仓库、不进数据库、不同步给家人。四个姊妹应用在同一个域名下，爱家小助手里填过的这里会自动沿用。")}</p>
-      <div class="field"><div class="lab">${t("服务商")}</div><div class="seg" role="group">${PROVIDERS.map(x => `<button type="button" data-act="ask-prov" data-v="${x.id}" aria-pressed="${x.id === pid}">${esc(x.name)}</button>`).join("")}</div>
-        ${p.hint ? `<p class="small muted" style="margin:6px 0 0">${esc(t(p.hint))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener">${t("去申请 key")}</a>` : ""}</p>` : ""}</div>
-      <div class="field"><label for="askKeyIn">API key</label><input id="askKeyIn" type="password" autocomplete="off" value="${esc(pid === s.provider && !s.borrowed ? s.key : "")}" placeholder="${s.borrowed && pid === s.provider ? t("（沿用爱家小助手的 key，留空即可）") : ""}"></div>
-      <div class="field"><label for="askModel">${t("模型（可空，用默认）")}</label><input id="askModel" type="text" value="${esc(pid === s.provider ? (s.model || "") : "")}" placeholder="${esc(p.model || "")}"></div>
-      ${pid === "custom" ? `<div class="field"><label for="askBase">${t("接口地址（到 /v1 为止）")}</label><input id="askBase" type="text" value="${esc(s.base || "")}" placeholder="https://…/v1"></div>` : ""}
-      <div class="btns"><button type="button" class="btn primary" data-act="ask-save">${t("保存")}</button><button type="button" class="btn" data-act="ask-test">${t("测试连接")}</button>${own ? `<button type="button" class="btn danger" data-act="ask-clear">${t("清除 key")}</button>` : ""}</div>
-    </div></details>`;
+/* 页面版式完全照小月亮 js/ask.js：场景 chips → 一个面板（输入框、勾选、按钮，点「换模型 / 填 API key」才在面板里展开 AI 设置）→ 回答 → 「会发送什么」折叠块。 */
+function cfgHTML(){
+  const a = st(), d = a.draft, p = providerOf(d.provider), s = aiSettings(), own = !s.borrowed && !!s.key;
+  return `<div class="ai-cfg">
+    <div class="lab">${t("服务商")}</div>
+    <div class="chips" style="margin-top:4px">${PROVIDERS.map(x => `<button type="button" class="chip" data-act="ask-prov" data-v="${x.id}" aria-pressed="${d.provider === x.id}">${esc(t(x.name))}</button>`).join("")}</div>
+    <p class="small muted" style="margin:0">${esc(t(p.hint || ""))}${p.signup ? ` <a href="${p.signup}" target="_blank" rel="noopener">${t("去申请 key")}</a>` : ""}</p>
+    ${s.borrowed && !d.key ? `<p class="small muted">${t("现在沿用的是爱家小助手里填的 key；在这里填一个就改用自己的。")}</p>` : ""}
+    <label class="small muted" for="askKey">API key</label><input id="askKey" type="password" autocomplete="off" value="${esc(d.key || "")}" placeholder="${t("只存在这台设备的浏览器里")}">
+    <label class="small muted" for="askModel">${t("模型（留空用默认 {m}）", { m: p.model || "" })}</label><input id="askModel" type="text" autocomplete="off" value="${esc(d.model || "")}">
+    ${p.id === "custom" ? `<label class="small muted" for="askBase">${t("接口地址（到 /v1 为止）")}</label><input id="askBase" type="url" autocomplete="off" value="${esc(d.base || "")}" placeholder="https://…/v1">` : ""}
+    <div class="btns"><button type="button" class="btn primary" data-act="ask-save">${t("保存")}</button><button type="button" class="btn" data-act="ask-test">${t("测试连接")}</button>${own ? `<button type="button" class="btn" data-act="ask-clear">${t("清除 key")}</button>` : ""}<button type="button" class="btn" data-act="ask-cfg">${t("收起")}</button></div></div>`;
 }
 function viewAsk(){
   const a = st(), ready = aiReady();
   const topics = TOPICS.map(x => `<button type="button" class="chip" data-act="ask-topic" data-topic="${x.id}" aria-pressed="${a.q === t(x.q)}">${x.icon} ${t(x.name)}</button>`).join("");
   const sites = AI_SITES.map(([n, u]) => `<a class="chip" href="${u}" target="_blank" rel="noopener noreferrer">${t("打开{n}", { n: t(n) })}</a>`).join("");
-  return `<h2>${aiIcon(26)} ${t("咩咩咩")} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${loaded() ? `${esc(ageText())} · ${esc(stageOf().name)}` : t("登录并进入家庭后，回答会结合孩子的学习情况")}</span></h2>
-  <p class="small muted">${ready ? t("问孩子在家教育里的任何事：今天的课怎么调、经文怎么背、孩子不配合怎么办。勾上「附带学习情况」，回答会结合孩子的年龄、今日任务、近一周完成情况和背诵进度。") : t("问孩子在家教育里的任何事。还没填 API key：点「复制提示词」，会把问题连同孩子最近的学习情况一起复制，打开任一 AI 粘贴即可；也可以在下面的「AI 设置」里填 key，直接在这里出答案。")}</p>
+  const sent = loaded() ? (a.withContext ? contextText(ctxFor(a.q)) : "") : "";
+  return `<h2>${aiIcon(26)} ${t("咩咩咩")} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${loaded() ? `${esc(childName())} · ${esc(ageText())}` : t("登录并进入家庭后，回答会结合孩子的学习情况")}</span></h2>
+  <p class="small muted">${ready ? t("问孩子在家教育里的任何事：今天的课怎么调、经文怎么背、孩子不配合怎么办。会附上孩子的年龄、今日任务、近一周完成情况和背诵进度（不含备注和姓名），答案就在下面出现。") : t("还没填 API key：点「复制提示词」，会把问题连同孩子最近的学习情况一起复制，打开任一 AI 粘贴即可；也可以点「填 API key」，直接在这里出答案。")}</p>
   <div class="chips" role="group" aria-label="${t("常见场景")}">${topics}</div>
-  <form id="askForm" class="panel" onsubmit="return false">
+  <form id="askForm" class="panel ask" onsubmit="return false">
     <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
-    <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}><span>${t("附带孩子最近的学习情况（年龄与阶段、今日任务、近一周完成情况、经文背诵进度、今天的读经段落；不含姓名和备注）")}</span></label>
-    <div class="btns">
-      ${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
+    <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
+    <div class="btns">${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
       <button type="button" class="btn ${ready ? "" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
-      <button type="button" class="btn" data-act="ask-key">${ready ? t("换模型") : t("填 API key")}</button>
-    </div>
+      <button type="button" class="btn" data-act="ask-cfg">${ready ? t("换模型") : t("填 API key")}</button></div>
     ${a.error ? `<p class="small" role="alert" style="color:var(--rose);margin:8px 0 0">${esc(a.error)}</p>` : ""}
+    ${a.cfg ? cfgHTML() : ""}
   </form>
-  ${a.answer ? `<div class="panel ask-answer"><div class="ask-head"><b>${aiIcon(20)} ${t("咩咩的回答")}</b><button type="button" class="chip" data-act="ask-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
-    <p class="small muted disclaimer">${t("AI 回答仅供参考，教育与孩子的具体情况请以家长判断为准。")}</p></div>` : ""}
-  ${ready ? "" : `<div class="panel"><p class="small muted" style="margin:0 0 8px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="chips" style="margin:0">${sites}</div></div>`}
-  ${keyPanelHTML()}`;
+  ${ready ? "" : `<div class="panel"><p class="small muted" style="margin:0 0 8px">${t("复制后打开任一 AI 粘贴（手机上会直接打开已安装的 App）：")}</p><div class="ai-sites">${sites}</div></div>`}
+  ${a.answer ? `<div class="panel ai-answer"><div class="ai-head">${aiIcon(20)} <b>${t("咩咩的回答")}</b><button type="button" class="chip" data-act="ask-copy-answer">${t("复制")}</button></div>${renderAnswer(a.answer)}
+    <p class="small muted" style="margin:8px 0 0">${t("AI 回答仅供参考，教育与孩子的具体情况请以家长判断为准。")}</p></div>` : ""}
+  <details class="more"><summary>${t("会发送什么")}<span class="small muted">${t("学习情况摘要原文")}</span></summary><div class="panel"><pre class="ai-ctx">${esc(sent || (loaded() ? t("没勾选「附带孩子最近的学习情况」：只发送你写的问题。") : t("还没登录：只发送你写的问题。")))}</pre></div></details>`;
 }
 
 /* ---- 动作 ---- */
 const form = () => document.getElementById("askForm");
-function readForm(){ const f = form(); if (!f) return; const a = st(); a.q = f.elements.q.value.trim(); a.withContext = f.elements.ctx.checked; }
-function readKeyForm(){
-  const a = st(), s = aiSettings(), pid = a.prov || s.provider;
-  const v = id => (document.getElementById(id) || {}).value || "";
-  const key = v("askKeyIn").trim();
-  return { provider: pid, key: key || (pid === s.provider && !s.borrowed ? s.key : ""), model: v("askModel").trim(), base: v("askBase").trim() || (pid === s.provider ? s.base || "" : "") };
+function readInputs(){
+  const f = form(), a = st();
+  if (f) { a.q = f.elements.q.value.trim(); a.withContext = f.elements.ctx.checked; }
+  if (a.draft) { const v = id => (document.getElementById(id) || {}).value; const k = v("askKey"), m = v("askModel"), b = v("askBase"); if (k != null) a.draft.key = k.trim(); if (m != null) a.draft.model = m.trim(); if (b != null) a.draft.base = b.trim(); }
 }
 async function askAct(act, el){
-  const a = st();
+  const a = st(); readInputs();
   switch (act) {
-    case "ask-topic": { readForm(); const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; } render(); break; }
+    case "ask-topic": { const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; } render(); break; }
     case "ask-send": {
-      readForm(); if (!a.q) { a.error = t("先写一句要问的"); render(); break; }
+      if (!a.q) { a.error = t("先写一句要问的"); render(); break; }
       a.busy = true; a.error = null; render();
       try { a.answer = await askText(systemPrompt(), userPrompt(a.q, a.withContext), { maxTokens: 1500, temperature: 0.4 }); }
       catch (e) { a.error = e.message; }
       finally { a.busy = false; render(); }
       break; }
     case "ask-copy": {
-      readForm(); if (!a.q) { toast(t("先写一句要问的")); break; }
+      if (!a.q) { toast(t("先写一句要问的")); break; }
       const text = promptText(a.q, a.withContext);
       try { await navigator.clipboard.writeText(text); toast(t("提示词已复制，打开任一 AI 粘贴即可")); } catch (e) { window.prompt(t("复制下面的提示词"), text); }
       break; }
     case "ask-copy-answer": if (a.answer) { try { await navigator.clipboard.writeText(a.answer); toast(t("已复制")); } catch (e) { /* 忽略 */ } } break;
-    case "ask-key": readForm(); a.keyOpen = !a.keyOpen; render(); if (a.keyOpen) { const d = document.getElementById("askKey"); d && d.scrollIntoView({ block: "start", behavior: "smooth" }); } break;
-    case "ask-prov": readForm(); a.prov = el.dataset.v; a.keyOpen = true; render(); break;
-    case "ask-save": { readForm(); const f = readKeyForm(); if (!f.key) { toast(t("请填 API key")); break; } saveAiSettings(f); a.prov = null; toast(t("已保存")); render(); break; }
-    case "ask-test": { readForm(); const f = readKeyForm(); if (!f.key) { toast(t("请填 API key")); break; } saveAiSettings(f); a.prov = null; el.disabled = true;
+    case "ask-cfg": { a.cfg = !a.cfg; if (a.cfg && !a.draft) { const s = aiSettings(); a.draft = { provider: s.provider, key: s.borrowed ? "" : s.key || "", model: s.model || "", base: s.base || "" }; } if (!a.cfg) a.draft = null; render(); break; }
+    case "ask-prov": if (a.draft) { a.draft.provider = el.dataset.v; render(); } break;
+    case "ask-save": { if (!a.draft) break; if (!a.draft.key && !aiSettings().borrowed) { toast(t("请填 API key")); break; } saveAiSettings(a.draft); a.cfg = false; a.draft = null; toast(t("已保存")); render(); break; }
+    case "ask-test": { if (!a.draft) break; if (!a.draft.key && !aiSettings().borrowed) { toast(t("请填 API key")); break; } if (a.draft.key) saveAiSettings(a.draft); el.disabled = true;
       try { await testAi(); toast(t("连接成功 ✓")); } catch (e) { toast(String(e.message || e).slice(0, 160)); } render(); break; }
-    case "ask-clear": { const s = aiSettings(); saveAiSettings({ provider: s.provider, key: "", model: "", base: "" }); a.prov = null; toast(t("已清除")); render(); break; }
+    case "ask-clear": { const s = aiSettings(); saveAiSettings({ provider: s.provider, key: "", model: "", base: "" }); a.draft = a.draft ? { ...a.draft, key: "" } : null; toast(t("已清除")); render(); break; }
     default: return false;
   }
   return true;
 }
-// 「AI 设置」折叠块的开合记在状态里，重画后不丢
-document.addEventListener("toggle", e => { if (e.target && e.target.id === "askKey") st().keyOpen = e.target.open; }, true);
 
 export { viewAsk, askAct, aiIcon, TOPICS };

@@ -8,6 +8,7 @@ import { fetchPassage, parseRef } from "./data/bible.js";
 import { ANCHOR_EN, ANCHOR_REF, ANCHOR_ZH, FLOW_TEMPLATES, GUIDE, OUTCOMES, PARENT_LINES, PRINCIPLES, READINGS, SITUATIONS, SONG_IDEAS, SONG_TAGS, TEXT_TEMPLATE } from "./data/bedtime.js";
 import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
+import { CONFLICTS } from "./data/flows.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
@@ -53,7 +54,7 @@ function normalize(raw){
     versions, version: versions.some(v => v.id === r.version) ? r.version : (versions[0] ? versions[0].id : null),
     readings: Array.isArray(r.readings) ? r.readings.filter(x => x && x.ref) : [], reading: r.reading || READINGS[1].ref, anchor: r.anchor !== false,
     situations: Array.isArray(r.situations) ? r.situations.filter(x => x && x.id && x.when) : [],
-    cap: +r.cap || 30, mirror: r.mirror !== false, lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : "zh", firstOn: r.firstOn || "" };
+    cap: +r.cap || 30, mirror: r.mirror !== false, mirrorConflict: r.mirrorConflict !== false, lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : "zh", firstOn: r.firstOn || "" };
 }
 const cfg = () => normalize(S.hs.loaded ? S.hs.settings.bedtime : cache().cfg);
 async function saveCfg(patch){
@@ -66,9 +67,11 @@ const totalMin = c => activeSteps(c).reduce((a, s) => a + (+s.minutes || 0), 0);
 /* 带领词：当前版本，没有自家版本时直接用内置模板 */
 function currentText(c = cfg()){ const v = c.versions.find(x => x.id === c.version); return v || { id: null, name: TEXT_TEMPLATE.name + t("（内置模板）"), ...TEXT_TEMPLATE, builtin: true }; }
 /* 状况模板：内置的可以被同 id 的自家版本覆盖（恢复 = 删掉覆盖），再加自家新增的 */
+const isCf = e => String((e && e.situation) || "").startsWith("cf-");   // 冲突管理的记录：situation 以 cf- 开头（和睡前状况共用一张表）
+const btEvents = () => S.bt.events.filter(e => !isCf(e));
 function allSituations(c = cfg()){
-  const own = new Map(c.situations.map(x => [x.id, x]));
-  return [...SITUATIONS.map(s => own.has(s.id) ? { ...own.get(s.id), builtin: true, edited: true } : { ...s, builtin: true }), ...c.situations.filter(x => !SITUATIONS.some(s => s.id === x.id)).map(x => ({ ...x, custom: true }))];
+  const mine = c.situations.filter(x => !String(x.id).startsWith("cf-")), own = new Map(mine.map(x => [x.id, x]));
+  return [...SITUATIONS.map(s => own.has(s.id) ? { ...own.get(s.id), builtin: true, edited: true } : { ...s, builtin: true }), ...mine.filter(x => !SITUATIONS.some(s => s.id === x.id)).map(x => ({ ...x, custom: true }))];
 }
 const situation = (id, c) => allSituations(c).find(s => s.id === id) || null;
 const sitName = (ev, c) => ev.situation === "custom" || !situation(ev.situation, c) ? (ev.title || t("其他")) : situation(ev.situation, c).when;
@@ -170,7 +173,7 @@ async function flushPending(){
   for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...row, family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); } catch (e) { left.push(row); } }
   S.bt.pending = left; saveJSON(PEND_KEY, left); sortLogs();
   const leftEv = [];
-  for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...row, family_id: fid() }).select().single()); put(S.bt.events, saved); } catch (e) { leftEv.push(row); } }
+  for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...row, family_id: fid() }).select().single()); put(S.bt.events, saved); await mirrorEvent(saved); } catch (e) { leftEv.push(row); } }
   const beforeEv = S.bt.pendingEv.length; S.bt.pendingEv = leftEv; saveJSON(PENDEV_KEY, leftEv); sortEvents();
   if (left.length < before || leftEv.length < beforeEv) toast(t("离线时的睡前记录已补传"));
 }
@@ -249,29 +252,49 @@ async function mirrorLog(l, remove = false){
 async function saveEvent(ev){
   const row = { id: ev.id || newId(), ...ev };
   if (!online()) { S.bt.pendingEv.push(row); saveJSON(PENDEV_KEY, S.bt.pendingEv); toast(t("没连上云端：记录先存在这台设备，联网后自动补传")); return row; }
+  const old = S.bt.events.find(x => x.id === row.id);
   const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...row, family_id: fid() }).select().single());
-  put(S.bt.events, saved); sortEvents(); return saved;
+  put(S.bt.events, saved); sortEvents();
+  await mirrorEvent(saved);
+  if (old) await mirrorEvent(old, { remove: true, only: (old.children || []).filter(c => !(saved.children || []).includes(c)) });   // 编辑时去掉的孩子，小月亮里那条一并删掉
+  return saved;
 }
-async function deleteEvent(id){ await run(SB.client.from("hs_bedtime_events").delete().eq("id", id)); S.bt.events = S.bt.events.filter(e => e.id !== id); }
+async function deleteEvent(id){
+  const old = S.bt.events.find(x => x.id === id);
+  await run(SB.client.from("hs_bedtime_events").delete().eq("id", id)); S.bt.events = S.bt.events.filter(e => e.id !== id);
+  if (old) await mirrorEvent(old, { remove: true });
+}
+/* 冲突管理 → 小月亮（自动）：每笔记录、每个孩子写一条「情绪行为」，id 固定为 hscf-<记录 id>-<孩子 id>，
+   所以改这笔会更新小月亮那条、删这笔会把那条标成已删，不会重复。小月亮 → 这里是只读（见 js/flows.js）。可在冲突管理页关掉。 */
+async function mirrorEvent(ev, { remove = false, only = null } = {}){
+  if (!isCf(ev) || !SB.client || cfg().mirrorConflict === false) return;
+  const sit = CONFLICTS.find(x => x.id === ev.situation), kind = (sit && sit.write) || "发脾气", today = dayKey(Date.now());
+  const ts = ev.date === today ? Date.now() : new Date(ev.date + "T12:00:00").getTime(), now = Date.now();
+  const trigger = [sit ? sit.when : "", ev.title].filter(Boolean).join("：") || "冲突";
+  for (const child of (only || ev.children || [])) {
+    const id = "hscf-" + String(ev.id).replace(/[^a-z0-9]/gi, "") + "-" + String(child).replace(/[^a-z0-9]/gi, "").slice(0, 12);
+    const data = { id, type: "behavior", ts, updated: now, child, kind, trigger, how: ev.approach || "", note: "来自家庭学堂 · 冲突管理" + (ev.note ? "：" + ev.note : "") };
+    if (ev.minutes != null) data.minutes = +ev.minutes;
+    const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id, type: "behavior", ts, updated: now, deleted: remove, data }, { onConflict: "family_id,id" });
+    if (error) console.error(error);
+  }
+}
 const nightsIn = (from, to) => S.bt.logs.filter(l => l.date >= from && l.date <= to);
 const lastLog = () => S.bt.logs[0] || null;
 
 /* ============ 页面 ============ */
-const BT_TABS = new Set(["bedtime", "bt-flow", "bt-songs", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
+const BT_TABS = new Set(["flows", "bedtime", "bt-flow", "bt-songs", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
 const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需要数据库迁移 019。")}${t("请在 Supabase 执行本地")} <code>supabase/migrations/019_bedtime.sql</code>${t("，然后刷新。")}${t("流程、带领词和经文清单不受影响。")}</div>`;
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
 const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${extra}</span>` : ""}</h2>`;
 
-/* ---- 今天页的卡片 ---- */
-function bedtimeCardHTML(){
+/* ---- 今日敬拜里的一行：放在「祷告」下面、「参加」上面（js/today.js 的 devotionHTML）。点「开始」直接进播放页，点文字去设置 ---- */
+function bedtimeRowHTML(){
   const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLog(), today = dayKey(Date.now());
-  const lastTxt = !last ? t("还没做过。第一次只要一首歌、一遍经文、一分钟祷告就算完成。") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
-  return `<h2>${t("睡前安然")} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${esc(tc(ANCHOR_REF))}</span></h2>
-  <div class="panel bt-card">
-    <div class="bt-card-row"><div><b>${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${esc(currentText(c).name)} · ${t("今晚经文")} ${esc(tc(c.reading))}</div><div class="small muted">${lastTxt}</div></div>
-      <button class="btn primary" data-act="bt-start">🌙 ${t("开始")}</button></div>
-    <div class="btns" style="margin-top:8px"><button class="chip" data-tab="bedtime" data-from="today">${t("流程、歌单、带领词…")}</button></div>
-  </div>`;
+  const lastTxt = !last ? t("还没做过") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
+  return `<div class="row"><span class="k">${t("睡前")}</span>
+    <div class="v"><b>${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${esc(tc(c.reading))} · ${lastTxt}</div></div>
+    <span class="acts" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="chip" data-tab="bedtime" data-from="today">${t("流程")}</button><button class="chip" data-act="bt-start" ${n ? "" : "disabled"}>🌙 ${t("开始")}</button></span></div>`;
 }
 
 /* ---- 入口页 ---- */
@@ -296,7 +319,7 @@ function viewBedtime(){
     ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(currentText(c).name), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
     ${mrow('data-tab="bt-readings"', t("睡前经文"), t("今晚：{ref} · 共 {n} 段", { ref: esc(tc(c.reading)), n: allReadings(c).length }), "📖")}
     ${mrow('data-tab="bt-logs"', t("记录"), S.bt.logs.length ? t("最近 {n} 晚 · 本周 {w} 晚", { n: S.bt.logs.length, w: week }) : t("还没有记录"), "▦")}
-    ${mrow('data-tab="bt-cases"', t("状况与应对"), (() => { const n = S.bt.events.filter(e => e.date >= dayKey(Date.now() - 29 * D)).length; return n ? t("近 30 天记了 {n} 次 · {k} 种状况的模板", { n, k: allSituations(c).length }) : t("不肯睡、打人、自责、父母发脾气……怎么说、怎么做、怎么记"); })(), "⚑")}
+    ${mrow('data-tab="bt-cases"', t("状况与应对"), (() => { const n = btEvents().filter(e => e.date >= dayKey(Date.now() - 29 * D)).length; return n ? t("近 30 天记了 {n} 次 · {k} 种状况的模板", { n, k: allSituations(c).length }) : t("不肯睡、打人、自责、父母发脾气……怎么说、怎么做、怎么记"); })(), "⚑")}
   </div>
   <h2>${t("设置")}</h2>
   <div class="panel">
@@ -425,7 +448,7 @@ function viewTexts(){
 /* ---- 状况与应对：原则提醒 + 模板（可改）+ 每种状况的趋势与验证过的做法 + 记录 ---- */
 function viewCases(){
   const c = cfg(), list = allSituations(c), today = dayKey(Date.now()), d30 = dayKey(Date.now() - 29 * D), d60 = dayKey(Date.now() - 59 * D);
-  const cur = S.bt.events.filter(e => e.date >= d30), prev = S.bt.events.filter(e => e.date >= d60 && e.date < d30), calm = cur.filter(e => e.outcome === "calm").length;
+  const cur = btEvents().filter(e => e.date >= d30), prev = btEvents().filter(e => e.date >= d60 && e.date < d30), calm = cur.filter(e => e.outcome === "calm").length;
   const lang = c.lang === "en" ? "en" : "zh";
   const trend = (a, b) => b == null ? "" : a > b ? `<span class="bt-up">▲ ${t("比上个 30 天多 {n}", { n: a - b })}</span>` : a < b ? `<span class="bt-down">▼ ${t("比上个 30 天少 {n}", { n: b - a })}</span>` : `<span class="muted">${t("和上个 30 天一样")}</span>`;
   const card = s => { const st = sitStats(s.id);
@@ -444,13 +467,13 @@ function viewCases(){
   <div class="panel bt-principle"><p style="margin-top:0"><b>${esc(tc(PRINCIPLES.core))}</b></p>
     ${PRINCIPLES.verses.map(v => `<p class="small"><b>${esc(tc(v.ref))}</b> ${esc(lang === "en" ? v.en : tc(v.zh))}</p>`).join("")}
     <p class="small">${esc(tc(PRINCIPLES.boundary))}</p><p class="small muted" style="margin-bottom:0">${esc(tc(PRINCIPLES.notEvery))}</p></div>
-  <div class="panel" style="margin-top:10px"><div class="stats"><div class="stat"><div class="k">${t("近 30 天")}</div><div class="v num">${cur.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("上个 30 天")}</div><div class="v num">${prev.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("平静下来")}</div><div class="v num">${cur.length ? Math.round(calm / cur.length * 100) : 0}<small>%</small></div></div><div class="stat"><div class="k">${t("值得继续的做法")}</div><div class="v num">${S.bt.events.filter(e => e.keep).length}</div></div></div>
+  <div class="panel" style="margin-top:10px"><div class="stats"><div class="stat"><div class="k">${t("近 30 天")}</div><div class="v num">${cur.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("上个 30 天")}</div><div class="v num">${prev.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("平静下来")}</div><div class="v num">${cur.length ? Math.round(calm / cur.length * 100) : 0}<small>%</small></div></div><div class="stat"><div class="k">${t("值得继续的做法")}</div><div class="v num">${btEvents().filter(e => e.keep).length}</div></div></div>
     <p class="small muted" style="margin:8px 0 0">${t("每次状况记一笔：怎么处理的、花了多久、结果如何。过几周回头看：哪种状况在减少、哪些做法值得继续用；标了「值得继续」的会列在那种状况的卡上，给后来的晚上、也给后来的父母。")}</p>
     <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="bt-ev-add">＋ ${t("记一笔 / 补记")}</button><button class="btn" data-act="bt-sit-add">＋ ${t("加一种状况")}</button></div></div>
   <h2>${t("常见状况")}</h2>
   ${list.map(card).join("")}
   <h2>${t("最近的记录")}</h2>
-  <div class="panel">${S.bt.events.length ? `<div class="tasks">${S.bt.events.slice(0, 40).map(evRow).join("")}</div>` : `<div class="empty">${t("还没有记录。遇到状况时在播放页点「遇到状况」记一笔，或者在这里补记。")}</div>`}</div>
+  <div class="panel">${btEvents().length ? `<div class="tasks">${btEvents().slice(0, 40).map(evRow).join("")}</div>` : `<div class="empty">${t("还没有记录。遇到状况时在播放页点「遇到状况」记一笔，或者在这里补记。")}</div>`}</div>
   ${S.bt.pendingEv.length ? `<p class="small muted" style="margin-top:8px">${t("还有 {n} 条离线记录等着联网补传。", { n: S.bt.pendingEv.length })}</p>` : ""}`;
 }
 const sitFields = [
@@ -578,4 +601,4 @@ function btChange(ev){
   return playChange(ev);
 }
 
-export { BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeCardHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, kidName, playerOpen };
+export { cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

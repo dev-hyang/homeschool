@@ -4,7 +4,7 @@ import { D, dayKey, esc } from "./core/util.js";
 import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { currentPlan, devotionDraft, isOffDay, monthRange, planState, scripture, tasksFor, todayPlan, yearInfo } from "./hs.js";
-import { render } from "./views.js";
+import { crumbHTML, render } from "./views.js";
 
 /* ============ 打印：日 / 周 / 月 ============
    目的：不想一直看手机的家庭，早上打一张贴在冰箱上，晚上再把勾补回手机（或周末一起补）。
@@ -131,8 +131,10 @@ const autoBack = () => setTimeout(closePrint, 300);
 const onMq = e => { if (!e.matches) autoBack(); };
 window.addEventListener("popstate", () => { if (S.printView) { S.printView = null; render(); } });
 function printViewHTML(){
-  const { kind, ym } = S.printView;
-  return `<div class="pbar"><button class="btn" data-act="print-back">‹ ${t("返回")}</button><button class="btn primary" data-act="print-now">${t("打印")}</button><span class="small muted">${t("这一页就是要打印的纸。没有弹出打印窗口就点“打印”；打印完会自动返回。")}</span></div>
+  const { kind, ym, back } = S.printView;
+  const name = { day: t("今日页"), week: t("本周"), month: t("本月") }[kind] || t("今日页");
+  return `${crumbHTML(back || "me-print", name)}
+  <div class="pbar"><button class="btn" data-act="print-back">‹ ${t("返回")}</button><button class="btn primary" data-act="print-now">${t("打印")}</button><span class="small muted">${t("这一页就是要打印的纸。没有弹出打印窗口就点“打印”；打印完会自动返回。")}</span></div>
   <div id="print" lang="${document.documentElement.lang}">${renderPrint(kind, ym)}</div>`;
 }
 

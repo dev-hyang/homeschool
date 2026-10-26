@@ -5,7 +5,7 @@ import { dayKey, esc } from "./core/util.js";
 import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
-import { bedtimeCardHTML } from "./bedtime.js";
+import { bedtimeRowHTML } from "./bedtime.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
 function viewToday(){
@@ -18,8 +18,7 @@ function viewToday(){
   <div class="ask-entry"><button class="chip ask-chip" data-tab="ask" data-from="today">${aiIcon(18)} ${t("咩咩咩")}</button><span class="small muted">${t("今天的课怎么调、经文怎么背、孩子不配合怎么办…")}</span></div>
   ${devotionHTML()}
   ${reviewHTML()}
-  ${tasksHTML(day)}
-  ${bedtimeCardHTML()}`;
+  ${tasksHTML(day)}`;
 }
 
 function devotionHTML(){
@@ -32,6 +31,7 @@ function devotionHTML(){
     <div class="row"><span class="k">${t("经文")}</span><div class="v">${wv ? `<b>${esc(wv.ref)}</b><div class="small">${esc(wv.text_zh)}<span class="muted">${esc(vz(wv))}</span></div><div class="small muted">${esc(wv.text_en)}${esc(ve(wv))}</div>` : `<span class="muted">${t("本周还没选经文")}</span>`}</div><button class="chip" data-act="devo-verse">${t("选")}</button></div>
     <div class="row"><span class="k">${t("诗歌")}</span><div class="v">${S.hs.settings.hymn ? `<b>${esc(S.hs.settings.hymn)}</b>` : `<span class="muted">${t("本月诗歌还没填")}</span>`}</div><button class="chip" data-act="devo-hymn">${t("填")}</button></div>
     <div class="row"><span class="k">${t("祷告")}</span><div class="v">${d.prayer ? esc(d.prayer) : `<span class="muted">${t("今天为谁、为什么祷告")}</span>`}</div><button class="chip" data-act="devo-prayer">${t("写")}</button></div>
+    ${bedtimeRowHTML()}
     <div class="row"><span class="k">${t("参加")}</span><div class="v chips" style="margin:0">${S.children.map(c => `<button class="chip" data-devochild="${esc(c.id)}" aria-pressed="${joined.has(c.id)}">${esc(c.name || t("宝宝"))}</button>`).join("")}</div></div>
     <div class="btns">${d.done
       ? `<button class="btn" data-act="devo-undo">${t("今天敬拜过了 ✓ · 点击撤销")}</button>`
@@ -70,8 +70,8 @@ function reviewHTML(){
       <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90、180 天自动安排复习，到期的会自动出现在这里。")}</p>`
       : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
     ${plan.backlog ? `<div class="small" style="margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft)">${t("复习排队了 {n} 节，最久的已拖 {d} 天。可以周末多复习几节，也可以今天先多做几节。", { n: plan.backlog.queued, d: plan.backlog.oldest })} <button class="chip" data-act="review-more">${t("今天多复习 3 节")}</button></div>` : ""}
-    ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`
-      : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures">${t("经文卡库")}</button></div>`}
+    ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`
+      : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`}
     ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("不用点“开始背”：每天 8 点（或本批全部会背后）自动从卡库拉一批，每批节数和问答占比在经文卡库里调；不合适点“换一个”或“换一批”。可在设置里关闭。")}</p>`}
   </div>`;
 }

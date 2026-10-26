@@ -4,7 +4,8 @@ import { $, D, dayKey, esc } from "./core/util.js";
 import { bars, curve, donut, stack } from "./charts.js";
 import { vz, ve } from "./data/versions.js";
 import { INTERVALS, fetchVersions, poolCfg, poolOf, progressOf } from "./hs.js";
-import { head, showSheet } from "./sheet.js";
+import { closeSheet, head, showSheet } from "./sheet.js";
+import { render } from "./views.js";
 import { mrow } from "./me.js";
 
 /* ============ 经文卡库：总览（图表）+ 列表（按类型分层）============
@@ -167,11 +168,20 @@ function menuHTML(menu, cfg, pool, fv){
   }
   return "";
 }
-function openScriptures(){
+/* 经文卡库是「资源」下的一个页签（res-scriptures），顶上是面包屑，不再是要点「关闭」的整页表单。
+   openScriptures(from)：从哪进来就以哪为上一层（今天页的「选」/「经文卡库」传 "today"，资源页的入口行不传，默认是资源）；
+   表单（添加 / 编辑 / 导入）保存后也调它：先收起表单，再回到这个页签。 */
+function openScriptures(from){
+  if (from) (S.from ||= {})["res-scriptures"] = from;
+  S.tab = "res-scriptures";
+  if ($("#sheet").open) closeSheet(); else render();
+}
+function viewScriptures(){
   const cid = S.childId, all = S.hs.scriptures, fv = fetchVersions(), day = dayKey(Date.now()), f = S.scrFilter, cfg = poolCfg(), pool = poolOf(cid);
   const view = all.length ? f.view : "list", menu = f.menu || "";
   const tb = (key, icon, label) => `<button class="chip lib-tool" data-lm="${key}" aria-expanded="${menu === key}" aria-pressed="${menu === key}"><span aria-hidden="true">${icon}</span> ${label}</button>`;
-  $("#sheetIn").innerHTML = `${head(t("经文卡库"))}
+  const first = all.length && view === "list" ? listHTML() : null;
+  return `<h2>${t("经文卡库")}</h2>
   ${all.length ? `<p class="lib-summary small">${summaryLine(all, cid, day)}</p>` : ""}
   <div class="lib-toolbar">${all.length ? `<div class="seg" role="group" aria-label="${t("视图")}"><button data-lv="chart" aria-pressed="${view === "chart"}">${t("总览")}</button><button data-lv="list" aria-pressed="${view === "list"}">${t("列表")}</button></div>` : ""}
     <span class="lib-tools">${tb("add", "＋", t("添加"))}${tb("cfg", "⚙", t("设置"))}</span></div>
@@ -181,12 +191,10 @@ function openScriptures(){
       ${view === "list" ? `<label>${t("状态")} <select id="libSt">${STATUS_OPTS.map(([v, l]) => opt(v, t(l), f.st)).join("")}</select></label>
       <label>${t("排序")} <select id="libSort">${SORT_OPTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></label>
       <input type="search" id="libQ" value="${esc(f.q)}" placeholder="${t("搜索出处或经文")}" aria-label="${t("搜索")}">` : ""}</div>` : ""}
-  ${all.length ? (view === "chart" ? overviewHTML(all, cid, day, f) : `<p class="small muted" id="libCount" style="margin:8px 0 0"></p><div id="libList"></div>`) : ""}`;
-  showSheet();
-  if (all.length && view === "list") renderLibList();
+  ${all.length ? (view === "chart" ? overviewHTML(all, cid, day, f) : `<p class="small muted" id="libCount" style="margin:8px 0 0">${first ? t("共 {n} 张", { n: first.n }) : ""}</p><div id="libList">${first ? first.html : ""}</div>`) : ""}`;
 }
 
-export { openScriptures, renderLibList };
+export { openScriptures, viewScriptures, renderLibList };
 
 /* ---- 补记背诵：在日历里选一天，把那天背过的卡记上（间隔从那天起算）----
    只给“那天还能做”的卡：在学的（记会背了），以及到那天已经到期的复习（记背出来了 / 再练练）；
