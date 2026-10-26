@@ -4,10 +4,11 @@ import { t, tc } from "./core/i18n.js";
 import { S, ageText, childName } from "./core/state.js";
 import { D, dayKey, esc, newId, toast } from "./core/util.js";
 import { parseRef } from "./data/bible.js";
-import { OUTCOMES, PRINCIPLES } from "./data/bedtime.js";
+import { OUTCOMES, PRINCIPLES, SONG_TAGS } from "./data/bedtime.js";
+import { recOf } from "./data/music.js";
 import { BANDS, BAND_NAME, BL_KINDS, FLOWS, SIDES, STAGE_NAME, contentFor, relOf } from "./data/flows.js";
 import { EMOTIONS } from "./data/emotions.js";
-import { activeSteps, cfg, deleteEvent, ensureVerse, h2, isCf, isEm, kidName, kids, lastLog, migrateHTML, offlineHTML, outcomeLabel, retryVerse, saveCfg, saveEvent, scheduleRender, sidesHint, sidesLine, sitStats, totalMin, verseError, verseText } from "./bedtime.js";
+import { activeSteps, cfg, deleteEvent, openPickSongsForTopic, previewing, songs, topicSongsOf, ensureVerse, h2, isCf, isEm, kidName, kids, lastLog, migrateHTML, offlineHTML, outcomeLabel, retryVerse, saveCfg, saveEvent, scheduleRender, sidesHint, sidesLine, sitStats, totalMin, verseError, verseText } from "./bedtime.js";
 import { B, allConflicts, bandKey, blStats, flowContext, genderOf, hasBl, hubAskHTML, mineRows, pull, pullButtonHTML, sitOf } from "./flows-trend.js";
 import { saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
@@ -63,6 +64,20 @@ function verseBlock(ref){
   }).join("");
   return `<div class="cf-verse-box"><div class="small"><b>${t("经文")} · ${esc(tc(ref))}</b></div>${rows}</div>`;
 }
+/* 推荐歌曲：按情况建议是哪一类（经文类 / 被爱安慰类 / 舒缓 BGM）；列出已加到这个话题的歌（可移除），再补上歌单里带有这一类标签的歌（最多三首）。
+   歌单里左滑「加到流程」，或卡上「从歌单加」，都能把歌加到这里。 */
+function musicBlock(s){
+  const rec = recOf(s.id), c = cfg(), all = songs().filter(x => x.path);
+  const pinned = topicSongsOf(s.id, c).map(id => all.find(x => x.id === id)).filter(Boolean);
+  const auto = all.filter(x => !pinned.includes(x) && (x.tags || []).some(tg => rec.tags.includes(tg))).slice(0, 3);
+  const row = (x, pin) => `<div class="cf-song"><span class="cf-song-t">♪ ${esc(x.title)} <span class="small muted">${(x.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、")}${pin ? "" : ` · ${t("按标签推荐")}`}</span></span><span class="cf-song-acts"><button class="iconbtn sm" data-act="bt-song-play" data-id="${esc(x.id)}" aria-label="${t("试听")}">${previewing(x.id) ? "■" : "▶"}</button>${pin ? `<button class="iconbtn sm" data-act="bt-pin-song" data-topic="${esc(s.id)}" data-song="${esc(x.id)}" data-off="1" aria-label="${t("从这里移除")}">×</button>` : ""}</span></div>`;
+  return `<div class="cf-music"><div class="lab small">🎵 ${t("推荐歌曲")}</div>
+    <p class="small" style="margin:2px 0">${t("建议")}：<b>${rec.tags.map(k => t(SONG_TAGS[k])).join(" / ")}</b>。${esc(tc(rec.why))}</p>
+    ${rec.ideas.length ? `<p class="small muted" style="margin:2px 0">${t("可以找")}：${rec.ideas.map(i => esc(tc(i))).join("；")}</p>` : ""}
+    ${pinned.map(x => row(x, true)).join("")}${auto.map(x => row(x, false)).join("")}
+    ${!pinned.length && !auto.length ? `<p class="small muted" style="margin:4px 0">${t("歌单里还没有这一类的歌。到「睡前安然 → 歌单」添加；在歌单里把歌向左滑，也能加到这里。")}</p>` : ""}
+    <div class="btns" style="margin-top:6px"><button class="chip" data-act="cf-song-add" data-id="${esc(s.id)}" data-name="${esc(s.when)}">＋ ${t("从歌单加")}</button></div></div>`;
+}
 const tableHTML = tb => `<div class="scroll-x" style="margin-top:8px"><table class="cf-table"><thead><tr>${tb.head.map(h => `<th>${esc(tc(h))}</th>`).join("")}</tr></thead><tbody>${tb.rows.map(r => `<tr>${r.map((c, i) => `<td${i === 0 ? " class=\"cf-k\"" : ""}>${esc(tc(c))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 
 function topicCard(s, band){
@@ -83,6 +98,7 @@ function topicCard(s, band){
     ${x.say ? `<p class="bt-say">「${esc(tc(x.say))}」</p>` : ""}
     ${x.avoid ? `<p class="small" style="color:var(--rose);margin:4px 0 0">${t("不要")}：${esc(tc(x.avoid))}</p>` : ""}
     ${[s.verse, ...(s.verses2 || [])].map(verseBlock).join("")}
+    ${musicBlock(s)}
     ${x.flag ? `<details class="cf-others"><summary class="small muted">${t("什么时候要找专业人员")}</summary><p class="small">${esc(tc(x.flag))}</p></details>` : ""}
     ${blLine || mine.cur || mine.total ? `<div class="bt-trend small">${blLine}${mine.cur || mine.total ? `${blLine ? "<br>" : ""}<b>${t("这里")}</b>：${mine.cur ? t("近 30 天记了 {n} 次", { n: mine.cur }) + ` ${trendText(mine.cur, mine.prev)}` : t("近 30 天没记")}${mine.calmRate != null ? ` · ${t("平静下来 {p}%", { p: mine.calmRate })}` : ""}${mine.avgMin != null ? ` · ${t("平均 {n} 分钟", { n: mine.avgMin })}` : ""}` : ""}</div>` : ""}
     ${keep.length ? `<div class="bt-keep"><b class="small">${t("我们家验证过的做法")}</b>${keep.map(e => `<div class="small">✓ ${esc(e.approach)} <span class="muted">· ${e.date}</span></div>`).join("")}</div>` : ""}
@@ -201,6 +217,7 @@ async function aiFill(btn){
 async function cfAct(act, btn){
   const d = btn.dataset, c = cfg();
   switch (act) {
+    case "cf-song-add": openPickSongsForTopic(d.id, d.name); break;
     case "cf-mirror": await saveCfg({ mirrorConflict: !c.mirrorConflict }); render(); break;
     case "cf-gender": { const gs = { ...(S.hs.settings.genders || {}) }; if (d.v) gs[S.childId] = d.v; else delete gs[S.childId]; await saveSettings({ genders: gs }); render(); break; }
     case "cf-verse-retry": retryVerse(d.ref); render(); break;

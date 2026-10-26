@@ -10,17 +10,23 @@ const ANCHOR_EN = "In peace I will both lie down and sleep; for you alone, O LOR
 /* ---- 流程模板：name 步骤名 · minutes 建议分钟 · text 这一步给父母看的文字（open / reading / repair / prayer / close / 空）
         · tag 这一步该放哪类歌（loved 被爱安慰 / word 神的话 / rest 放下休息 / 空 = 不放）· loop 最后一步循环到时间结束 ---- */
 const FLOW_TEMPLATES = {
-  full: { name: "完整版 · 约 20 分钟", desc: "收拾转换 → 拥抱与敬拜 → 读诗篇 4:8 → 修复关系与祷告 → 音乐与安睡。五步，各自可改。", steps: [
+  full: { kind: "night", flowName: "晚觉", name: "完整版 · 约 20 分钟", desc: "收拾转换 → 拥抱与敬拜 → 读诗篇 4:8 → 修复关系与祷告 → 音乐与安睡。五步，各自可改。", steps: [
     { name: "收拾与转换", minutes: 3, text: "", tag: "", hint: "收好玩具、上厕所、刷牙、穿睡衣。提前说一句：「再玩五分钟，我们就开始晚上的安静时间了。」" },
     { name: "拥抱与敬拜", minutes: 4, text: "open", tag: "loved", hint: "播一首歌，抱着孩子，问一句：今天有什么事让你开心？有什么事让你难过？不必每个孩子都回答。" },
     { name: "读诗篇 4:8", minutes: 3, text: "reading", tag: "word", hint: "慢慢读一遍，再请孩子跟读。然后问：今晚我们可以把什么事情交给神呢？" },
     { name: "修复关系与祷告", minutes: 5, text: "prayer", tag: "", hint: "今天有争吵、打人、不听话的，简短处理必要的责任和修复；孩子已经累了，不重新训话。然后一起祷告。" },
     { name: "音乐与安睡", minutes: 5, text: "close", tag: "rest", loop: true, hint: "调暗灯光，放纯音乐，不再讲道理、不再追问今天的表现。说完晚安，轻轻离开。" }
   ] },
-  starter: { name: "起步版 · 约 8 分钟", desc: "头三天用：一首歌、一遍经文、一分钟祷告，做到就算完成。不追求完美。", steps: [
+  starter: { kind: "night", flowName: "起步版", name: "起步版 · 约 8 分钟", desc: "头三天用：一首歌、一遍经文、一分钟祷告，做到就算完成。不追求完美。", steps: [
     { name: "一首歌", minutes: 3, text: "open", tag: "loved", hint: "抱着孩子听完一首歌。" },
     { name: "读诗篇 4:8", minutes: 2, text: "reading", tag: "", hint: "读一遍，请孩子跟读一遍。" },
     { name: "祷告与晚安", minutes: 3, text: "prayer", tag: "rest", loop: true, hint: "一分钟祷告，说晚安。" }
+  ] },
+  nap: { kind: "nap", flowName: "午睡", name: "午睡版 · 约 8 分钟", desc: "白天小睡用：放松转换 → 一首歌与拥抱 → 一句经文与祷告 → 安睡音乐。四步，比晚觉短。", steps: [
+    { name: "放松与转换", minutes: 2, text: "", tag: "", hint: "拉好窗帘、上厕所、拿起小熊或小被子，轻声说：「现在是安静睡午觉的时间。」" },
+    { name: "一首歌与拥抱", minutes: 3, text: "open", tag: "loved", hint: "抱一抱，轻声唱或播一首歌，不讲道理。" },
+    { name: "一句经文与祷告", minutes: 1, text: "prayer", tag: "", hint: "读一句诗篇 4:8，简短祷告，说「睡醒了我们再见」。" },
+    { name: "安睡音乐", minutes: 2, text: "", tag: "rest", loop: true, hint: "调暗光线，放纯音乐，轻轻离开。" }
   ] }
 };
 

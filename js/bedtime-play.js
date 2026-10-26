@@ -23,7 +23,7 @@ const plannedSecs = st => P.ext ? P.ext : (+st.minutes || 0) * 60;   // 「再�
 async function openPlayer(api){
   if (P) closePlayer();
   const c = api.cfg;
-  P = { api, c, text: api.text, steps: c.steps.filter(s => !s.skip).map(s => ({ ...s })), i: 0, startedAt: now(), stepStart: now(), actual: [], offset: {}, played: new Set(),
+  P = { api, c, flow: api.flow || { name: "", kind: "night" }, text: api.text, steps: c.steps.filter(s => !s.skip).map(s => ({ ...s })), i: 0, startedAt: now(), stepStart: now(), actual: [], offset: {}, played: new Set(),
     audio: null, url: null, textOn: true, lyricsOn: false, casesOn: false, flagged: false, fading: false, ext: 0, done: false, timer: null, blocked: false, loading: false,
     readIdx: Math.max(0, api.readings.findIndex(r => r.ref === c.reading)), kids: new Set(api.kids.map(k => k.id)), led: S.user ? memberName(S.user.id) : (api.members[0] || ""), note: "", childSt: "", parentSt: "", saving: false };
   const host = document.createElement("div"); host.id = "btplay"; host.className = "btp"; document.body.appendChild(host);
@@ -215,7 +215,7 @@ async function playAct(act, btn){
     case "btp-save": { readNote(); P.saving = true; draw();
       const r = P.api.readings[P.readIdx] || {}, log = { date: dayKey(P.startedAt), started_at: new Date(P.startedAt).toISOString(), ended_at: new Date(P.endedAt).toISOString(),
         planned_min: P.steps.reduce((a, s) => a + (+s.minutes || 0), 0), actual_min: Math.max(1, Math.round((P.endedAt - P.startedAt) / 60000)), children: [...P.kids], led_by: P.led || "",
-        version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]) })), note: P.note };
+        version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]), flow: P.flow.name, kind: P.flow.kind })), note: P.note };
       try { await P.api.saveLog(log); closePlayer(); toast(t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
       break; }
     case "btp-close": closePlayer(); render(); break;

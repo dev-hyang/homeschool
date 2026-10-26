@@ -10,6 +10,8 @@ import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
 import { CONFLICTS, SIDES } from "./data/flows.js";
 import { recordsHTML } from "./recfilter.js";
+import { initSongRows } from "./songs-ui.js";
+import { EMOTIONS } from "./data/emotions.js";
 import { angerHTML } from "./principle.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
@@ -46,13 +48,19 @@ const song = id => songs().find(s => s.id === id) || null;
 
 /* ---- 配置：settings.bedtime 规范化 ---- */
 const stepId = () => "s" + newId();
-const withIds = steps => steps.map(s => ({ id: stepId(), name: s.name, minutes: s.minutes, text: s.text || "", song: s.tag ? "tag:" + s.tag : "", loop: !!s.loop, skip: false, hint: s.hint || "" }));
+const FLOW_KEY = LS_PREFIX + ".bedtime.flow";   // 这台设备上选的是哪个流程（不进家庭设置，免得每点一下都写云端）
+const withIds = (steps, prefix) => steps.map((s, i) => ({ id: prefix ? prefix + i : stepId(), name: s.name, minutes: s.minutes, text: s.text || "", song: s.tag ? "tag:" + s.tag : "", loop: !!s.loop, skip: false, hint: s.hint || "" }));
+const normSteps = list => list.filter(s => s && s.name).map(s => ({ id: s.id || stepId(), name: String(s.name).slice(0, 40), minutes: Math.max(0, +s.minutes || 0), text: TEXT_LABEL[s.text] != null ? s.text : "", song: s.song || "", loop: !!s.loop, skip: !!s.skip, hint: String(s.hint || "").slice(0, 300) }));
+/* 流程：可以有多个（晚觉 20 分钟、午睡 8 分钟……），每个有名字、类型（night / nap）和自己的步骤；老数据里单个 steps 自动变成第一个流程「晚觉」。
+   cfg().steps / flowName / flowKind 永远指当前选中的那个流程，所以流程页、播放页、今天页的老代码不用改。 */
 function normalize(raw){
   const r = raw && typeof raw === "object" ? raw : {};
-  const steps = Array.isArray(r.steps) && r.steps.length ? r.steps.filter(s => s && s.name).map(s => ({ id: s.id || stepId(), name: String(s.name).slice(0, 40), minutes: Math.max(0, +s.minutes || 0), text: TEXT_LABEL[s.text] != null ? s.text : "", song: s.song || "", loop: !!s.loop, skip: !!s.skip, hint: String(s.hint || "").slice(0, 300) }))
-    : withIds(FLOW_TEMPLATES.full.steps);
+  let flows = Array.isArray(r.flows) ? r.flows.filter(f => f && f.id && Array.isArray(f.steps)).map(f => ({ id: String(f.id), name: String(f.name || "").slice(0, 20) || "睡前", kind: f.kind === "nap" ? "nap" : "night", steps: normSteps(f.steps) })) : [];
+  if (!flows.length) flows = [{ id: "main", name: r.flowName && r.flowName === FLOW_TEMPLATES.starter.name ? FLOW_TEMPLATES.starter.flowName : FLOW_TEMPLATES.full.flowName, kind: "night", steps: Array.isArray(r.steps) && r.steps.length ? normSteps(r.steps) : withIds(FLOW_TEMPLATES.full.steps, "d") }];   // 默认步骤用固定编号，没保存过也能点中
+  const want = loadJSON(FLOW_KEY, ""), flow = flows.find(f => f.id === want) || flows[0];
   const versions = Array.isArray(r.versions) ? r.versions.filter(v => v && v.id) : [];
-  return { steps, flowName: r.flowName || (Array.isArray(r.steps) && r.steps.length ? "" : FLOW_TEMPLATES.full.name),
+  const ts = r.topicSongs && typeof r.topicSongs === "object" ? Object.fromEntries(Object.entries(r.topicSongs).filter(([, a]) => Array.isArray(a)).map(([k, a]) => [k, a.filter(x => typeof x === "string")])) : {};
+  return { flows, flow: flow.id, steps: flow.steps, flowName: flow.name, flowKind: flow.kind, topicSongs: ts,
     versions, version: versions.some(v => v.id === r.version) ? r.version : (versions[0] ? versions[0].id : null),
     readings: Array.isArray(r.readings) ? r.readings.filter(x => x && x.ref) : [], reading: r.reading || READINGS[1].ref, anchor: r.anchor !== false,
     situations: Array.isArray(r.situations) ? r.situations.filter(x => x && x.id && x.when) : [],
@@ -61,11 +69,18 @@ function normalize(raw){
 const cfg = () => normalize(S.hs.loaded ? S.hs.settings.bedtime : cache().cfg);
 async function saveCfg(patch){
   if (!online()) { toast(t("没连上云端，现在不能改设置")); throw new Error("offline"); }
-  await saveSettings({ bedtime: { ...cfg(), ...patch } });
+  const { steps: _s, flowName: _n, flowKind: _k, flow: _f, ...base } = cfg();   // steps / flowName / flowKind / flow 是当前流程派生出来的，不单独存
+  await saveSettings({ bedtime: { ...base, ...patch } });
   writeCache();
 }
 const activeSteps = c => (c || cfg()).steps.filter(s => !s.skip);
 const totalMin = c => activeSteps(c).reduce((a, s) => a + (+s.minutes || 0), 0);
+const flowMin = f => f.steps.filter(s => !s.skip).reduce((a, s) => a + (+s.minutes || 0), 0);
+const selectFlow = id => saveJSON(FLOW_KEY, id);
+const flowOfLog = l => (l && l.steps && l.steps[0] && l.steps[0].flow) || "";
+const isNapLog = l => !!(l && l.steps && l.steps[0] && l.steps[0].kind === "nap");
+/** 选流程的小按钮：今天页、睡前页、流程页都用；点一下就选中（只记在这台设备） */
+const flowChips = c => c.flows.length < 2 ? "" : `<div class="chips bt-flows" role="group" aria-label="${t("选择流程")}">${c.flows.map(f => `<button type="button" class="chip" data-act="bt-flow-sel" data-id="${esc(f.id)}" aria-pressed="${f.id === c.flow}">${f.kind === "nap" ? "☀ " : "🌙 "}${esc(f.name)} · ${t("{n} 分", { n: flowMin(f) })}</button>`).join("")}</div>`;
 /* 带领词：当前版本，没有自家版本时直接用内置模板 */
 function currentText(c = cfg()){ const v = c.versions.find(x => x.id === c.version); return v || { id: null, name: TEXT_TEMPLATE.name + t("（内置模板）"), ...TEXT_TEMPLATE, builtin: true }; }
 /* 状况模板：内置的可以被同 id 的自家版本覆盖（恢复 = 删掉覆盖），再加自家新增的 */
@@ -218,7 +233,8 @@ async function deleteSong(s){
   if (s.path) await bucket().remove([s.path]).catch(() => {});
   await run(SB.client.from("hs_bedtime_songs").delete().eq("id", s.id));
   S.bt.songs = S.bt.songs.filter(x => x.id !== s.id); await mSet(s.id, null);
-  const c = cfg(); if (c.steps.some(st => st.song === s.id)) await saveCfg({ steps: c.steps.map(st => st.song === s.id ? { ...st, song: "" } : st) }); else writeCache();
+  const c = cfg(), used = c.flows.some(f => f.steps.some(st => st.song === s.id)) || Object.values(c.topicSongs).some(a => a.includes(s.id));
+  if (used) await saveCfg({ flows: c.flows.map(f => ({ ...f, steps: f.steps.map(st => st.song === s.id ? { ...st, song: "" } : st) })), topicSongs: Object.fromEntries(Object.entries(c.topicSongs).map(([k, a]) => [k, a.filter(x => x !== s.id)])) }); else writeCache();
 }
 async function moveSong(id, dir){
   const list = [...S.bt.songs], i = list.findIndex(s => s.id === id), j = i + dir; if (i < 0 || j < 0 || j >= list.length) return;
@@ -259,7 +275,7 @@ async function mirrorLog(l, remove = false){
   const ts = l.started_at ? new Date(l.started_at).getTime() : new Date(l.date + "T20:30:00").getTime(), now = Date.now();
   for (const child of l.children || []) {
     const id = "hsbt-" + String(l.id).replace(/[^a-z0-9]/gi, "") + "-" + String(child).replace(/[^a-z0-9]/gi, "").slice(0, 12);
-    const data = { id, type: "faith", ts, updated: now, child, kind: "家庭敬拜", minutes: l.actual_min || l.planned_min || null, who: "全家", what: `睡前安然${l.passage ? "：" + l.passage : ""}${l.songs && l.songs.length ? " · " + l.songs.join("、") : ""}`, note: l.note ? l.note + "（来自家庭学堂）" : "来自家庭学堂" };
+    const data = { id, type: "faith", ts, updated: now, child, kind: "家庭敬拜", minutes: l.actual_min || l.planned_min || null, who: "全家", what: `${flowOfLog(l) || "睡前安然"}${l.passage ? "：" + l.passage : ""}${l.songs && l.songs.length ? " · " + l.songs.join("、") : ""}`, note: l.note ? l.note + "（来自家庭学堂）" : "来自家庭学堂" };
     const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id, type: "faith", ts, updated: now, deleted: remove, data }, { onConflict: "family_id,id" });
     if (error) console.error(error);
   }
@@ -310,7 +326,7 @@ function bedtimeRowHTML(){
   const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLog(), today = dayKey(Date.now());
   const lastTxt = !last ? t("还没做过") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
   return `<div class="row"><span class="k">${t("睡前")}</span>
-    <div class="v"><b>${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${esc(tc(c.reading))} · ${lastTxt}</div></div>
+    <div class="v"><b>${esc(c.flowName)} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${esc(tc(c.reading))} · ${lastTxt}</div>${flowChips(c)}</div>
     <span class="acts" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button class="chip" data-tab="bedtime" data-from="today">${t("流程")}</button><button class="chip" data-act="bt-start" ${n ? "" : "disabled"}>🌙 ${t("开始")}</button></span></div>`;
 }
 
@@ -323,15 +339,16 @@ function viewBedtime(){
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="panel bt-hero">
     <p class="bt-verse">${esc(tc(ANCHOR_ZH))}</p>
-    <div class="bt-card-row"><div><b>${t("今晚 · {n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${t("带领词")}：${esc(currentText(c).name)} · ${t("经文")}：${esc(tc(c.reading))}${c.anchor ? `（${t("先读")} ${esc(tc(ANCHOR_REF))}）` : ""}</div></div>
-      <button class="btn primary" data-act="bt-start" ${n ? "" : "disabled"}>🌙 ${t("开始睡前安然")}</button></div>
+    ${flowChips(c)}
+    <div class="bt-card-row"><div><b>${esc(c.flowName)} · ${t("{n} 步 · 约 {m} 分钟", { n, m })}</b><div class="small muted">${t("带领词")}：${esc(currentText(c).name)} · ${t("经文")}：${esc(tc(c.reading))}${c.anchor ? `（${t("先读")} ${esc(tc(ANCHOR_REF))}）` : ""}</div></div>
+      <button class="btn primary" data-act="bt-start" ${n ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(c.flowName)}</button></div>
     ${m > c.cap ? `<p class="small" style="color:var(--rose);margin:8px 0 0">${t("合计 {m} 分钟，超过了 {cap} 分钟的上限：睡前流程宜短不宜长，去流程里减一减。", { m, cap: c.cap })}</p>` : ""}
     <p class="small muted" style="margin:8px 0 0">${last ? (last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min })) : t("还没做过")}${week ? ` · ${t("本周 {n} 晚", { n: week })}` : ""}</p>
   </div>
   <div class="panel" style="margin-top:10px"><b>${esc(tc(ph.g.title))}</b>${ph.day ? ` <span class="small muted">${t("第 {n} 天", { n: ph.day })}</span>` : ""}<p class="small" style="margin:4px 0 0">${esc(tc(ph.g.text))}</p>
-    ${ph.day <= 3 && c.flowName !== FLOW_TEMPLATES.starter.name ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
+    ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
   <div class="panel mlist" style="margin-top:10px">
-    ${mrow('data-tab="bt-flow"', t("流程"), t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
+    ${mrow('data-tab="bt-flow"', t("流程"), c.flows.length > 1 ? t("{k} 个流程：{names}", { k: c.flows.length, names: esc(c.flows.map(f => `${f.name} ${flowMin(f)}`).join(" · ")) }) : t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
     ${mrow('data-tab="bt-songs"', t("歌单"), songs().length ? t("{n} 首 · 这台设备已下载 {k} 首", { n: songs().length, k: cached }) : t("还没有歌。放几首自己的 MP3，固定两三首就够"), "♪")}
     ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(currentText(c).name), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
     ${mrow('data-tab="bt-readings"', t("睡前经文"), t("今晚：{ref} · 共 {n} 段", { ref: esc(tc(c.reading)), n: allReadings(c).length }), "📖")}
@@ -356,9 +373,12 @@ function viewFlow(){
     return `<div class="task ${s.skip ? "skip" : ""}"><span class="bar" style="background:${s.skip ? "var(--line)" : "var(--slate)"}"></span>
       <button class="main" data-act="bt-step-edit" data-id="${esc(s.id)}"><span class="title">${i + 1}. ${esc(s.name)}</span><span class="meta">${t("{n} 分钟", { n: s.minutes })}${s.text ? ` · ${t(TEXT_LABEL[s.text])}` : ""} · ${s.song ? (sg ? "♪ " + esc(sg.title) : esc(songLabel(s.song)) + (s.song.startsWith("tag:") ? `（${t("这类还没有歌")}）` : "")) : t("不放歌")}${s.loop ? ` · ${t("循环到时间结束")}` : ""}${s.skip ? ` · ${t("已跳过")}` : ""}</span></button>
       <span class="acts"><button class="iconbtn" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="-1" aria-label="${t("上移")}" ${i === 0 ? "disabled" : ""}>↑</button><button class="iconbtn" data-act="bt-step-move" data-id="${esc(s.id)}" data-d="1" aria-label="${t("下移")}" ${i === c.steps.length - 1 ? "disabled" : ""}>↓</button></span></div>`; };
-  return `${h2(t("流程"), c.flowName ? esc(tc(c.flowName)) : "")}
+  return `${h2(t("流程"), esc(c.flowName))}
   ${offlineHTML()}
-  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-step-add">＋ ${t("添加步骤")}</button>${Object.entries(FLOW_TEMPLATES).map(([k, tp]) => `<button class="btn" data-act="bt-flow-tpl" data-tpl="${k}">${t("套用：")}${esc(tc(tp.name))}</button>`).join("")}</div>
+  ${flowChips(c)}
+  <div class="btns" style="margin-top:0"><button class="btn sm" data-act="bt-flow-new">＋ ${t("新建流程")}</button><button class="btn sm" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="btn sm danger" data-act="bt-flow-del">${t("删除这个流程")}</button>` : ""}</div>
+  <p class="small muted" style="margin:8px 0 0">${t("按场景建不同的流程：晚觉 20 分钟、午睡 8 分钟……开始前选一个。下面是「{name}」这个流程的步骤。", { name: esc(c.flowName) })}</p>
+  <div class="btns"><button class="btn primary sm" data-act="bt-step-add">＋ ${t("添加步骤")}</button>${Object.entries(FLOW_TEMPLATES).map(([k, tp]) => `<button class="btn sm" data-act="bt-flow-tpl" data-tpl="${k}">${t("套用：")}${esc(tc(tp.name))}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("点一步修改名字、分钟、放哪首歌、显示哪段文字；↑↓ 调顺序。年幼的孩子可以把某步设为跳过，不用删。")}</p>
   <div class="panel">
     <div class="tasks">${c.steps.map(row).join("")}</div>
@@ -372,20 +392,24 @@ const stepFields = () => [
   { k: "song", label: "放哪首歌", type: "seg", raw: true, opts: [["", t("不放歌")], ...Object.entries(SONG_TAGS).map(([k, v]) => ["tag:" + k, t("按标签挑") + "：" + t(v)]), ...songs().filter(s => s.path).map(s => [s.id, s.title])] },
   { k: "hint", label: "给父母的一句提示（可空）", type: "area", ph: "收好玩具、上厕所、刷牙、穿睡衣。" },
   { k: "loop", label: "循环播放到时间结束（最后一步用）", type: "check" }, { k: "skip", label: "暂时跳过这一步", type: "check" }];
-async function saveSteps(steps, flowName){ await saveCfg({ steps, ...(flowName !== undefined ? { flowName } : {}) }); }
+async function saveFlows(flows){ await saveCfg({ flows }); }
+/* 只改当前选中的流程的步骤 */
+async function saveSteps(steps){ const c = cfg(); await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, steps } : f)); }
 
 /* ---- 歌单 ---- */
 let songForm = null;   // { id, draft, file, oldPath }
 function viewSongs(){
   const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length, bytes = list.reduce((a, s) => a + (+s.size || 0), 0);
-  const row = (s, i) => `<div class="task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
+  const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-del">🗑 ${t("删除")}</span><span class="sb-add">＋ ${t("加到流程")}</span></div>
+    <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
-    <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<button class="iconbtn" data-act="bt-song-move" data-id="${esc(s.id)}" data-d="-1" aria-label="${t("上移")}" ${i === 0 ? "disabled" : ""}>↑</button><button class="iconbtn" data-act="bt-song-move" data-id="${esc(s.id)}" data-d="1" aria-label="${t("下移")}" ${i === list.length - 1 ? "disabled" : ""}>↓</button></span></div>`;
+    <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></span></div></div>`;
   return `${h2(t("歌单"), list.length ? t("{n} 首", { n: list.length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="btn" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
   <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${bytes ? ` ${t("已用 {s}。", { s: fmtSize(bytes) })}` : ""} ${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
-  <div class="panel">${list.length ? `<div class="tasks">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
+  <p class="small muted" style="margin:0 0 8px">${t("每首歌：向右滑删除，向左滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
+  <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
   <h2>${t("可以去找的歌")}</h2>
   <div class="panel"><p class="small muted" style="margin-top:0">${t("不内置音频：自己买或下载 MP3 后传进来。优先慢速、轻柔、没有突然增强的鼓点和高音的版本。")}</p>
     <div class="tasks">${SONG_IDEAS.map(([n, a, tag, why]) => `<div class="task"><span class="bar" style="background:var(--honey)"></span><div class="main"><span class="title">${esc(n)}</span><span class="meta">${esc(tc(a))} · ${t(SONG_TAGS[tag])} · ${esc(tc(why))}</span></div><span></span></div>`).join("")}</div></div>`;
@@ -405,7 +429,7 @@ function drawSongForm(){
     ${d.lyrics_ai ? `<div class="alert info" style="margin-top:6px">${t("这段歌词是 AI 补的，可能和原唱有出入（公共领域的老诗歌较准，近年的歌常记错）。核对过就勾掉：")} <label class="check" style="margin-left:6px"><input type="checkbox" id="btAiOk">${t("核对过了")}</label></div>` : ""}
     <div class="btns" style="margin-top:8px"><button class="btn" data-act="bt-song-ai">${t("让 AI 补词")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("用咩咩咩里填的 API key（只存本机）。AI 只按歌名和演唱者回忆歌词，当草稿用，父母改完再保存。")}</p></div>
-  <div class="btns"><button class="btn primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="btn danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
+  <div class="btns"><button class="btn primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="btn" data-act="bt-song-addto">${t("加到流程…")}</button><button class="btn danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
 }
 function readSongForm(){ const d = songForm.draft; d.title = ($("#btTitle") || {}).value?.trim() || ""; d.artist = ($("#btArtist") || {}).value?.trim() || ""; d.lyrics = ($("#btLyrics") || {}).value?.trim() || ""; const ok = $("#btAiOk"); if (ok && ok.checked) d.lyrics_ai = false; }
 async function aiLyrics(){
@@ -564,13 +588,24 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, text: currentText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: currentText(c), kids: kids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-flow-sel": selectFlow(d.id); render(); break;
+    case "bt-flow-new": openForm("新建流程", [{ k: "name", label: "流程名称", type: "text", ph: "午睡 / 晚觉 / 出门前" }, { k: "tpl", label: "从哪个模板开始", type: "seg", raw: true, opts: [...Object.entries(FLOW_TEMPLATES).map(([k, tp]) => [k, tc(tp.name)]), ["blank", t("空白")]] }], { name: "", tpl: "nap" },
+      async f => { const tp = FLOW_TEMPLATES[f.tpl], name = (f.name || (tp && tp.flowName) || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
+        const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: tp ? tp.kind : "night", steps: tp ? withIds(tp.steps) : [] }; await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已新建，可以改步骤了")); }); break;
+    case "bt-flow-rename": openForm("流程名称", [{ k: "name", label: "流程名称", type: "text" }], { name: c.flowName }, async f => { if (!f.name) { toast(t("请填流程名称")); return; } await saveFlows(c.flows.map(x => x.id === c.flow ? { ...x, name: f.name.slice(0, 20) } : x)); closeSheet(); }); break;
+    case "bt-flow-del": { if (c.flows.length < 2 || !confirm(t("删除流程「{name}」和它的步骤？", { name: c.flowName }))) break; const left = c.flows.filter(x => x.id !== c.flow); selectFlow(left[0].id); await saveFlows(left); render(); break; }
+    /* 歌单：加到流程 / 话题的推荐歌曲 */
+    case "bt-song-addto": { const sid = songForm && songForm.id; if (sid) openAddToFlow(sid); break; }
+    case "bt-pick-step": { const sid = d.song, f = c.flows.find(x => x.id === d.flow), st = f && f.steps.find(x => x.id === d.step); if (!st) break; await saveFlows(c.flows.map(x => x.id === f.id ? { ...x, steps: x.steps.map(y => y.id === st.id ? { ...y, song: y.song === sid ? "" : sid } : y) } : x)); openAddToFlow(sid); break; }
+    case "bt-pick-topic": { await toggleTopicSong(d.topic, d.song); openAddToFlow(d.song); break; }
+    case "bt-pin-song": { await toggleTopicSong(d.topic, d.song, d.off ? false : undefined); if ($("#sheet").open && pickCtx) openPickSongsForTopic(pickCtx.id, pickCtx.name); else render(); break; }
     case "bt-cap": await saveCfg({ cap: +d.v }); render(); break;
     case "bt-lang": await saveCfg({ lang: d.v }); render(); break;
     case "bt-anchor": await saveCfg({ anchor: !c.anchor }); render(); break;
     case "bt-mirror": await saveCfg({ mirror: !c.mirror }); render(); break;
     /* 流程 */
-    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换现在的步骤？", { name: tc(tp.name) }))) break; await saveSteps(withIds(tp.steps), tp.name); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
+    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换现在的步骤？", { name: tc(tp.name) }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps) } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
     case "bt-step-add": openForm("添加步骤", stepFields(), { name: "", minutes: 3, text: "", song: "", hint: "", loop: false, skip: false }, async f => { if (!f.name) { toast(t("请填名字")); return; } await saveSteps([...c.steps, { id: stepId(), ...f, minutes: +f.minutes || 0 }], ""); closeSheet(); }); break;
     case "bt-step-edit": { const s = c.steps.find(x => x.id === d.id); if (!s) break;
       openForm("这一步", stepFields(), s, async f => { await saveSteps(c.steps.map(x => x.id === s.id ? { ...x, ...f, minutes: +f.minutes || 0 } : x), ""); closeSheet(); }, async () => { if (confirm(t("删除这一步？"))) { await saveSteps(c.steps.filter(x => x.id !== s.id), ""); closeSheet(); } }); break; }
@@ -582,7 +617,6 @@ async function btAct(act, btn){
     case "bt-song-ai": await aiLyrics(); break;
     case "bt-song-save": await saveSongForm(btn); break;
     case "bt-song-delete": { const s = song(songForm.id); if (s && confirm(t("删除「{t}」和它的音频？流程里用到它的步骤改为不放歌。", { t: s.title }))) { await deleteSong(s); closeSheet(); } break; }
-    case "bt-song-move": await moveSong(d.id, +d.d); render(); break;
     case "bt-song-play": await togglePreview(d.id); break;
     case "bt-cache-all": { btn.disabled = true; btn.textContent = t("下载中…"); const n = await cacheAll(); render(); toast(t("已下载 {n} 首", { n })); break; }
     /* 带领词 */
@@ -622,4 +656,43 @@ function btChange(ev){
   return playChange(ev);
 }
 
-export { isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+/* ---- 加到流程：歌单行左滑 / 编辑页按钮打开。睡前流程的某一步放一首歌；冲突 / 情绪话题可以放多首推荐歌 ---- */
+let pickCtx = null;
+const topicList = c => [...CONFLICTS, ...c.situations.filter(x => String(x.id).startsWith("cf-") && !CONFLICTS.some(y => y.id === x.id))].map(x => ({ id: x.id, name: x.when, kind: "cf" })).concat(EMOTIONS.map(x => ({ id: x.id, name: x.when, kind: "em" })));
+async function toggleTopicSong(topicId, songId, on){
+  const c = cfg(), cur = new Set(c.topicSongs[topicId] || []), want = on === undefined ? !cur.has(songId) : on;
+  if (want) cur.add(songId); else cur.delete(songId);
+  await saveCfg({ topicSongs: { ...c.topicSongs, [topicId]: [...cur] } });
+}
+const topicSongsOf = (id, c = cfg()) => c.topicSongs[id] || [];
+function openAddToFlow(songId){
+  const c = cfg(), s = song(songId); if (!s) return; pickCtx = null;
+  const tl = topicList(c), btn = (x, kind) => `<button type="button" data-act="bt-pick-topic" data-topic="${esc(x.id)}" data-song="${esc(songId)}" aria-pressed="${(c.topicSongs[x.id] || []).includes(songId)}">${esc(tc(x.name))}</button>`;
+  $("#sheetIn").innerHTML = `${head(esc(t("加到流程")))}
+  <p class="small"><b>♪ ${esc(s.title)}</b><br><span class="muted">${t("点一下加进去，再点一下取消。睡前流程的一步只放一首歌（会换掉原来那首）；冲突 / 情绪话题可以放多首推荐歌。")}</span></p>
+  <h2>${t("睡前安然")}</h2>
+  ${c.flows.map(f => `<div class="panel" style="margin-top:8px"><b>${f.kind === "nap" ? "☀" : "🌙"} ${esc(f.name)}</b> <span class="small muted">${t("约 {n} 分钟", { n: flowMin(f) })}</span>
+    <div class="seg" style="margin-top:6px">${f.steps.map(st => { const cur = st.song && st.song !== songId ? songLabel(st.song) : ""; return `<button type="button" data-act="bt-pick-step" data-song="${esc(songId)}" data-flow="${esc(f.id)}" data-step="${esc(st.id)}" aria-pressed="${st.song === songId}">${esc(st.name)}${cur ? ` <small class="muted">♪${esc(cur)}</small>` : ""}</button>`; }).join("") || `<span class="small muted">${t("这个流程还没有步骤")}</span>`}</div></div>`).join("")}
+  <h2>${t("冲突管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "cf").map(btn).join("")}</div>
+  <h2>${t("情绪管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "em").map(btn).join("")}</div>
+  <div class="btns"><button class="btn primary" data-act="close">${t("完成")}</button></div>`;
+  showSheet();
+}
+/* 反过来：从话题卡上选歌 */
+function openPickSongsForTopic(topicId, name){
+  const c = cfg(), list = songs().filter(s => s.path); pickCtx = { id: topicId, name };
+  $("#sheetIn").innerHTML = `${head(esc(t("推荐歌曲")))}
+  <p class="small"><b>${esc(tc(name))}</b><br><span class="muted">${t("点一下加进这个话题的推荐歌曲，再点一下取消。")}</span></p>
+  ${list.length ? `<div class="seg" style="flex-direction:column;align-items:stretch">${list.map(s => `<button type="button" data-act="bt-pin-song" data-topic="${esc(topicId)}" data-song="${esc(s.id)}" aria-pressed="${(c.topicSongs[topicId] || []).includes(s.id)}">♪ ${esc(s.title)} <small class="muted">${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、")}</small></button>`).join("")}</div>` : `<div class="empty">${t("歌单里还没有歌。先到「睡前安然 → 歌单」添加。")}</div>`}
+  <div class="btns"><button class="btn primary" data-act="close">${t("完成")}</button></div>`;
+  showSheet();
+}
+const previewing = id => previewId === id;
+async function reorderSongs(ids){ for (let i = 0; i < ids.length; i++) { const s = song(ids[i]); if (s && s.sort !== i) await upsertSong({ ...s, sort: i }); } }
+initSongRows({
+  onDelete: async id => { const s = song(id); if (!s) return; if (!confirm(t("删除「{t}」和它的音频？流程里用到它的步骤改为不放歌。", { t: s.title }))) return; try { await deleteSong(s); toast(t("已删除")); } catch (e) { /* 已 toast */ } render(); },
+  onAdd: id => openAddToFlow(id),
+  onReorder: async (ids, movedId) => { try { await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
+});
+
+export { openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

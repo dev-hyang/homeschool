@@ -603,3 +603,33 @@ body.bt-playing{overflow:hidden}
 .bt-card-row .btn.sm,.panel .btns .btn.primary.sm{min-height:36px;padding:6px 14px;font-size:14px}
 .bt-sit .bt-card-row{align-items:flex-start}
 @media (max-width:520px){.bt-ask .small{font-size:12.5px}.bt-sit .bt-card-row .btn.sm{padding:5px 12px}.btns .btn.primary.sm{flex:none}}
+
+/* ============ 歌单行手势（js/songs-ui.js）、多流程选择、话题的推荐歌曲 ============ */
+.song-list{display:flex;flex-direction:column}
+.song-row{position:relative;overflow:hidden;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;border-bottom:1px solid var(--line)}
+.song-row:last-child{border-bottom:0}
+.song-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;color:#fff}
+.song-bg span{display:none;height:100%;align-items:center;padding:0 18px;white-space:nowrap}
+.song-bg .sb-del{background:#b3261e}
+.song-bg .sb-add{background:var(--slate);margin-left:auto}
+.song-row.to-right .sb-del{display:flex;flex:1}
+.song-row.to-left .sb-add{display:flex;flex:1;justify-content:flex-end}
+.song-row.ready .sb-del{background:#8e1a14} .song-row.ready .sb-add{filter:brightness(.85)}
+.song-in{position:relative;background:var(--surface);transform:translateX(var(--x,0px));transition:transform .18s ease;border-bottom:0}
+.song-row.swiping .song-in,.song-row.dragging .song-in{transition:none}
+.song-row.dragging{position:relative;z-index:5;box-shadow:0 6px 18px rgba(21,36,58,.22);border-radius:var(--radius-sm);background:var(--surface);transition:none}
+.song-handle{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:40px;color:var(--muted);font-size:18px;letter-spacing:-3px;cursor:grab;touch-action:none;border-radius:8px}
+.song-handle:hover,.song-handle:focus-visible{background:var(--bg);color:var(--ink)}
+.song-row.dragging .song-handle{cursor:grabbing;color:var(--slate)}
+.song-in .acts{display:flex;align-items:center;gap:2px}
+@media (prefers-reduced-motion:reduce){.song-in{transition:none}}
+.bt-flows{margin:8px 0}
+.bt-flows .chip{min-height:34px;padding:5px 12px}
+.devo .v .bt-flows{margin:6px 0 0}
+.devo .v .bt-flows .chip{min-height:30px;padding:3px 10px;font-size:13px}
+.btn.danger.sm{color:var(--rose);border-color:var(--rose)}
+.cf-music{margin:10px 0 0;padding:8px 10px;border-radius:var(--radius-sm);background:var(--sage-soft)}
+.cf-song{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line);font-size:14px}
+.cf-song-t{min-width:0;overflow-wrap:anywhere}
+.cf-song-acts{display:inline-flex;gap:4px;flex:none}
+.iconbtn.sm{min-width:36px;height:36px;padding:0 10px;font-size:14px}

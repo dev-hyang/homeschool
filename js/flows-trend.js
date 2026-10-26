@@ -88,7 +88,9 @@ const countText = m => Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, v]
 
 const sinceKey = days => dayKey(Date.now() - (days - 1) * D);
 const eventsIn = days => S.bt.events.filter(e => isCf(e) && e.date >= sinceKey(days));
-const nightsIn = days => S.bt.logs.filter(l => l.date >= sinceKey(days));
+const isNapLog = l => !!(l && l.steps && l.steps[0] && l.steps[0].kind === "nap");   // 午睡流程不算「晚上做了睡前流程」
+const nightsIn = days => S.bt.logs.filter(l => l.date >= sinceKey(days) && !isNapLog(l));
+const napsIn = days => S.bt.logs.filter(l => l.date >= sinceKey(days) && isNapLog(l));
 
 /* ============ 摘要：交给咩咩咩的上下文（也是「会发送什么」里能看到的原文）============ */
 function flowContext({ days = 14, focus = null } = {}){
@@ -98,6 +100,7 @@ function flowContext({ days = 14, focus = null } = {}){
     const mins = logs.map(l => +l.actual_min || 0), plan = logs.map(l => +l.planned_min || 0).filter(Boolean);
     L.push(`睡前流程：${logs.length} 晚做了（共 ${days} 晚），平均 ${Math.round(avg(mins))} 分钟${plan.length ? `（计划约 ${Math.round(avg(plan))}）` : ""}；孩子状态：${countText(count(logs, l => l.child_state)) || "没记"}；大人状态：${countText(count(logs, l => l.parent_state)) || "没记"}。`);
   } else L.push(`睡前流程：这 ${days} 天没有记录。`);
+  if (napsIn(days).length) L.push(`午睡流程：${napsIn(days).length} 次。`);
   if (nights.length) {
     const on = new Set(logs.map(l => l.date)), withR = nights.filter(n => on.has(n.date)), without = nights.filter(n => !on.has(n.date));
     const part = (a, label) => a.length ? `${label}（${a.length} 晚）平均入睡 ${bedClock(avg(a.map(x => x.bed)))}、起床 ${clockOfDay(avg(a.map(x => x.wake)))}` : "";
