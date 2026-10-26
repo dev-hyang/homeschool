@@ -376,8 +376,9 @@ function viewFlow(){
   return `${h2(t("流程"), esc(c.flowName))}
   ${offlineHTML()}
   ${flowChips(c)}
-  <div class="btns" style="margin-top:0"><button class="btn sm" data-act="bt-flow-new">＋ ${t("新建流程")}</button><button class="btn sm" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="btn sm danger" data-act="bt-flow-del">${t("删除这个流程")}</button>` : ""}</div>
+  <div class="btns" style="margin-top:0"><button class="btn sm" data-act="bt-flow-new">＋ ${t("新建流程")}</button><button class="btn sm" data-act="bt-flow-copy">${t("另存为新流程")}</button><button class="btn sm" data-act="bt-flow-rename">${t("改名")}</button>${c.flows.length > 1 ? `<button class="btn sm danger" data-act="bt-flow-del">${t("删除这个流程")}</button>` : ""}</div>
   <p class="small muted" style="margin:8px 0 0">${t("按场景建不同的流程：晚觉 20 分钟、午睡 8 分钟……开始前选一个。下面是「{name}」这个流程的步骤。", { name: esc(c.flowName) })}</p>
+  <div class="alert info" style="margin:8px 0">${t("你改的步骤会自动保存在当前选中的流程里；切换或新建别的流程，不会影响已经保存的。想留一份原样再试别的改法，先点「另存为新流程」；对当前流程「套用模板」会覆盖它的步骤，想保留就先另存。")}</div>
   <div class="btns"><button class="btn primary sm" data-act="bt-step-add">＋ ${t("添加步骤")}</button>${Object.entries(FLOW_TEMPLATES).map(([k, tp]) => `<button class="btn sm" data-act="bt-flow-tpl" data-tpl="${k}">${t("套用：")}${esc(tc(tp.name))}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("点一步修改名字、分钟、放哪首歌、显示哪段文字；↑↓ 调顺序。年幼的孩子可以把某步设为跳过，不用删。")}</p>
   <div class="panel">
@@ -593,6 +594,11 @@ async function btAct(act, btn){
     case "bt-flow-new": openForm("新建流程", [{ k: "name", label: "流程名称", type: "text", ph: "午睡 / 晚觉 / 出门前" }, { k: "tpl", label: "从哪个模板开始", type: "seg", raw: true, opts: [...Object.entries(FLOW_TEMPLATES).map(([k, tp]) => [k, tc(tp.name)]), ["blank", t("空白")]] }], { name: "", tpl: "nap" },
       async f => { const tp = FLOW_TEMPLATES[f.tpl], name = (f.name || (tp && tp.flowName) || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
         const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: tp ? tp.kind : "night", steps: tp ? withIds(tp.steps) : [] }; await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已新建，可以改步骤了")); }); break;
+    case "bt-flow-copy": { const cur = c.flows.find(x => x.id === c.flow); if (!cur) break;
+      openForm("另存为新流程", [{ k: "name", label: "新流程的名字", type: "text", ph: "例如：晚觉 #2" }], { name: `${cur.name} #${c.flows.length + 1}` },
+        async f => { const name = (f.name || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
+          const nf = { id: "f" + newId(), name: name.slice(0, 20), kind: cur.kind, steps: cur.steps.map(x => ({ ...x, id: stepId() })) };
+          await saveFlows([...c.flows, nf]); selectFlow(nf.id); closeSheet(); toast(t("已另存为「{name}」，现在选中的是它", { name: nf.name })); }); break; }
     case "bt-flow-rename": openForm("流程名称", [{ k: "name", label: "流程名称", type: "text" }], { name: c.flowName }, async f => { if (!f.name) { toast(t("请填流程名称")); return; } await saveFlows(c.flows.map(x => x.id === c.flow ? { ...x, name: f.name.slice(0, 20) } : x)); closeSheet(); }); break;
     case "bt-flow-del": { if (c.flows.length < 2 || !confirm(t("删除流程「{name}」和它的步骤？", { name: c.flowName }))) break; const left = c.flows.filter(x => x.id !== c.flow); selectFlow(left[0].id); await saveFlows(left); render(); break; }
     /* 歌单：加到流程 / 话题的推荐歌曲 */
@@ -605,7 +611,7 @@ async function btAct(act, btn){
     case "bt-anchor": await saveCfg({ anchor: !c.anchor }); render(); break;
     case "bt-mirror": await saveCfg({ mirror: !c.mirror }); render(); break;
     /* 流程 */
-    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换现在的步骤？", { name: tc(tp.name) }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps) } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
+    case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换「{cur}」现有的步骤？替换后原来的步骤就没了；想保留请先「另存为新流程」。", { name: tc(tp.name), cur: c.flowName }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps) } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
     case "bt-step-add": openForm("添加步骤", stepFields(), { name: "", minutes: 3, text: "", song: "", hint: "", loop: false, skip: false }, async f => { if (!f.name) { toast(t("请填名字")); return; } await saveSteps([...c.steps, { id: stepId(), ...f, minutes: +f.minutes || 0 }], ""); closeSheet(); }); break;
     case "bt-step-edit": { const s = c.steps.find(x => x.id === d.id); if (!s) break;
       openForm("这一步", stepFields(), s, async f => { await saveSteps(c.steps.map(x => x.id === s.id ? { ...x, ...f, minutes: +f.minutes || 0 } : x), ""); closeSheet(); }, async () => { if (confirm(t("删除这一步？"))) { await saveSteps(c.steps.filter(x => x.id !== s.id), ""); closeSheet(); } }); break; }
