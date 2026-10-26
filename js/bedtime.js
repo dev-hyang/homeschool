@@ -323,14 +323,18 @@ const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small mu
 
 /* ---- 今日敬拜里的一行：放在「祷告」下面、「参加」上面（js/today.js 的 devotionHTML）。点「开始」直接进播放页，点文字去设置 ---- */
 function bedtimeRowHTML(){
-  const c = cfg(), n = activeSteps(c).length, m = totalMin(c), last = lastLog(), today = dayKey(Date.now());
+  const c = cfg(), n = activeSteps(c).length, last = lastLog(), today = dayKey(Date.now());
   const lastTxt = !last ? t("还没做过") : last.date === today ? t("今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
+  // 流程名长就把字号缩小一点，保证一行放得下（按字数分档）
+  const len = [...c.flowName].length, fs = len <= 6 ? 16 : len <= 8 ? 15 : len <= 10 ? 14 : len <= 13 ? 13 : len <= 16 ? 12 : 11;
+  const icon = f => f.kind === "nap" ? "☀" : "🌙";
+  const pick = c.flows.length > 1
+    ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(f.name)}</option>`).join("")}</select>`
+    : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(c.flowName)}</div>`;
   return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
     <div class="v bt-card">
-      <div class="bt-card-head"><b class="bt-card-name">${c.flowKind === "nap" ? "☀" : "🌙"} ${esc(c.flowName)}</b><span class="bt-chip">${t("{n} 步 · 约 {m} 分钟", { n, m })}</span></div>
-      <div class="small muted bt-card-meta">${esc(tc(c.reading))} · ${lastTxt}</div>
-      ${flowChips(c)}
-      <div class="bt-card-acts"><button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
+      <div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>
+      <div class="bt-card-foot"><span class="small muted">${esc(tc(c.reading))} · ${lastTxt}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
     </div></div>`;
 }
 
@@ -675,6 +679,7 @@ async function btAct(act, btn){
 /* 文件选择（歌曲表单）与播放页里的输入 */
 function btChange(ev){
   const el = ev.target; if (!el) return false;
+  if (el.id === "btFlowSel") { selectFlow(el.value); render(); return true; }   // 今天页「睡前」的流程下拉框
   if (el.id === "btFile" && songForm) { songForm.file = el.files && el.files[0] ? el.files[0] : null; readSongForm(); drawSongForm(); return true; }
   return playChange(ev);
 }
