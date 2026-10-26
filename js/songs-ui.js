@@ -1,6 +1,6 @@
 /* ============ 歌单行的手势 ============
-   · 右滑：露出红色「删除」，滑过约三分之一行宽松手 → 删除（先确认）；
-   · 左滑：露出蓝色「加到流程」，滑过约三分之一行宽松手 → 打开「加到流程」选择页（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲）；
+   · 手指向左滑：行向左走，右边露出红色「删除」，滑过约三分之一行宽松手 → 删除（先确认）；
+   · 手指向右滑：行向右走，左边露出蓝色「加到流程」，滑过约三分之一行宽松手 → 打开「加到流程」选择页（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲）；
    · 长按最右边的 ⋮⋮（约 0.4 秒，手机会轻震一下）→ 这一行浮起，上下拖动调顺序，松手保存；
    · 键盘 / 读屏：⋮⋮ 上按 ↑ ↓ 移动；删除和「加到流程」在歌曲的编辑页里也有按钮。
    行结构：.song-row > .song-bg（背后的两个标签）+ .song-in（前面那一层，跟着手指走）。只管 .song-row，别的列表不受影响。
@@ -37,7 +37,7 @@ function up(e){
     const dx = e.clientX - st.x0, th = threshold(row), id = row.dataset.id;
     swallow = true; setTimeout(() => { swallow = false; }, 350);
     row.classList.remove("swiping", "ready"); setX(row, 0);
-    if (dx > th && cb.onDelete) cb.onDelete(id); else if (dx < -th && cb.onAdd) cb.onAdd(id);
+    if (dx < -th && cb.onDelete) cb.onDelete(id); else if (dx > th && cb.onAdd) cb.onAdd(id);
   } else if (kind === "drag") endDrag();
   st = null;
 }

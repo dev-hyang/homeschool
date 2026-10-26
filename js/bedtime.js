@@ -400,7 +400,7 @@ async function saveSteps(steps){ const c = cfg(); await saveFlows(c.flows.map(f 
 let songForm = null;   // { id, draft, file, oldPath }
 function viewSongs(){
   const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length, bytes = list.reduce((a, s) => a + (+s.size || 0), 0);
-  const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-del">🗑 ${t("删除")}</span><span class="sb-add">＋ ${t("加到流程")}</span></div>
+  const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-add">＋ ${t("加到流程")}</span><span class="sb-del">🗑 ${t("删除")}</span></div>
     <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
     <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></span></div></div>`;
@@ -408,7 +408,7 @@ function viewSongs(){
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="btn" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
   <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${bytes ? ` ${t("已用 {s}。", { s: fmtSize(bytes) })}` : ""} ${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
-  <p class="small muted" style="margin:0 0 8px">${t("每首歌：向右滑删除，向左滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
+  <p class="small muted" style="margin:0 0 8px">${t("每首歌：向左滑删除，向右滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
   <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
   <h2>${t("可以去找的歌")}</h2>
   <div class="panel"><p class="small muted" style="margin-top:0">${t("不内置音频：自己买或下载 MP3 后传进来。优先慢速、轻柔、没有突然增强的鼓点和高音的版本。")}</p>
