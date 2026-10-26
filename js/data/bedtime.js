@@ -171,7 +171,7 @@ const GUIDE = [
 ];
 
 /* ---- 歌的三类标签（对应三阶段） ---- */
-const SONG_TAGS = { loved: "被爱与安慰", word: "神的话语", rest: "放下与休息" };
+const SONG_TAGS = { loved: "被爱与安慰", word: "神的话语", rest: "放下与休息", wake: "轻柔唤醒" };
 /* 可以去找的歌（不内置音频，家庭自己放 MP3）：名字、演唱者、适合哪一类 */
 const SONG_IDEAS = [
   ["Peaceful Lullaby", "Seeds Kids Worship", "word", "直接以诗篇 4:8 为歌词，适合做全家睡前的固定主题曲"],
@@ -184,4 +184,13 @@ const SONG_IDEAS = [
   ["钢琴 / 竖琴纯音乐敬拜", "任意", "rest", "最后一步循环用：慢速、轻柔、没有突然的鼓点和高音"]
 ];
 
-export { NAP_TEXT, ANCHOR_REF, ANCHOR_ZH, ANCHOR_EN, FLOW_TEMPLATES, TEXT_TEMPLATE, PRINCIPLES, SITUATIONS, OUTCOMES, READINGS, PARENT_LINES, GUIDE, SONG_TAGS, SONG_IDEAS };
+/* 唤醒（午睡醒来 / 早上）：不是催眠曲，也不是闹钟——中速偏慢、大调、原声乐器，没有突然的鼓点；音量慢慢升上来 */
+const WAKE_IDEAS = [
+  ["Great Is Thy Faithfulness 你的信实广大", "传统圣诗", "「每天早晨都有新的怜悯」（哀 3:22-23），钢琴 / 吉他版最合适"],
+  ["Morning Has Broken", "传统圣诗（曲调 Bunessan）", "天亮了、新的一天，节奏平稳，原声吉他或钢琴版"],
+  ["This Is the Day 这是主所定的日子", "传统诗歌（诗 118:24）", "孩子醒了以后再放，轻快但不吵"],
+  ["Morning Mood 晨曦", "Grieg《培尔·金特》", "纯音乐，从长笛到弦乐一点点亮起来，最像「慢慢天亮」"],
+  ["哀歌 3:22-23 经文歌（每天早晨都是新的）", "Seeds Family Worship 等经文歌", "不用解释，孩子听着就记住经文了"],
+  ["Open My Eyes, That I May See 求主开我眼睛", "传统圣诗", "安静、短，适合赖床的孩子"]
+];
+export { WAKE_IDEAS, NAP_TEXT, ANCHOR_REF, ANCHOR_ZH, ANCHOR_EN, FLOW_TEMPLATES, TEXT_TEMPLATE, PRINCIPLES, SITUATIONS, OUTCOMES, READINGS, PARENT_LINES, GUIDE, SONG_TAGS, SONG_IDEAS };

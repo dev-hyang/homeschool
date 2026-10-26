@@ -16,6 +16,7 @@ import { angerHTML } from "./principle.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
+import { allAsleep, loadSleep, onEntriesChange, sleepCardsHTML, sleepFromLog } from "./wake.js";
 
 /* ============ 睡前安然：数据层 + 页面（流程 / 歌单 / 带领词 / 睡前经文 / 记录） ============
    以诗篇 4:8 为中心的睡前敬拜流程。配置（步骤、带领词版本、经文清单、上限、开关）放在 hs_family.settings.bedtime，
@@ -64,7 +65,7 @@ function normalize(raw){
     versions, version: versions.some(v => v.id === r.version) ? r.version : (versions[0] ? versions[0].id : null),
     readings: Array.isArray(r.readings) ? r.readings.filter(x => x && x.ref) : [], reading: r.reading || READINGS[1].ref, anchor: r.anchor !== false,
     situations: Array.isArray(r.situations) ? r.situations.filter(x => x && x.id && x.when) : [],
-    cap: +r.cap || 30, mirror: r.mirror !== false, mirrorConflict: r.mirrorConflict !== false, langSet: ["zh", "en", "both"].includes(r.lang), lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : (locale() === "en" ? "en" : "zh"), firstOn: r.firstOn || "" };
+    cap: +r.cap || 30, mirror: r.mirror !== false, mirrorConflict: r.mirrorConflict !== false, sleepSync: r.sleepSync !== false, langSet: ["zh", "en", "both"].includes(r.lang), lang: ["zh", "en", "both"].includes(r.lang) ? r.lang : (locale() === "en" ? "en" : "zh"), firstOn: r.firstOn || "" };
 }
 const cfg = () => normalize(S.hs.loaded ? S.hs.settings.bedtime : cache().cfg);
 async function saveCfg(patch){
@@ -191,13 +192,14 @@ async function loadBedtime(){
   S.bt.sideCols = (ev.data || []).length ? ("parent_state" in ev.data[0]) : !(await SB.client.from("hs_bedtime_events").select("parent_state").eq("family_id", f).limit(1)).error;
   writeCache();
   await flushPending();
+  loadSleep().catch(() => {});
   prefetchTonight().catch(() => {});
 }
 /* 离线时排队的完成记录，联网后补传 */
 async function flushPending(){
   if (!S.bt.pending.length || !online()) return;
   const left = [], before = S.bt.pending.length;
-  for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); } catch (e) { left.push(row); } }
+  for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); await sleepFromLog(saved).catch(() => {}); } catch (e) { left.push(row); } }
   S.bt.pending = left; saveJSON(PEND_KEY, left); sortLogs();
   const leftEv = [];
   for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.events, saved); await mirrorEvent(saved); } catch (e) { leftEv.push(row); } }
@@ -208,6 +210,7 @@ const sortEvents = () => S.bt.events.sort((a, b) => (b.date + (b.updated_at || "
 const sortLogs = () => S.bt.logs.sort((a, b) => (b.date + (b.started_at || "")).localeCompare(a.date + (a.started_at || "")));
 function attachBedtimeRealtime(channel, onChange){
   channel
+    .on("postgres_changes", { event: "*", schema: "public", table: "entries", filter: "family_id=eq." + fid() }, onEntriesChange)
     .on("postgres_changes", { event: "*", schema: "public", table: "hs_bedtime_songs", filter: "family_id=eq." + fid() }, payload => {
       if (payload.eventType === "DELETE") { const id = payload.old && payload.old.id; if (id) S.bt.songs = S.bt.songs.filter(s => s.id !== id); }
       else if (payload.new && payload.new.id) put(S.bt.songs, payload.new);
@@ -268,6 +271,7 @@ async function saveLog(log){
   put(S.bt.logs, saved); sortLogs();
   const c = cfg(); if (!c.firstOn) await saveCfg({ firstOn: saved.date }).catch(() => {});
   await mirrorLog(saved);
+  if (!log.id) await sleepFromLog(saved).catch(e => console.error(e));   // 新完成的一晚 / 一次午睡：在小月亮记下「开始睡」
   return saved;
 }
 async function deleteLog(id){
@@ -340,7 +344,8 @@ function bedtimeRowHTML(){
     : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(tb(c.flowName))}</div>`;
   return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
     <div class="v bt-card">
-      <div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>
+      ${sleepCardsHTML()}
+      ${allAsleep() ? "" : `<div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>`}
       <div class="bt-card-foot"><span class="small muted">${esc(tc(c.reading))} · ${lastTxt}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
     </div></div>`;
 }
@@ -375,8 +380,9 @@ function viewBedtime(){
     <div class="lab">${t("总时长上限（分钟）")}</div><div class="seg">${[15, 20, 25, 30, 40].map(v => `<button data-act="bt-cap" data-v="${v}" aria-pressed="${c.cap === v}">${v}</button>`).join("")}</div>
     <p class="small muted" style="margin:6px 0 0">${t("超过上限时只提醒，不拦着。每一步到时也只是震一下、进度条变色，不响铃、不自动跳步；只有最后一步到时音乐淡出。")}</p>
     <div class="lab" style="margin-top:12px">${t("经文语言")}</div><div class="seg">${[["zh", "中文"], ["en", "English"], ["both", "中英都读"]].map(([v, l]) => `<button data-act="bt-lang" data-v="${v}" aria-pressed="${c.lang === v}">${t(l)}</button>`).join("")}</div>
-    <div class="btns" style="margin-top:12px"><button class="chip" data-act="bt-anchor" aria-pressed="${c.anchor}">${c.anchor ? t("每晚先读诗篇 4:8 ✓") : t("每晚先读诗篇 4:8")}</button><button class="chip" data-act="bt-mirror" aria-pressed="${c.mirror}">${c.mirror ? t("完成后回写小月亮 ✓") : t("完成后回写小月亮")}</button></div>
+    <div class="btns" style="margin-top:12px"><button class="chip" data-act="bt-anchor" aria-pressed="${c.anchor}">${c.anchor ? t("每晚先读诗篇 4:8 ✓") : t("每晚先读诗篇 4:8")}</button><button class="chip" data-act="bt-mirror" aria-pressed="${c.mirror}">${c.mirror ? t("完成后回写小月亮 ✓") : t("完成后回写小月亮")}</button><button class="chip" data-act="bt-sleepsync" aria-pressed="${c.sleepSync}">${c.sleepSync ? t("完成后记下「开始睡」✓") : t("完成后记下「开始睡」")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("回写 = 给每个参加的孩子在小月亮里记一条「信仰 · 家庭敬拜」（小月亮的信仰模块打开才看得到），这样睡眠记录旁边就能看到那晚做没做睡前流程。")}</p>
+    <p class="small muted" style="margin:6px 0 0">${t("记下「开始睡」= 流程做完时，给每个参加的孩子在小月亮里记一条睡眠（自主入睡、还没醒）；今天页上那一行变成「在睡 + 唤醒」，醒来时点「唤醒」记下醒来时间，也可以补记、修改。")}</p>
   </div>
   <p class="small muted" style="margin-top:12px">${t("安抚多过刑罚，不等于不管教：安抚是恢复安全感，管教是学习行为；两者可以同时存在，但不必用惩罚来制造平静。")}</p>`;
 }
@@ -419,7 +425,7 @@ function viewFlow(){
 const stepFields = () => [
   { k: "name", label: "这一步叫什么", type: "text", ph: "拥抱与敬拜" }, { k: "minutes", label: "建议几分钟", type: "num", ph: "4" },
   { k: "text", label: "这一步给父母看的文字", type: "seg", opts: TEXT_KEYS },
-  { k: "song", label: "放哪首歌", type: "seg", raw: true, opts: [["", t("不放歌")], ...Object.entries(SONG_TAGS).map(([k, v]) => ["tag:" + k, t("按标签挑") + "：" + t(v)]), ...songs().filter(s => s.path).map(s => [s.id, s.title])] },
+  { k: "song", label: "放哪首歌", type: "seg", raw: true, opts: [["", t("不放歌")], ...Object.entries(SONG_TAGS).filter(([k]) => k !== "wake").map(([k, v]) => ["tag:" + k, t("按标签挑") + "：" + t(v)]), ...songs().filter(s => s.path).map(s => [s.id, s.title])] },
   { k: "hint", label: "给父母的一句提示（可空）", type: "area", ph: "收好玩具、上厕所、刷牙、穿睡衣。" },
   { k: "loop", label: "循环播放到时间结束（最后一步用）", type: "check" }, { k: "skip", label: "暂时跳过这一步", type: "check" }];
 async function saveFlows(flows){ await saveCfg({ flows }); }
@@ -643,6 +649,7 @@ async function btAct(act, btn){
     case "bt-lang": await saveCfg({ lang: d.v }); render(); break;
     case "bt-anchor": await saveCfg({ anchor: !c.anchor }); render(); break;
     case "bt-mirror": await saveCfg({ mirror: !c.mirror }); render(); break;
+    case "bt-sleepsync": await saveCfg({ sleepSync: !c.sleepSync }); render(); break;
     /* 流程 */
     case "bt-flow-tpl": { const tp = FLOW_TEMPLATES[d.tpl]; if (!tp) break; if (c.steps.length && !confirm(t("用「{name}」替换「{cur}」现有的步骤？替换后原来的步骤就没了；想保留请先「另存为新流程」。", { name: tc(tp.name), cur: c.flowName }))) break; await saveFlows(c.flows.map(f => f.id === c.flow ? { ...f, kind: tp.kind || "night", steps: withIds(tp.steps), texts: tp.kind === "nap" ? { ...NAP_TEXT } : undefined } : f)); S.tab = "bt-flow"; render(); toast(t("已套用")); break; }
     case "bt-step-add": openForm("添加步骤", stepFields(), { name: "", minutes: 3, text: "", song: "", hint: "", loop: false, skip: false }, async f => { if (!f.name) { toast(t("请填名字")); return; } await saveSteps([...c.steps, { id: stepId(), ...f, minutes: +f.minutes || 0 }], ""); closeSheet(); }); break;
@@ -735,4 +742,4 @@ initSongRows({
   onReorder: async (ids, movedId, kind) => { try { if (kind === "step") { const c = cfg(), by = new Map(c.steps.map(x => [x.id, x])); await saveSteps(ids.map(i => by.get(i)).filter(Boolean)); } else await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
 });
 
-export { openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+export { songBlob, openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
