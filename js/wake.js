@@ -47,7 +47,7 @@ function status(){
 }
 const sleeping = () => status().filter(x => x.open);
 /** 今天页用：所有孩子都在睡时，「开始」那一行就不用显示了 */
-const allAsleep = () => { const k = kids(); return !!k.length && sleeping().length >= k.length; };
+const allAsleep = ids => { const open = sleeping().map(x => x.child); return !!ids.length && ids.every(id => open.includes(id)); };
 
 /* ---- 睡前流程结束 → 写一条「开始睡」---- */
 async function sleepFromLog(l){
@@ -69,18 +69,22 @@ async function sleepFromLog(l){
 }
 
 /* ---- 今天页「睡前」那一行里的睡眠状态 ---- */
-function sleepCardsHTML(){
-  const st = status(), ms = music.song;
-  if (!st.length && !ms) return "";
+/** 只看选中的孩子，只留最近一条：在睡的（要能点唤醒）都留；没有在睡的就留最近一次醒来，且要比最近一次睡前流程新才显示。
+ *  返回 { html, logShown }：logShown = 这里没有更新的记录，调用方可以显示「上次睡前流程」 */
+function sleepCardsHTML(ids, logTs = 0){
+  const mine = status().filter(x => ids.includes(x.child)), ms = music.song;
+  const woke = mine.filter(x => !x.open).sort((a, b) => b.row.data.end - a.row.data.end)[0];
+  const st = mine.some(x => x.open) ? mine.filter(x => x.open) : (woke && woke.row.data.end > logTs ? [woke] : []);
+  if (!st.length && !ms) return { html: "", logShown: true };
   const rows = st.map(x => {
     const r = x.row, n = esc(kidName(x.child));
     return x.open
       ? `<div class="wk-card"><div class="wk-top"><span class="wk-ic" aria-hidden="true">😴</span><div class="wk-t"><b>${t("{n} 在睡", { n })}</b><span class="small muted">${t("{t} 入睡", { t: hm(r.ts) })} · ${t("已睡")} <span data-wk-since="${r.ts}">${dur(Date.now() - r.ts)}</span></span></div></div><div class="wk-acts"><button class="chip wk-music" data-act="wk-music" aria-label="${t("放一首轻柔唤醒的歌")}">${ms ? "■" : "♪"}</button><button class="btn primary sm" data-act="wk-wake" data-id="${esc(r.id)}">${t("唤醒")}</button><button class="chip" data-act="wk-edit" data-id="${esc(r.id)}">${t("改")}</button></div></div>`
-      : `<div class="wk-line small muted"><span aria-hidden="true">☀</span> ${t("{n} {t} 醒来 · 睡了 {d}", { n, t: hm(r.data.end), d: dur(r.data.end - r.ts) })}${r.data.wake ? ` · ${t(r.data.wake)}` : ""} <button class="bt-more" data-act="wk-edit" data-id="${esc(r.id)}">${t("改")}</button></div>`;
+      : `<div class="wk-woke small muted"><span aria-hidden="true">☀</span> ${t("{n} {t} 醒来 · 睡了 {d}", { n, t: hm(r.data.end), d: dur(r.data.end - r.ts) })}${r.data.wake ? ` · ${t(r.data.wake)}` : ""} <button class="bt-more" data-act="wk-edit" data-id="${esc(r.id)}">${t("改")}</button></div>`;
   }).join("");
   const many = wakeList().length > 1;
   const mus = ms ? `<div class="wk-line small wk-now"><span aria-hidden="true">♪</span> <span class="wk-title">${esc(ms.title)}</span>${many ? `<button class="chip" data-act="wk-prev" aria-label="${t("上一首")}">⏮</button><button class="chip" data-act="wk-next" aria-label="${t("下一首")}">⏭</button>` : ""}<button class="chip" data-act="wk-stop">${t("停止")}</button></div>` : "";
-  return `<div class="wk-list">${rows}${mus}</div>`;
+  return { html: `<div class="wk-list">${rows}${mus}</div>`, logShown: !st.length };
 }
 // 「已睡 x 分钟」每分钟原地更新（不整页重画，免得打断正在填的东西）
 setInterval(() => { for (const el of document.querySelectorAll("[data-wk-since]")) el.textContent = dur(Date.now() - +el.dataset.wkSince); }, 30e3);

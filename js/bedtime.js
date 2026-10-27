@@ -353,11 +353,12 @@ function bedtimeRowHTML(){
   const pick = c.flows.length > 1
     ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(tb(f.name))}</option>`).join("")}</select>`
     : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(tb(c.flowName))}</div>`;
+  const ids = tonightKids(), sl = sleepCardsHTML(ids, last && last.ended_at ? new Date(last.ended_at).getTime() : 0);   // 只显示选中孩子的最近一条（睡前流程或醒来记录）
   return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
     <div class="v bt-card">
-      ${sleepCardsHTML()}
-      ${allAsleep() ? "" : `<div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>`}
-      <div class="bt-card-foot"><span class="small muted">${esc(tc(c.reading))} · ${lastTxt}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
+      ${sl.html}
+      ${allAsleep(ids) ? "" : `<div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>`}
+      <div class="bt-card-foot"><span class="small muted">${esc(tc(c.reading))}${sl.logShown ? " · " + lastTxt : ""}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
     </div></div>`;
 }
 
