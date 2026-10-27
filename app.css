@@ -728,3 +728,20 @@ body.bt-playing{overflow:hidden}
 .sp-item input{width:20px;height:20px;flex:none;accent-color:var(--slate)}
 .sp-item span{min-width:0;overflow-wrap:anywhere}
 .sp-item.sp-tag{font-weight:600}
+
+/* 播放页操作区：固定在屏幕底部的小浮条（两行），文字在上面滚动，不被盖住 */
+.btp.has-dock{padding-bottom:0;display:flex;flex-direction:column}
+.btp.has-dock>*{flex:none}
+.btp.has-dock>.btp-sp{flex:1 1 0;min-height:18px}
+.btp-dock{position:sticky;bottom:0;margin:0 -20px;padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px));background:rgba(12,16,22,.94);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-top:1px solid #1d2633;border-radius:16px 16px 0 0;display:flex;flex-direction:column;gap:8px;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+.btp-d1{display:flex;gap:8px}
+.btp-d1 button{min-height:46px;border-radius:14px;font-size:16px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btp-d1 .btp-prev{flex:1;border:1px solid #2a3340;background:transparent;color:#9aa5b4}
+.btp-d1 .btp-prev:disabled{opacity:.35;cursor:default}
+.btp-d1 .btp-next{flex:1.7;width:auto;border:0;background:#243447;color:#e7ecf3;font-size:17px}
+.btp-d2{display:flex;align-items:center;gap:6px;min-width:0}
+.btp-d2 button{border:1px solid #2a3340;background:transparent;color:#9aa5b4;border-radius:999px;padding:4px 12px;min-height:34px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btp-d2 button[aria-pressed="true"]{background:#1d2633;color:#d6dde7;border-color:#3a4555}
+.btp-d2 .btp-vol{flex:1;min-width:0;justify-content:flex-end;margin-left:0}
+.btp-d2 .btp-vol input{width:100%;max-width:110px;min-width:50px}
+@media (max-width:380px){.btp-d1 button{font-size:15px}.btp-d2 button{padding:4px 9px}}

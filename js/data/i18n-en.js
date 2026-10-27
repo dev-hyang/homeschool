@@ -659,6 +659,7 @@ const EN = {
   "放一首轻柔唤醒的歌": "Play a gentle wake-up song", "还没有唤醒歌：在「歌单」里给歌勾上「轻柔唤醒」标签": "No wake-up songs yet: tick “Gentle wake” on a song in the song list",
   "上一首": "Previous", "下一首": "Next",
   "放哪些歌（可多选）": "Songs for this step (pick any)", "{a}等 {n} 项": "{a} +{n} total", "{n} 首轮流": "{n} songs in turn", "未分类": "Untagged", "等 {n} 首": "+{n} songs", "选了多首时，播放页从中轮流挑，可以点「换一首」。": "With several picked, the player rotates through them; tap “Swap song” to change.",
+  "睡前流程操作": "Routine controls",
   // ---- 年龄段、品牌名 ----
   "2 岁前": "Under 2", "2–3 岁": "Ages 2–3", "3–5 岁": "Ages 3–5", "5–8 岁": "Ages 5–8", "9–12 岁": "Ages 9–12", "13 岁起": "13 and up", "开场带领词（拥抱与敬拜）": "Opening words (hug & worship)", "读经引导": "Reading guide", "祷告词": "Prayer", "结束的话（音乐与安睡）": "Closing words (music & sleep)", "豆包": "Doubao", "通义千问": "Qwen (Tongyi)",
 };

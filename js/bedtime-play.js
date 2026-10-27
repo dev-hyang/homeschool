@@ -135,9 +135,9 @@ function textHTML(st){
 }
 function draw(){
   const host = $("#btplay"); if (!host || !P) return;
-  if (P.done) { host.innerHTML = finishHTML(); return; }
+  if (P.done) { host.classList.remove("has-dock"); host.innerHTML = finishHTML(); return; }
   const st = step(), el = secs(), planned = plannedSecs(st), s = P.song, playing = P.audio && !P.audio.paused && !P.audio.ended;
-  host.classList.toggle("over", !!(planned && el >= planned));
+  host.classList.toggle("over", !!(planned && el >= planned)); host.classList.add("has-dock");
   host.innerHTML = `
   <div class="btp-top"><span>${t("第 {i} 步 / {n}", { i: P.i + 1, n: P.steps.length })} · <span class="btp-total">${t("已用 {m}", { m: fmt(Math.floor((now() - P.startedAt) / 1000)) })}</span></span><button class="btp-x" data-act="btp-exit">${t("结束")}</button></div>
   <h1 class="btp-name">${esc(tb(st.name))}</h1>
@@ -148,8 +148,11 @@ function draw(){
     ${P.lyricsOn && s && s.lyrics ? `<div class="btp-pre btp-lyrics">${esc(s.lyrics)}</div>` : ""}` : ""}
   <div class="btp-body ${P.textOn ? "" : "hide"}">${textHTML(st)}</div>
   ${P.casesOn ? casesHTML() : ""}
-  <div class="btp-acts"><button class="btp-next" data-act="btp-next">${P.i + 1 >= P.steps.length ? (nap() ? t("完成") : t("今晚完成")) : t("下一步")} ›</button></div>
-  <div class="btp-tools"><button data-act="btp-prev" ${P.i === 0 ? "disabled" : ""}>‹ ${t("上一步")}</button><button data-act="btp-text" aria-pressed="${P.textOn}">${P.textOn ? t("收起文字") : t("显示文字")}</button><button data-act="btp-cases" aria-pressed="${P.casesOn}">${t("遇到状况")}</button><label class="btp-vol">${t("音量")} <input id="btpVol" type="range" min="0" max="1" step="0.05" value="${P.volume == null ? 0.6 : P.volume}"></label></div>`;
+  <div class="btp-sp"></div>
+  <div class="btp-dock" role="toolbar" aria-label="${t("睡前流程操作")}">
+    <div class="btp-d1"><button class="btp-prev" data-act="btp-prev" ${P.i === 0 ? "disabled" : ""}>‹ ${t("上一步")}</button><button class="btp-next" data-act="btp-next">${P.i + 1 >= P.steps.length ? (nap() ? t("完成") : t("今晚完成")) : t("下一步")} ›</button></div>
+    <div class="btp-d2"><button data-act="btp-text" aria-pressed="${P.textOn}">${P.textOn ? t("收起文字") : t("显示文字")}</button><button data-act="btp-cases" aria-pressed="${P.casesOn}">${t("遇到状况")}</button><label class="btp-vol">${t("音量")} <input id="btpVol" type="range" min="0" max="1" step="0.05" value="${P.volume == null ? 0.6 : P.volume}"></label></div>
+  </div>`;
 }
 /* 「遇到状况」：原则一句 + 每种状况的做法 / 话 + 「记一笔」内联小表单（谁、结果、几分钟、一句话），存了就回到列表 */
 function casesHTML(){
