@@ -713,3 +713,18 @@ body.bt-playing{overflow:hidden}
 .bt-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
 .bt-card-foot .small{min-width:0;overflow-wrap:anywhere}
 .song-handle{font-size:22px;min-width:38px;height:44px}
+
+/* 流程步骤：放哪些歌（按标签分组的多选下拉） */
+.songpick{border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.songpick>summary{list-style:none;cursor:pointer;min-height:44px;padding:10px 34px 10px 12px;font-weight:600;display:flex;align-items:center;position:relative;overflow:hidden;text-overflow:ellipsis}
+.songpick>summary::-webkit-details-marker{display:none}
+.songpick>summary::after{content:"";position:absolute;right:13px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);transition:transform .15s}
+.songpick[open]>summary::after{transform:translateY(-30%) rotate(225deg)}
+.songpick>summary:focus-visible{outline:3px solid var(--slate);outline-offset:1px;border-radius:10px}
+.sp-body{max-height:50vh;overflow:auto;border-top:1px solid var(--line);padding:4px 0}
+.sp-gh{position:sticky;top:0;background:var(--slate-soft);color:var(--slate);font-size:12px;font-weight:700;letter-spacing:.04em;padding:5px 12px}
+.sp-item{display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 12px;cursor:pointer}
+.sp-item:hover{background:var(--slate-soft)}
+.sp-item input{width:20px;height:20px;flex:none;accent-color:var(--slate)}
+.sp-item span{min-width:0;overflow-wrap:anywhere}
+.sp-item.sp-tag{font-weight:600}

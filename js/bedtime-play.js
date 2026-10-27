@@ -144,7 +144,7 @@ function draw(){
   <div class="btp-bar"><span style="width:${planned ? Math.min(100, el / planned * 100) : 0}%"></span></div>
   <div class="btp-time">${timeHTML(st, el, planned)}</div>
   ${st.song ? `<div class="btp-song">${P.loading ? `<span class="muted">${t("正在加载音乐…")}</span>` : s ? `<span>♪ ${esc(s.title)}${s.artist ? ` <span class="muted">· ${esc(s.artist)}</span>` : ""}</span>
-      <span class="btp-song-acts">${P.blocked ? `<button data-act="btp-play">▶ ${t("点一下开始播放")}</button>` : `<button data-act="btp-play" aria-label="${playing ? t("暂停") : t("播放")}">${playing ? "❚❚" : "▶"}</button>`}${st.song.startsWith("tag:") ? `<button data-act="btp-swap">${t("换一首")}</button>` : ""}${s.lyrics ? `<button data-act="btp-lyrics" aria-pressed="${P.lyricsOn}">${t("歌词")}</button>` : ""}</span>` : `<span class="muted">${t("这类标签下还没有歌")}</span>`}</div>
+      <span class="btp-song-acts">${P.blocked ? `<button data-act="btp-play">▶ ${t("点一下开始播放")}</button>` : `<button data-act="btp-play" aria-label="${playing ? t("暂停") : t("播放")}">${playing ? "❚❚" : "▶"}</button>`}${P.api.songPool(st).length > 1 ? `<button data-act="btp-swap">${t("换一首")}</button>` : ""}${s.lyrics ? `<button data-act="btp-lyrics" aria-pressed="${P.lyricsOn}">${t("歌词")}</button>` : ""}</span>` : `<span class="muted">${t("这类标签下还没有歌")}</span>`}</div>
     ${P.lyricsOn && s && s.lyrics ? `<div class="btp-pre btp-lyrics">${esc(s.lyrics)}</div>` : ""}` : ""}
   <div class="btp-body ${P.textOn ? "" : "hide"}">${textHTML(st)}</div>
   ${P.casesOn ? casesHTML() : ""}
