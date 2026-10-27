@@ -746,3 +746,16 @@ body.bt-playing{overflow:hidden}
 .btp-d2 .btp-vol{flex:1;min-width:0;justify-content:flex-end;margin-left:0}
 .btp-d2 .btp-vol input{width:100%;max-width:110px;min-width:50px}
 @media (max-width:380px){.btp-d1 button{font-size:15px}.btp-d2 button{padding:4px 9px}}
+
+/* 存储用量（js/usage.js）：手机上上下叠、电脑上数字靠右；状态靠图标 + 文字，不只靠颜色 */
+.usage{display:grid;gap:18px}
+.usage-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:2px 12px}
+.usage-num{font-family:var(--f-num);font-size:14px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.usage-bar{height:14px;margin:8px 0 6px;border-radius:999px;background:var(--line);overflow:hidden}
+.usage-bar>i{display:block;height:100%;border-radius:inherit;background:var(--sage);transition:width .4s ease}
+.usage-row.warn .usage-bar>i{background:var(--honey)}
+.usage-row.full .usage-bar>i{background:var(--rose)}
+.usage-note{margin:0;font-size:13px;line-height:1.6}
+.usage-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.usage .small{margin:0}
+@media (prefers-reduced-motion:reduce){.usage-bar>i{transition:none}}

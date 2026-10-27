@@ -16,6 +16,7 @@ import { angerHTML } from "./principle.js";
 import { closeSheet, getForm, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
+import { FULL, MB, WARN, fmtBytes, storageRoom } from "./usage.js";
 import { allAsleep, loadSleep, onEntriesChange, sleepCardsHTML, sleepFromLog } from "./wake.js";
 
 /* ============ 睡前安然：数据层 + 页面（流程 / 歌单 / 带领词 / 睡前经文 / 记录） ============
@@ -181,6 +182,17 @@ async function songBlob(s){
 async function cacheAll(){ let n = 0; for (const s of songs()) { if (!s.path || S.bt.cached.has(s.id)) continue; try { await songBlob(s); n++; } catch (e) { toast(e.message); } } return n; }
 function audioDuration(file){ return new Promise(res => { const a = new Audio(), u = URL.createObjectURL(file), done = v => { URL.revokeObjectURL(u); res(v); }; a.preload = "metadata"; a.onloadedmetadata = () => done(Math.round(a.duration) || null); a.onerror = () => done(null); setTimeout(() => done(null), 6000); a.src = u; }); }
 const fmtDur = s => s ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` : "";
+/* 歌曲占用的预算：免费文件存储 1 GB 里还要放备份和别的数据，歌曲最多用 600 MB；到 70% 提醒、到 90% 不让再传 */
+const SONG_BUDGET = 600 * MB;
+const songBytes = () => songs().reduce((a, s) => a + (+s.size || 0), 0);
+function songBudgetHTML(){
+  const used = songBytes(); if (!used) return "";
+  const r = used / SONG_BUDGET, lv = r >= FULL ? "full" : r >= WARN ? "warn" : "ok", pct = Math.min(100, Math.round(r * 100));
+  const note = lv === "full" ? t("🚨 歌曲空间快满了，不能再传。删掉不用的歌，或把音频压小一点再传。") : lv === "warn" ? t("⚠️ 歌曲已经用了一大半，传新歌前先清理不用的。") : t("✅ 歌曲空间还很宽裕。");
+  return `<div class="panel usage" style="margin:10px 0"><div class="usage-row ${lv}"><div class="usage-top"><b>🎵 ${t("歌曲占用")}</b><span class="usage-num">${t("{used} / {cap} · {p}%", { used: fmtBytes(used), cap: fmtBytes(SONG_BUDGET), p: pct })}</span></div>
+    <div class="usage-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${t("歌曲占用")} ${pct}%"><i style="width:${Math.max(pct, 2)}%"></i></div>
+    <p class="usage-note">${note}<br><span class="muted">${t("免费云端空间一共 1 GB，还要放备份；总用量在 设置 → 存储用量。")}</span></p></div></div>`;
+}
 const fmtSize = b => b ? (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB") : "";
 
 /* ---- 读取（loadAll 末尾调用）---- */
@@ -459,7 +471,7 @@ async function saveSteps(steps){ const c = cfg(); await saveFlows(c.flows.map(f 
 /* ---- 歌单 ---- */
 let songForm = null;   // { id, draft, file, oldPath }
 function viewSongs(){
-  const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length, bytes = list.reduce((a, s) => a + (+s.size || 0), 0);
+  const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length;
   const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-add">＋ ${t("加到流程")}</span><span class="sb-del">🗑 ${t("删除")}</span></div>
     <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
@@ -467,7 +479,8 @@ function viewSongs(){
   return `${h2(t("歌单"), list.length ? t("{n} 首", { n: list.length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="btn" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
-  <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${bytes ? ` ${t("已用 {s}。", { s: fmtSize(bytes) })}` : ""} ${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
+  ${songBudgetHTML()}
+  <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
   <p class="small muted" style="margin:0 0 8px">${t("想用来唤醒孩子（午睡醒来 / 早上）：点开歌，用在哪一段里勾上「轻柔唤醒」，然后在今天页「在睡」那一行点 ♪ 一键放。")}</p>
   <p class="small muted" style="margin:0 0 8px">${t("每首歌：向左滑删除，向右滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
   <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
@@ -513,6 +526,12 @@ async function saveSongForm(btn){
   btn.disabled = true; btn.textContent = f.file ? t("上传中…") : t("保存中…");
   try {
     const id = f.id || newId(); let path = f.oldPath, duration = f.id ? song(f.id).duration : null, size = f.id ? song(f.id).size : null;
+    if (f.file) {
+      const mine = f.id ? +song(f.id).size || 0 : 0, add = f.file.size - mine;   // 换音频只算多出来的部分
+      if (songBytes() + add > SONG_BUDGET * FULL) throw new Error(t("歌曲空间不够了（已用 {u} / {c}）：先删掉不用的歌，或把音频压小一点再传", { u: fmtBytes(songBytes()), c: fmtBytes(SONG_BUDGET) }));
+      const room = await storageRoom(add);
+      if (!room.ok) throw new Error(t("云端文件存储快满了（已用 {u} / {c}），再传可能挤掉备份。先清理不用的歌或旧备份，或升级套餐", { u: fmtBytes(room.used), c: fmtBytes(room.cap) }));
+    }
     if (f.file) { path = await uploadSongFile(id, f.file, f.oldPath); duration = await audioDuration(f.file); size = f.file.size; }
     const old = f.id ? song(f.id) : null;
     await upsertSong({ id, title: d.title, artist: d.artist, tags: d.tags, lyrics: d.lyrics, lyrics_ai: d.lyrics_ai, path, duration, size, sort: old ? old.sort : songs().length });

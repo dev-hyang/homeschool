@@ -10,6 +10,7 @@ import { ccMissing, ccPending, currentPlan, defaultVersions, fetchVersions, plan
 import { SOURCES, SOURCE_FROM, parseRef, refKey } from "./data/bible.js";
 import { CC_PARTS, VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
+import { usageHTML } from "./usage.js";
 
 /* ============ 整页表单（替换内容区，和小月亮一样的交互） ============ */
 /* 关掉后要回到打开前的位置。坑：pushState 必须在隐藏页面之前——页面一隐藏，文档高度归零，浏览器给旧历史条目
@@ -198,6 +199,10 @@ function openSettings(){
     : `<p class="muted">${S.cloud === "ready" ? t("家庭里还没有孩子。") : t("登录并进入家庭后，这里会显示孩子。")}</p>`}
     <p class="small muted" style="margin-top:8px">${t("孩子的名字和生日在")}<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">${t("小月亮")}</a>${t("的设置里维护，两个应用共用同一份。")}${S.childrenSource === "settings" ? t("（当前读取的是旧格式；数据库迁移 002 执行后会自动切到 children 表。）") : ""}</p>
   </div>
+
+  <h2>${t("存储用量")}</h2>
+  <p class="small muted" style="margin-top:0">${t("看看数据占了 Supabase 免费空间的多少，快满之前会变黄、变红提醒你。")}</p>
+  ${usageHTML()}
 
   <h2>${t("姊妹应用")}</h2>
   <div class="panel" style="padding:4px 14px">
