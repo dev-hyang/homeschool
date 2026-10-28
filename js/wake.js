@@ -92,6 +92,14 @@ function sleepCardsHTML(ids, logTs = 0){
   const mus = ms ? `<div class="wk-line small wk-now"><span aria-hidden="true">♪</span> <span class="wk-title">${esc(ms.title)}</span>${many ? `<button class="chip" data-act="wk-prev" aria-label="${t("上一首")}">⏮</button><button class="chip" data-act="wk-next" aria-label="${t("下一首")}">⏭</button>` : ""}<button class="chip" data-act="wk-stop">${t("停止")}</button></div>` : "";
   return { html: `<div class="wk-list">${rows}${mus}</div>`, logShown: !st.length };
 }
+/** 睡眠卡里某个孩子自己的按钮：在睡才有，只放 音乐 / 唤醒 / 改（不写文字说明）；放着歌时多一行歌名和上一首 / 下一首 / 停止 */
+function childSleepHTML(cid){
+  const x = status().find(s => s.child === cid && s.open); if (!x) return "";
+  const ms = music.song, many = wakeList().length > 1;
+  const mus = ms ? `<div class="wk-line small wk-now"><span aria-hidden="true">♪</span> <span class="wk-title">${esc(ms.title)}</span>${many ? `<button class="chip" data-act="wk-prev" aria-label="${t("上一首")}">⏮</button><button class="chip" data-act="wk-next" aria-label="${t("下一首")}">⏭</button>` : ""}<button class="chip" data-act="wk-stop">${t("停止")}</button></div>` : "";
+  return `<div class="wk-solo"><button class="btn sm" data-act="wk-music">${ms ? "■" : "♪"} ${t("音乐")}</button><button class="btn primary sm" data-act="wk-wake" data-id="${esc(x.row.id)}">${t("唤醒")}</button><button class="btn sm" data-act="wk-edit" data-id="${esc(x.row.id)}">${t("改")}</button></div>${mus}`;
+}
+const isAsleep = cid => sleepingKids().includes(cid);
 // 「已睡 x 分钟」每分钟原地更新（不整页重画，免得打断正在填的东西）
 setInterval(() => { for (const el of document.querySelectorAll("[data-wk-since]")) el.textContent = dur(Date.now() - +el.dataset.wkSince); }, 30e3);
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && ready()) refresh(); });
@@ -217,4 +225,4 @@ async function wakeAct(act, btn){
 }
 const isWakeAct = act => act.startsWith("wk-");
 
-export { loadSleep, sleepFromLog, sleepCardsHTML, allAsleep, sleepingKids, onEntriesChange, wakeAct, isWakeAct };
+export { loadSleep, sleepFromLog, sleepCardsHTML, allAsleep, sleepingKids, childSleepHTML, isAsleep, onEntriesChange, wakeAct, isWakeAct };

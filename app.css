@@ -816,3 +816,7 @@ body.bt-playing{overflow:hidden}
   .sc-run{left:42%}.sc-fall{top:20px}.sc-z{opacity:.9}.sc-z.z2{transform:translate(14px,-22px)}.sc-z.z3{transform:translate(26px,-40px)}
   .hero-dot::after{transition:none}
 }
+.wk-solo{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.wk-solo .btn.sm{min-height:38px;padding:6px 16px;font-size:14px}
+.sc-ctl .bt-card-foot{justify-content:space-between}
+.sc-ctl .bt-card-foot .sc-wx{display:contents}

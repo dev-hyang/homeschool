@@ -21,28 +21,25 @@ function sleepArtHTML(){
   return `<div class="sc-art sky-sleep" aria-hidden="true"><span class="sp sc-d sc-sway" style="--x:12%;--dl:0s">⭐</span><span class="sp sc-d sc-sway" style="--x:34%;--dl:1.2s">⭐</span><span class="sp sc-d sc-sway" style="--x:66%;--dl:.6s">⭐</span><span class="sp sc-d sc-sway" style="--x:88%;--dl:0s">🌙</span><span class="sc-zzz"><span class="sc-big">😴</span><span class="sc-z z1">z</span><span class="sc-z z2">Z</span><span class="sc-z z3">Z</span></span></div>`;
 }
 function sleepSlideHTML(p){
-  const asleep = p.anyAsleep, sc = asleep ? null : sceneNow();
-  const cap = asleep ? t("嘘……宝宝睡着了") : t(sc.cap);
+  const asleep = p.asleep, sc = asleep ? null : sceneNow();
   const wx = asleep ? "" : hasLoc()
     ? `<button class="bt-more" data-act="wx-off">📍 ${t("不用当地天气")}</button>`
     : `<button class="chip" data-act="wx-locate" title="${esc(t("只在这台设备上记位置，用来查当地天气"))}">📍 ${t("用当地天气")}</button>`;
   return `<section class="sleepcard" aria-label="${esc(t("睡眠卡"))}">
-    <div class="sc-stage">${asleep ? sleepArtHTML() : artHTML(sc)}<p class="sc-cap">${esc(cap)}</p></div>
+    <div class="sc-stage">${asleep ? sleepArtHTML() : `${artHTML(sc)}<p class="sc-cap">${esc(t(sc.cap))}</p>`}</div>
     <div class="sc-ctl">
-      ${p.sl.html}
-      ${p.allAsleep ? "" : `<div class="bt-pick">${p.pick}<button class="btn primary sm bt-go" data-act="bt-start" ${p.n ? "" : "disabled"}>${t("开始")}</button></div>`}
-      <div class="bt-card-foot"><span class="small muted">${esc(p.reading)}${p.sl.logShown ? " · " + esc(p.lastTxt) : ""}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
-      ${wx ? `<div class="sc-wx">${wx}</div>` : ""}
+      ${asleep ? p.actions : `<div class="bt-pick">${p.pick}<button class="btn primary sm bt-go" data-act="bt-start" data-kid="${esc(S.childId || "")}" ${p.n ? "" : "disabled"}>${t("开始")}</button></div>
+      <div class="bt-card-foot"><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button>${wx}</div>`}
     </div></section>`;
 }
 
 /** 把名字卡（hero）和睡眠卡包成左右滑的两张 */
 function heroSliderHTML(hero){
-  const p = sleepCardParts();
+  const p = sleepCardParts(S.childId);
   ensureWeather(repaint);
   // 刚有人睡着时自动翻到睡眠卡；之后听用户自己滑
-  if (S.heroSlide == null || (p.anyAsleep && !S.heroAsleep)) S.heroSlide = p.anyAsleep ? 1 : 0;
-  S.heroAsleep = p.anyAsleep;
+  if (S.heroSlide == null || (p.asleep && !S.heroAsleep)) S.heroSlide = p.asleep ? 1 : 0;
+  S.heroAsleep = p.asleep;
   const cur = S.heroSlide;
   const names = [t("名字卡"), t("睡眠卡")];
   return `<div class="hero-wrap">

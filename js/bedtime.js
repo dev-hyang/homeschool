@@ -17,7 +17,7 @@ import { closeSheet, getForm, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
 import { FULL, MB, WARN, fmtBytes, storageRoom } from "./usage.js";
-import { allAsleep, loadSleep, onEntriesChange, sleepCardsHTML, sleepFromLog, sleepingKids } from "./wake.js";
+import { childSleepHTML, isAsleep, loadSleep, onEntriesChange, sleepFromLog, sleepingKids } from "./wake.js";
 
 /* ============ 睡前安然：数据层 + 页面（流程 / 歌单 / 带领词 / 睡前经文 / 记录） ============
    以诗篇 4:8 为中心的睡前敬拜流程。配置（步骤、带领词版本、经文清单、上限、开关）放在 hs_family.settings.bedtime，
@@ -352,9 +352,9 @@ const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small mu
 
 /* ---- 开始前第一步：选谁参加。默认是没在睡的孩子（都在睡就是全部）；只有一个孩子时直接开始 ---- */
 let PICK = new Set();
-function openKidPick(){
+function openKidPick(cid){
   const all = kids().map(k => k.id), asleep = sleepingKids(), awake = all.filter(id => !asleep.includes(id));
-  PICK = new Set(awake.length ? awake : all);
+  PICK = new Set(all.includes(cid) ? [cid] : awake.length ? awake : all);   // 从某个孩子的睡眠卡开始，就先勾这个孩子，其他孩子可以再加
   drawKidPick(); showSheet();
 }
 function drawKidPick(){
@@ -371,17 +371,15 @@ async function startFlow(ids){
   await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), preKids: ids, members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songPool, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine });
 }
 /* ---- 今天页顶上「睡眠卡」（js/sleepcard.js）要的数据：所有孩子的睡眠状态，不再跟着「选中的孩子」走 ---- */
-function sleepCardParts(){
-  const c = cfg(), n = activeSteps(c).length, last = lastLogFor(c.flowKind), today = dayKey(Date.now());
-  const lastTxt = !last ? t("还没做过") : last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
+function sleepCardParts(cid){
+  const c = cfg(), n = activeSteps(c).length;
   // 流程名长就把字号缩小一点，保证一行放得下（按字数分档）
   const len = [...c.flowName].length, fs = len <= 6 ? 16 : len <= 8 ? 15 : len <= 10 ? 14 : len <= 13 ? 13 : len <= 16 ? 12 : 11;
   const icon = f => f.kind === "nap" ? "☀" : "🌙";
   const pick = c.flows.length > 1
     ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(tb(f.name))}</option>`).join("")}</select>`
     : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(tb(c.flowName))}</div>`;
-  const ids = kids().map(k => k.id), sl = sleepCardsHTML(ids, last && last.ended_at ? new Date(last.ended_at).getTime() : 0);
-  return { n, pick, lastTxt, reading: tc(c.reading), sl, anyAsleep: sleepingKids().length > 0, allAsleep: allAsleep(ids) };
+  return { n, pick, asleep: isAsleep(cid), actions: childSleepHTML(cid) };
 }
 /* ---- 周例行页里固定的一行：睡前安然是每天都有的例行，不用逐天添加 ---- */
 const dailySleepRow = () => { const c = cfg(); return `<div class="panel mlist" style="margin-top:10px">${mrow('data-tab="bedtime"', t("睡前安然 · 每天"), esc(c.flows.map(f => `${tb(f.name)} ${flowMin(f)}`).join(" · ")) + " · " + t("从今天页顶上的睡眠卡开始"), "☾")}</div>`; };
@@ -680,7 +678,7 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } if (kids().length > 1) openKidPick(); else await startFlow(kids().map(k => k.id)); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } if (kids().length > 1) openKidPick(d.kid); else await startFlow(kids().map(k => k.id)); break; }
     case "bt-pick-kid": PICK.has(d.id) ? PICK.delete(d.id) : PICK.add(d.id); drawKidPick(); break;
     case "bt-pick-go": { if (!PICK.size) break; const ids = [...PICK]; closeSheet(); await startFlow(ids); break; }
     case "bt-flow-sel": selectFlow(d.id); render(); break;
