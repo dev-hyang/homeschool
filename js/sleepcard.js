@@ -1,5 +1,5 @@
 import { t } from "./core/i18n.js";
-import { S } from "./core/state.js";
+import { S, ageMonths } from "./core/state.js";
 import { $, esc, toast } from "./core/util.js";
 import { sleepCardParts } from "./bedtime.js";
 import { askLocation, clearLocation, ensureWeather, hasLoc, sceneNow } from "./weather.js";
@@ -15,18 +15,19 @@ const repaint = () => { if (S.tab === "today" && !$("#sheet").open) render(); };
 
 function artHTML(sc){
   const deco = sc.deco.map(([e, x, kind, dl]) => `<span class="sp sc-d sc-${kind}" style="--x:${x}%;--dl:${dl}s">${e}</span>`).join("");
-  return `<div class="sc-art sky-${sc.sky}" aria-hidden="true">${deco}<span class="sp sc-run"><span class="sc-bob">${esc(sc.run)}</span></span></div>`;
+  return `<div class="sc-art" aria-hidden="true">${deco}<span class="sp sc-run"><span class="sc-bob">${esc(sc.run)}</span></span></div>`;
 }
 function sleepArtHTML(){
-  return `<div class="sc-art sky-sleep" aria-hidden="true"><span class="sp sc-d sc-sway" style="--x:12%;--dl:0s">⭐</span><span class="sp sc-d sc-sway" style="--x:34%;--dl:1.2s">⭐</span><span class="sp sc-d sc-sway" style="--x:66%;--dl:.6s">⭐</span><span class="sp sc-d sc-sway" style="--x:88%;--dl:0s">🌙</span><span class="sc-zzz"><span class="sc-big">😴</span><span class="sc-z z1">z</span><span class="sc-z z2">Z</span><span class="sc-z z3">Z</span></span></div>`;
+  return `<div class="sc-art" aria-hidden="true"><span class="sp sc-d sc-sway" style="--x:12%;--dl:0s">⭐</span><span class="sp sc-d sc-sway" style="--x:34%;--dl:1.2s">⭐</span><span class="sp sc-d sc-sway" style="--x:66%;--dl:.6s">⭐</span><span class="sp sc-d sc-sway" style="--x:88%;--dl:0s">🌙</span><span class="sc-zzz"><span class="sc-big">😴</span><span class="sc-z z1">z</span><span class="sc-z z2">Z</span><span class="sc-z z3">Z</span></span></div>`;
 }
+/** 一张卡：天空 + 动画铺满整张，流程选择 / 开始 / 天气浮在下面一块半透明的底板上，不再分上下两层 */
 function sleepSlideHTML(p){
-  const asleep = p.asleep, sc = asleep ? null : sceneNow();
+  const asleep = p.asleep, sc = asleep ? null : sceneNow(new Date(), ageMonths(S.childId));
   const wx = asleep ? "" : hasLoc()
     ? `<button class="bt-more" data-act="wx-off">📍 ${t("不用当地天气")}</button>`
     : `<button class="chip" data-act="wx-locate" title="${esc(t("只在这台设备上记位置，用来查当地天气"))}">📍 ${t("用当地天气")}</button>`;
-  return `<section class="sleepcard" aria-label="${esc(t("睡眠卡"))}">
-    <div class="sc-stage">${asleep ? sleepArtHTML() : `${artHTML(sc)}<p class="sc-cap">${esc(t(sc.cap))}</p>`}</div>
+  return `<section class="sleepcard sky-${asleep ? "sleep" : sc.sky}" aria-label="${esc(t("睡眠卡"))}">
+    ${asleep ? sleepArtHTML() : `${artHTML(sc)}<p class="sc-cap">${esc(t(sc.cap))}</p>`}
     <div class="sc-ctl">
       ${asleep ? p.actions : `<div class="bt-pick">${p.pick}<button class="btn primary sm bt-go" data-act="bt-start" data-kid="${esc(S.childId || "")}" ${p.n ? "" : "disabled"}>${t("开始")}</button></div>
       <div class="bt-card-foot"><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button>${wx}</div>`}
