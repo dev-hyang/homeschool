@@ -223,7 +223,7 @@ async function playAct(act, btn){
         version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]), flow: P.flow.name, kind: P.flow.kind })), note: P.note };
       try { await P.api.saveLog(log); closePlayer(); toast(nap() ? t("记下了。午安。") : t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
       break; }
-    case "btp-close": closePlayer(); render(); break;
+    case "btp-close": if (P.done && !confirm(nap() ? t("这次还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？") : t("今晚还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？"))) break; closePlayer(); render(); break;
   }
 }
 function readNote(){ const el = $("#btpNote"); if (el) P.note = el.value.trim(); }

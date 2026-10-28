@@ -584,7 +584,7 @@ const EN = {
   "哪一晚": "Which night", "实际几分钟": "Actual minutes", "谁参加了": "Who took part", "谁带的": "Who led", "读了哪段（可空）": "Passage read (optional)", "一句备注（今天处理了什么、孩子说了什么）": "A note (what came up, what the children said)",
   "第 {i} 步 / {n}": "Step {i} of {n}", "已用 {m}": "{m} elapsed", "结束": "End", "约 {n} 分钟": "about {n} min", "再放 {n} 分钟": "{n} more minutes", "正在加载音乐…": "Loading music…", "点一下开始播放": "Tap to start playing", "暂停": "Pause", "播放": "Play", "换一首": "Another song", "歌词": "Lyrics", "这类标签下还没有歌": "No song with this tag yet",
   "上一段": "Previous passage", "下一段": "Next passage", "今晚完成": "Finish tonight", "下一步": "Next", "上一步": "Back", "收起文字": "Hide text", "显示文字": "Show text", "遇到状况": "When things happen", "音量": "Volume", "播放失败": "Playback failed",
-  "不记录，关闭": "Close without logging", "晚安": "Good night", "步骤": "Step", "计划": "Planned", "实际": "Actual", "合计（分钟）": "Total (min)", "一句备注（可空）：今天处理了什么、孩子说了什么感恩的事": "A note (optional): what came up, what the children were thankful for",
+  "不记录，关闭": "Close without logging", "这次还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？": "This one isn't logged yet. Closing without logging will lose the whole session. Close anyway?", "今晚还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？": "Tonight isn't logged yet. Closing without logging will lose the whole session. Close anyway?", "晚安": "Good night", "步骤": "Step", "计划": "Planned", "实际": "Actual", "合计（分钟）": "Total (min)", "一句备注（可空）：今天处理了什么、孩子说了什么感恩的事": "A note (optional): what came up, what the children were thankful for",
   "记下今晚 ✓": "Log tonight ✓", "再放 5 分钟": "5 more minutes", "提前结束，去记录这一晚？": "End early and log this night?", "记下了。晚安。": "Logged. Good night.",
 
   // ---- 状况与应对 ----
