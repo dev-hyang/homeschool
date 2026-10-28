@@ -116,7 +116,8 @@ body.sheet-open .wrap,body.sheet-open nav.tabs{display:none}
 .sheet-head h3{font-size:19px;margin:0}
 .field{margin:12px 0}
 .field > label,.field > .lab{display:block;font-size:14px;color:var(--muted);margin-bottom:6px}
-.field input[type=text],.field input[type=password],.field input[type=number],.field input[type=date],.field input[type=time],.field input[type=datetime-local],.field textarea,.field select{width:100%;border:1px solid var(--line);background:var(--field);border-radius:var(--radius-sm);padding:11px 12px;font-size:16px;min-height:46px}
+.field input[type=text],.field input[type=password],.field input[type=number],.field input[type=date],.field input[type=time],.field input[type=datetime-local],.field textarea,.field select{width:100%;max-width:100%;min-width:0;box-sizing:border-box;border:1px solid var(--line);background:var(--field);border-radius:var(--radius-sm);padding:11px 12px;font-size:16px;min-height:46px}
+.field input[type=date],.field input[type=time],.field input[type=datetime-local]{-webkit-appearance:none;appearance:none}
 .field textarea{min-height:70px;resize:vertical}
 .seg{display:flex;flex-wrap:wrap;gap:6px}
 .seg button{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-sm);padding:9px 12px;cursor:pointer;min-height:42px;font-size:15px}
