@@ -16,7 +16,7 @@ import { openAbout } from "./about.js";
 import { closePrint, openPrint } from "./print.js";
 import { breakFields, childOpts, closeSheet, drawForm, fetchFields, genFields, getForm, nccFields, openCatechismSets, openForm, openInfo, openSettings, openVerseSets, readForm, scriptureFields, subjectOpts, versionFields, weekdayOpts, yearFields } from "./sheet.js";
 import { openBackfill, openScriptures, renderLibList } from "./library.js";
-import { render, toggleKids } from "./views.js";
+import { backTo, render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { isWakeAct, wakeAct } from "./wake.js";
@@ -52,6 +52,7 @@ document.addEventListener("click", async ev => {
   const btn = ev.target.closest("button"); if (!btn) return;
   const d = btn.dataset;
   if (btn.id === "bname") { if (S.children.length) toggleKids(); else openSettings(); return; }
+  if (d.act === "nav-back") d.tab = backTo(d.parent);   // 返回：上一页，没有就上一层（js/views.js）
   if (d.tab) { close(); stopPreview(); const wasPrint = !!S.printView; S.printView = null; if (wasPrint && history.state && history.state.print) { try { history.back(); } catch (e) {} }
     // data-from：子页记住从哪个页签进来的（面包屑）；没带 data-from 的入口（比如资源页的行）清掉旧记忆，路径回到默认层级。面包屑和迷你栏里的返回不清
     if (d.from) (S.from ||= {})[d.tab] = d.from; else if (S.from && !btn.classList.contains("crumb-link") && !btn.closest(".minibar")) delete S.from[d.tab];

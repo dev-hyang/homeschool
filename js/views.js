@@ -31,11 +31,17 @@ const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度
   bedtime: "睡前安然", "bt-flow": "流程", "bt-songs": "歌单", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
+
+/* 「‹ 返回」= 回到你刚才来的那一页；直接打开或刷新后没有上一页时，退到上一层。面包屑负责按层级往上跳，两者分工（和 iOS / 安卓 / 网页的常见做法一致） */
+const NAV = { last: null, stack: [], back: false };
+function trackNav(tab){ if (NAV.last && NAV.last !== tab && !NAV.back) { NAV.stack.push(NAV.last); if (NAV.stack.length > 30) NAV.stack.shift(); } NAV.back = false; NAV.last = tab; }
+function backTo(parent){ NAV.back = true; while (NAV.stack.length) { const p = NAV.stack.pop(); if (p !== S.tab) return p; } return parent; }
+const backBtn = parent => `<button type="button" class="crumb-link crumb-back" data-act="nav-back" data-parent="${parent}" aria-label="${t("返回")}">‹ ${t("返回")}</button>`;
 /** 面包屑：‹ 底部页签 / 中间页 / 当前页（加粗）。中间项可点，和 home-pantry 的 crumbNav 同一版式 */
 function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印出来的那张纸）时，路径从 tab 本身往上数，最后一项写 tail
   const chain = []; for (let p = tail ? tab : parentOf(tab); p; p = parentOf(p)) chain.unshift(p);
   if (!chain.length) return "";
-  const parts = [...chain.map(k => `<button type="button" class="crumb-link" data-tab="${k}">${chain[0] === k ? "‹ " : ""}${esc(labelOf(k))}</button>`), `<b aria-current="page">${esc(tail || labelOf(tab))}</b>`];
+  const parts = [backBtn(chain[chain.length - 1]), ...chain.map(k => `<button type="button" class="crumb-link" data-tab="${k}">${esc(labelOf(k))}</button>`), `<b aria-current="page">${esc(tail || labelOf(tab))}</b>`];
   return `<nav class="crumb" aria-label="${t("位置")}">${parts.join(`<span class="sep" aria-hidden="true">/</span>`)}</nav>`;
 }
 const CORE_TABS = new Set(["course", "resources", "calendar", "me", "flows", "bedtime", "flow-conflict", "flow-emotion", "flow-trend", "ask"]);
@@ -98,13 +104,14 @@ function render(){
   document.querySelectorAll("nav.tabs button").forEach(b => { if (b.dataset.tab === cur) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
+  trackNav(S.tab);
   const back = crumbHTML(S.tab);
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
   if (S.tab === "today") restoreHero();
-  updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${esc(labelOf(parent))}</button>` : "", t("回到顶部"));
+  updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-act="nav-back" data-parent="${parent}">‹ ${esc(t("返回"))}</button>` : "", t("回到顶部"));
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
 
@@ -122,4 +129,4 @@ function gateHTML(){
   return "";
 }
 
-export { renderStatus, toggleKids, render, refreshSettingsIfOpen, crumbHTML };
+export { renderStatus, toggleKids, render, refreshSettingsIfOpen, crumbHTML, backTo };
