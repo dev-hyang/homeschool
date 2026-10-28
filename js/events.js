@@ -20,6 +20,7 @@ import { backTo, render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { isWakeAct, wakeAct } from "./wake.js";
+import { isMoodAct, moodAct } from "./mood.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
@@ -85,6 +86,7 @@ document.addEventListener("click", async ev => {
   if (d.act && d.act.startsWith("tr-")) { try { await trAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 趋势与分析、问咩咩咩（js/flows-trend.js）
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
+  if (d.act && isMoodAct(d.act)) { try { await moodAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 情绪随手记（js/mood.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {

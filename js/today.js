@@ -6,6 +6,7 @@ import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 import { heroSliderHTML } from "./sleepcard.js";
+import { moodHTML } from "./mood.js";
 import { principleHTML } from "./principle.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
@@ -22,6 +23,7 @@ function viewToday(){
   ${joinNote}
   ${principleHTML("full")}
   <div class="ask-entry"><button class="chip ask-chip" data-tab="ask" data-from="today">${aiIcon(18)} ${t("咩咩咩")}</button><span class="small muted">${t("今天的课怎么调、经文怎么背、孩子不配合怎么办…")}</span></div>
+  ${moodHTML()}
   ${devotionHTML()}
   ${reviewHTML()}
   ${tasksHTML(day)}`;
