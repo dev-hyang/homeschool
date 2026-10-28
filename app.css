@@ -835,3 +835,12 @@ body.bt-playing{overflow:hidden}
 .ql-row:focus-visible{outline:2px solid var(--slate);outline-offset:-2px}
 .ql-sum{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .kids .baby-link small{color:var(--muted)}
+.ql-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ql-top .chip{flex:none;min-height:30px;padding:3px 10px;font-size:13px}
+.ql-pool{display:grid;gap:8px;margin:10px 0}
+.ql-opt{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:56px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.ql-opt[aria-pressed="true"]{border-color:var(--slate);background:var(--slate-soft)}
+.ql-opt:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
+.ql-opt-t{flex:1;min-width:0}.ql-opt-t small{display:block;color:var(--muted);font-size:12.5px;line-height:1.35}
+.ql-chk{flex:none;width:24px;height:24px;border:1.5px solid var(--line);border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;color:var(--slate)}
+.ql-opt[aria-pressed="true"] .ql-chk{border-color:var(--slate)}
