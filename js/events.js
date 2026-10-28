@@ -1,7 +1,7 @@
 import { CC_PARTS } from "./data/verse-sets.js";
 import { bkAct, bkChange } from "./backup.js";
 import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode, sbCloseInvite, sbRecheck, sbCancelJoin } from "./core/auth.js";
-import { LS_PREFIX } from "./core/config.js";
+import { BABY_LOG_URL, LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
 import { S, childName, setChild } from "./core/state.js";
 import { $, dayKey, toast } from "./core/util.js";
@@ -20,7 +20,7 @@ import { backTo, render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { isWakeAct, wakeAct } from "./wake.js";
-import { isMoodAct, moodAct } from "./mood.js";
+import { isQuickAct, quickAct } from "./quicklog.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
@@ -61,6 +61,7 @@ document.addEventListener("click", async ev => {
   if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
   if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
+  if (d.babylog) { try { localStorage.setItem("xiaoyueliang.v1.child", d.babylog); } catch (e) {} location.href = BABY_LOG_URL; return; }   // 1 岁以下的宝宝：切回小月亮，并让它选中这个孩子
   if (d.kidsel) { setChild(d.kidsel); render(); $("#bname").focus(); return; }
   if (d.copy) { try { await navigator.clipboard.writeText(d.copy); toast(t("已复制：") + d.copy); } catch (e) { toast(t("请手动复制：") + d.copy); } return; }
   if (d.themeSet !== undefined) { if (d.themeSet) document.documentElement.dataset.theme = d.themeSet; else delete document.documentElement.dataset.theme; try { localStorage.setItem(LS_PREFIX + ".theme", d.themeSet); } catch (e) {} openSettings(); return; }
@@ -86,7 +87,7 @@ document.addEventListener("click", async ev => {
   if (d.act && d.act.startsWith("tr-")) { try { await trAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 趋势与分析、问咩咩咩（js/flows-trend.js）
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
-  if (d.act && isMoodAct(d.act)) { try { await moodAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 情绪随手记（js/mood.js）
+  if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {

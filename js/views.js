@@ -3,7 +3,7 @@ import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
 import { viewMe, viewPrintHub } from "./me.js";
 import { printViewHTML } from "./print.js";
 import { LOCALES, locale, t } from "./core/i18n.js";
-import { S, ageText, child } from "./core/state.js";
+import { S, ageText, child, monthsOf } from "./core/state.js";
 import { $, esc } from "./core/util.js";
 import { viewCourse, viewGoals, viewScope, viewUnits } from "./course.js";
 import { viewLaw } from "./law.js";
@@ -53,9 +53,10 @@ function renderStatus(){
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
   const c = child();
   $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="chev" aria-hidden="true"></span>`;
-  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? t("家庭里还没有孩子") : t("登录后显示孩子"));
+  $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? (S.babies.length ? t("1 岁以下的宝宝在小月亮里记") : t("家庭里还没有孩子")) : t("登录后显示孩子"));
   $("#kids").setAttribute("aria-label", t("切换孩子"));
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")
+    + S.babies.map(k => `<button role="menuitem" class="baby-link" data-babylog="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(t("{m} 个月", { m: monthsOf(k.birth) }))} · ${esc(t("去小月亮记录"))} ›</small></button>`).join("")
     + `<button class="manage" role="menuitem" data-act="settings">${esc(t("家庭与孩子…"))}</button>`;
   renderAppSwitch();
   renderLangSwitch();

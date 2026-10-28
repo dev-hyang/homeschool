@@ -9,13 +9,17 @@ const S = {
   tab: "today",
   cloud: "loading",        // loading | offline | signedout | nofamily | pending（等家主批准）| ready
   user: null, family: null, members: {}, pending: [], pendingFamily: null,
-  children: [], childId: null,
+  children: [], babies: [], childId: null,
   childrenSource: null     // "table"（children 表）或 "settings"（迁移 002 还没跑时的 JSON 回退）
 };
 const CHILD_KEY = LS_PREFIX + ".child";
 
-function setChildren(list){
-  S.children = list;
+/* 1 岁以下的宝宝不在家庭学堂里出现（还不适合这里的功能），在小月亮里记：S.children 只放 1 岁以上的；S.babies 放被藏起来的，孩子菜单里列出来、点了去小月亮 */
+const monthsOf = birth => { if (!birth) return null; const b = new Date(birth + "T00:00:00"), n = new Date(); let m = (n.getFullYear() - b.getFullYear()) * 12 + n.getMonth() - b.getMonth(); if (n.getDate() < b.getDate()) m--; return Math.max(0, m); };
+const isBaby = c => { const m = monthsOf(c.birth); return m != null && m < 12; };
+function setChildren(all){
+  const list = all.filter(c => !isBaby(c));
+  S.babies = all.filter(isBaby); S.children = list;
   let cid = S.childId; if (cid == null) { try { cid = localStorage.getItem(CHILD_KEY); } catch (e) {} }
   S.childId = list.some(c => c.id === cid) ? cid : (list[0] ? list[0].id : null);
 }
@@ -46,4 +50,4 @@ function stageOf(cid = S.childId){
   return { key: "school", name: t("学龄") };
 }
 
-export { S, CHILD_KEY, setChildren, child, childName, setChild, birthTs, ageDays, ageMonths, ageText, stageOf };
+export { S, CHILD_KEY, monthsOf, setChildren, child, childName, setChild, birthTs, ageDays, ageMonths, ageText, stageOf };

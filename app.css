@@ -823,15 +823,15 @@ body.bt-playing{overflow:hidden}
 .crumb .crumb-back:hover,.crumb .crumb-back:active{background:var(--slate-soft);text-decoration:none}
 .crumb .crumb-back:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
 
-/* 今天页「情绪」小卡片：六个表情一排（手机两行三列），点一下记一笔 */
-.mood-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-@media (min-width:560px){.mood-row{grid-template-columns:repeat(6,minmax(0,1fr))}}
-.mood-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:56px;padding:6px 4px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-width:0}
-.mood-btn:hover,.mood-btn:active{background:var(--slate-soft)}
-.mood-btn:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
-.mood-e{font-size:24px;line-height:1}
-.mood-trig{display:block;width:100%;box-sizing:border-box;margin-top:8px;min-height:38px;padding:6px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit;font-size:14px}
-.mood-log{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-.mood-pill{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:3px 4px 3px 10px;border-radius:999px;background:var(--slate-soft);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mood-x{all:unset;cursor:pointer;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:var(--muted)}
-.mood-x:hover,.mood-x:focus-visible{background:rgba(0,0,0,.1)}
+/* 今天页「记一笔」：一排格子（手机 4 列，格子等宽），下面是今天记过的 */
+.ql-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ql-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;padding:8px 4px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer;min-width:0;text-align:center}
+.ql-tile:hover,.ql-tile:active{background:var(--slate-soft)}
+.ql-tile:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
+.ql-ico{font-size:24px;line-height:1}
+.ql-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.ql-row{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:4px 8px;border-radius:8px;font-size:13.5px;cursor:pointer}
+.ql-row:hover,.ql-row:focus-visible{background:var(--slate-soft)}
+.ql-row:focus-visible{outline:2px solid var(--slate);outline-offset:-2px}
+.ql-sum{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.kids .baby-link small{color:var(--muted)}
