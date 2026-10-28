@@ -15,8 +15,11 @@ function viewToday(){
     <div class="lbl">${day} · ${esc(weekdayLabel(new Date(now).getDay()))}</div>
     <div class="big">${esc(childName())}</div>
     <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>`;
+  const me = S.user && S.members[S.user.id], np = (S.pending || []).length;
+  const joinNote = me && me.role === "owner" && np ? `<div class="panel" role="status"><span class="small">${t("{n} 人申请加入家庭，等你批准", { n: np })}</span> <button class="chip" data-act="settings">${t("去批准")}</button></div>` : "";
   return `
   ${heroSliderHTML(hero)}
+  ${joinNote}
   ${principleHTML("full")}
   <div class="ask-entry"><button class="chip ask-chip" data-tab="ask" data-from="today">${aiIcon(18)} ${t("咩咩咩")}</button><span class="small muted">${t("今天的课怎么调、经文怎么背、孩子不配合怎么办…")}</span></div>
   ${devotionHTML()}

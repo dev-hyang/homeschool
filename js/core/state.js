@@ -7,8 +7,8 @@ import { D, startOfDay } from "./util.js";
    本机只记几样偏好：当前看哪个孩子、主题、界面语言。 */
 const S = {
   tab: "today",
-  cloud: "loading",        // loading | offline | signedout | nofamily | ready
-  user: null, family: null, members: {},
+  cloud: "loading",        // loading | offline | signedout | nofamily | pending（等家主批准）| ready
+  user: null, family: null, members: {}, pending: [], pendingFamily: null,
   children: [], childId: null,
   childrenSource: null     // "table"（children 表）或 "settings"（迁移 002 还没跑时的 JSON 回退）
 };

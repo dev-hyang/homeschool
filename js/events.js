@@ -1,6 +1,6 @@
 import { CC_PARTS } from "./data/verse-sets.js";
 import { bkAct, bkChange } from "./backup.js";
-import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode } from "./core/auth.js";
+import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode, sbCloseInvite, sbRecheck, sbCancelJoin } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc } from "./core/i18n.js";
 import { S, childName, setChild } from "./core/state.js";
@@ -96,6 +96,9 @@ document.addEventListener("click", async ev => {
       case "sb-join": await sbFamily("join"); break;
       case "sb-logout": await sbLogout(); break;
       case "sb-reset-code": await sbResetCode(); break;
+      case "sb-close-invite": await sbCloseInvite(); break;
+      case "sb-recheck": await sbRecheck(); break;
+      case "sb-cancel-join": await sbCancelJoin(); break;
 
       /* 敬拜 */
       case "devo-done": await hs.saveDevotion({ done: true }); render(); toast(t("今日敬拜已记录")); break;

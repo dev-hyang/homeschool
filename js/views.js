@@ -43,7 +43,7 @@ const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-unit
   "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub,
   bedtime: viewBedtime, "bt-flow": viewFlow, "bt-songs": viewSongs, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 function renderStatus(){
-  const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
+  const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], pending: ["", t("等家主批准")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
   const c = child();
   $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="chev" aria-hidden="true"></span>`;
@@ -113,6 +113,7 @@ function gateHTML(){
   if (S.cloud === "loading") return `<div class="empty">${t("正在连接云端…")}</div>`;
   if (S.cloud === "offline") return `<div class="empty">${t("云端暂时不可用。")}<br>${t("请检查网络后刷新页面。")}</div>`;
   if (S.cloud === "signedout") return `<div class="empty">${t("用和小月亮一样的账号登录，就能看到家里的孩子。")}<br><button class="btn primary" data-act="settings">${t("去登录")}</button> <button class="btn" data-act="about">${t("了解家庭学堂")}</button></div>`;
+  if (S.cloud === "pending") return `<div class="empty" role="status"><b>${t("等家主批准")}</b><br>${t("你已用邀请码申请加入这个家庭。家主批准后会自动进入；在那之前看不到任何家里的数据。")}<br>${t("这个页面每 20 秒自动检查一次。")}<br><button class="btn primary" data-act="sb-recheck">${t("再查一次")}</button> <button class="btn" data-act="sb-cancel-join">${t("取消申请 / 退出")}</button></div>`;
   if (S.cloud === "nofamily") return `<div class="empty">${t("已登录，但还没有加入家庭。")}<br><button class="btn primary" data-act="settings">${t("创建或加入家庭")}</button></div>`;
   if (!S.children.length) return `<div class="empty">${t("家庭里还没有孩子。先在")}<a href="${BABY_LOG_URL}" target="_blank" rel="noopener">${t("小月亮")}</a>${t("的设置里添加，这里会自动出现。")}</div>`;
   if (S.hs.error === "missing") return `<div class="empty">${t("数据库还没有家庭学堂的表。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/003_homeschool_phase1.sql</code>${t("，然后刷新。")}</div>`;
