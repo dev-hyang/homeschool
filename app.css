@@ -798,6 +798,23 @@ body.bt-playing{overflow:hidden}
 @keyframes scHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 @keyframes scFall{to{transform:translateY(190px) rotate(40deg)}}
 @keyframes scSway{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+/* 游乐场（2–6 岁）：滑梯 + 滑下来的小孩 + 秋千 */
+.sc-slide{top:38px;left:16%;font-size:48px;z-index:1}
+.sc-slider{top:44px;left:calc(16% + 8px);font-size:20px;z-index:2;opacity:0;animation:scSlide 3.6s ease-in infinite}
+@keyframes scSlide{0%{transform:translate(0,0);opacity:0}8%{opacity:1}70%{transform:translate(30px,34px);opacity:1}86%{transform:translate(40px,34px);opacity:1}100%{transform:translate(44px,34px);opacity:0}}
+.sc-swing{top:30px;left:var(--x);width:52px;height:74px;border-top:4px solid #8a6a4a;border-radius:2px;z-index:1}
+.sc-pend{position:absolute;left:50%;top:0;margin-left:-12px;width:24px;transform-origin:50% 0;animation:scPend 2.2s ease-in-out infinite alternate}
+.sc-pend::before{content:"";display:block;width:2px;height:30px;margin:0 auto;background:#8a6a4a}
+.sc-pend>span{display:block;font-size:22px;line-height:1;text-align:center}
+@keyframes scPend{from{transform:rotate(-28deg)}to{transform:rotate(28deg)}}
+/* 骑行 / 滑行（6 岁以上）：主角原地颠簸，路面虚线和路边风景往左退 */
+.sc-ride{top:34px;left:30%;font-size:42px;z-index:2}
+.sc-road{position:absolute;left:0;right:0;top:80px;height:12px;background:#8d96a3;z-index:1}
+.sc-road::after{content:"";position:absolute;left:0;right:0;top:5px;height:2px;background:repeating-linear-gradient(90deg,#fff 0 18px,transparent 18px 38px);background-size:38px 2px;animation:scRoad .5s linear infinite}
+.sc-pass{top:44px;left:100%;font-size:32px;animation:scPass 4.5s linear infinite;animation-delay:var(--dl,0s)}
+.sc-pass.slow{font-size:26px;top:52px;animation-duration:8s}
+@keyframes scRoad{to{background-position:-38px 0}}
+@keyframes scPass{from{transform:translateX(0)}to{transform:translateX(-130vw)}}
 .sc-zzz{position:absolute;left:50%;top:34%;transform:translate(-50%,-62%);z-index:2;display:block}
 .sc-big{display:block;font-size:56px;line-height:1;animation:scBreath 4s ease-in-out infinite}
 .sc-z{position:absolute;left:56px;top:6px;font-weight:700;font-family:var(--f-num);color:#cfe0ff;opacity:0;animation:scZ 3.2s ease-in infinite}
@@ -810,7 +827,8 @@ body.bt-playing{overflow:hidden}
 .sc-wx{display:flex;justify-content:flex-end}
 .sc-wx .chip{min-height:30px;padding:3px 10px;font-size:13px}
 @media (prefers-reduced-motion:reduce){
-  .sc-run,.sc-bob,.sc-fall,.sc-sway,.sc-ground,.sc-big,.sc-z{animation:none}
+  .sc-run,.sc-bob,.sc-fall,.sc-sway,.sc-ground,.sc-big,.sc-z,.sc-slider,.sc-pend,.sc-pass,.sc-road::after{animation:none}
+  .sc-slider{opacity:1;transform:translate(24px,26px)}.sc-pass{left:70%}
   .sc-run{left:42%}.sc-fall{top:20px}.sc-z{opacity:.9}.sc-z.z2{transform:translate(14px,-22px)}.sc-z.z3{transform:translate(26px,-40px)}
   .hero-dot::after{transition:none}
 }

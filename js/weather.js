@@ -22,7 +22,7 @@ const YOUNG = {
   rain:   { sky: "rain", run: "☔", deco: [["🌧️", 14, "sway", 0], ["💧", 34, "fall", 0.5], ["💧", 58, "fall", 1.8], ["🐸", 88, "ground", 0]], cap: "下雨天：撑着伞跳水坑" },
   swim:   { sky: "hot", run: "💦", deco: [["☀️", 86, "sway", 0], ["🌊", 12, "ground", 0.4], ["🐠", 48, "sway", 1.2]], cap: "天气热：在游乐场玩水" },
   kite:   { sky: "mild", run: "🪁", deco: [["☁️", 18, "sway", 0], ["☁️", 62, "sway", 1.5], ["🌤️", 88, "sway", 0.6]], cap: "有点云、有点风：放风筝" },
-  play:   { sky: "sun", run: "🛝", deco: [["🌳", 8, "ground", 0], ["🎠", 50, "ground", 0.8], ["☀️", 88, "sway", 0.3]], cap: "大晴天：去游乐场玩滑梯" },
+  play:   { sky: "sun", run: "🛝", pg: true, deco: [["🌳", 4, "ground", 0], ["🎠", 46, "ground", 0.8], ["🎈", 90, "sway", 0.3], ["☀️", 66, "sway", 0.3]], cap: "大晴天：去游乐场玩滑梯、荡秋千" },
   leaves: { sky: "fall", run: "🍂", deco: [["🍁", 12, "fall", 0], ["🍂", 38, "fall", 1.6], ["🍁", 64, "fall", 3], ["🌳", 90, "ground", 0]], cap: "秋天：踩落叶" },
   night:  { sky: "night", run: "🥱", deco: [["⭐", 14, "sway", 0], ["⭐", 44, "sway", 1], ["⭐", 70, "sway", 2], ["🌙", 88, "sway", 0]], cap: "夜深了：该睡觉啦" }
 };

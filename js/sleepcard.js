@@ -13,8 +13,15 @@ import { render } from "./views.js";
 const GAP = 10;   // 和 app.css 里 .hero-slider 的 gap 一致
 const repaint = () => { if (S.tab === "today" && !$("#sheet").open) render(); };
 
+const RIDE = /[🚴🛹🛴]/u;   // 大孩子的骑行 / 滑行场景：主角不动，路和风景往后退
 function artHTML(sc){
   const deco = sc.deco.map(([e, x, kind, dl]) => `<span class="sp sc-d sc-${kind}" style="--x:${x}%;--dl:${dl}s">${e}</span>`).join("");
+  if (sc.pg) {   // 2–6 岁游乐场：滑梯上有人滑下来、秋千来回荡
+    return `<div class="sc-art" aria-hidden="true">${deco}<span class="sp sc-slider">🧒</span><span class="sp sc-slide">🛝</span><span class="sp sc-swing" style="--x:72%"><span class="sc-pend"><span>👧</span></span></span></div>`;
+  }
+  if (RIDE.test(sc.run)) {
+    return `<div class="sc-art" aria-hidden="true">${deco}<span class="sp sc-pass" style="--dl:0s">🌳</span><span class="sp sc-pass slow" style="--dl:-4s">🏡</span><span class="sc-road"></span><span class="sp sc-ride"><span class="sc-bob">${esc(sc.run)}</span></span></div>`;
+  }
   return `<div class="sc-art" aria-hidden="true">${deco}<span class="sp sc-run"><span class="sc-bob">${esc(sc.run)}</span></span></div>`;
 }
 function sleepArtHTML(){
