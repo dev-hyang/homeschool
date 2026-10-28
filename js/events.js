@@ -20,6 +20,7 @@ import { render, toggleKids } from "./views.js";
 import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { isWakeAct, wakeAct } from "./wake.js";
+import { cardAct, isCardAct } from "./sleepcard.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
 import { setFilter } from "./recfilter.js";
@@ -82,6 +83,7 @@ document.addEventListener("click", async ev => {
   if (d.act === "rf-set") { setFilter(d.key, d); render(); return; }   // 记录的日期筛选 / 列表 · 时间线（js/recfilter.js）
   if (d.act && d.act.startsWith("tr-")) { try { await trAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 趋势与分析、问咩咩咩（js/flows-trend.js）
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
+  if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {

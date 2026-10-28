@@ -16,6 +16,7 @@ import { principleHTML } from "./principle.js";
 import { viewCalRoutines, viewRoutines } from "./routines.js";
 import { openSettings } from "./sheet.js";
 import { viewToday } from "./today.js";
+import { restoreHero } from "./sleepcard.js";
 import { viewAsk } from "./ask.js";
 import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewReadings, viewSongs, viewTexts } from "./bedtime.js";
 
@@ -102,6 +103,7 @@ function render(){
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
   $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
+  if (S.tab === "today") restoreHero();
   updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-tab="${parent}">‹ ${esc(labelOf(parent))}</button>` : "", t("回到顶部"));
 }
 function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }

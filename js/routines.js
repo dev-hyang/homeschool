@@ -6,6 +6,7 @@ import { WEEKDAYS, subject, weekdayLabel } from "./data/subjects.js";
 import { ensureMonth, monthData, monthRange, routine, scripture } from "./hs.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
+import { dailySleepRow } from "./bedtime.js";
 
 /* ============ 日历：入口页 = 月历（敬拜与任务完成情况、休息日）+ 周例行入口；子页 = 周例行 ============ */
 S.calMonth = S.calMonth || dayKey(Date.now()).slice(0, 7);
@@ -73,6 +74,7 @@ function routinesHTML(){
   return `<h2>${t("周例行")} · ${esc(childName())}</h2>
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="btn" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("每天早上按这张表自动生成今日任务（休息日除外）。全家项（如家庭敬拜）对每个孩子都显示。")}${t("模板套用到当前孩子（{name}），全家项只加一次，重复套用不会重复。", { name: esc(childName()) })}</p>
+  ${dailySleepRow()}
   ${mine.length ? `
   <div class="chips wdstrip" role="group" aria-label="${t("星期")}">${order.map(d => { const n = byDay(d).length; return `<button class="chip" data-rday="${d}" aria-pressed="${!week && d === sel}" aria-label="${esc(weekdayLabel(d))}${n ? `，${t("{n} 项", { n })}` : ""}${d === today ? `，${t("今天")}` : ""}"><span>${esc(weekdayLabel(d).replace(/^周/, ""))}</span><small>${n || "·"}</small>${d === today ? `<i aria-hidden="true"></i>` : ""}</button>`; }).join("")}<button class="chip" data-rday="week" aria-pressed="${week}">${t("整周")}</button></div>
   ${week

@@ -31,8 +31,13 @@ async function loadSleep(){
   if (!ready()) return;
   const { data, error } = await SB.client.from("entries").select("id,ts,updated,data").eq("family_id", fid()).eq("type", "sleep").eq("deleted", false).gte("ts", Date.now() - 48 * H).order("ts", { ascending: false }).limit(100);
   if (error) { console.warn("sleep", error.message); return; }
+  const before = sig();
   S.wk.rows = (data || []).map(r => ({ id: r.id, ts: +r.ts, data: r.data || {} })); S.wk.loaded = true;
+  if (sig() !== before) repaintToday();   // 刷新页面后读回来的睡眠记录：不用等点一下才出现
 }
+const sig = () => JSON.stringify(S.wk.rows.map(r => [r.id, r.ts, r.data.end || 0]));
+let repaintTimer = null;
+function repaintToday(){ clearTimeout(repaintTimer); repaintTimer = setTimeout(() => { if (S.tab === "today" && !$("#sheet").open) render(); }, 150); }
 const rowOf = id => S.wk.rows.find(r => r.id === id) || null;
 /** 每个孩子最近一条睡眠：在睡的一直显示；已醒的 12 小时内显示一行小字（可改） */
 function status(){
@@ -46,6 +51,7 @@ function status(){
   return out;
 }
 const sleeping = () => status().filter(x => x.open);
+const sleepingKids = () => sleeping().map(x => x.child);
 /** 今天页用：所有孩子都在睡时，「开始」那一行就不用显示了 */
 const allAsleep = ids => { const open = sleeping().map(x => x.child); return !!ids.length && ids.every(id => open.includes(id)); };
 
@@ -211,4 +217,4 @@ async function wakeAct(act, btn){
 }
 const isWakeAct = act => act.startsWith("wk-");
 
-export { loadSleep, sleepFromLog, sleepCardsHTML, allAsleep, onEntriesChange, wakeAct, isWakeAct };
+export { loadSleep, sleepFromLog, sleepCardsHTML, allAsleep, sleepingKids, onEntriesChange, wakeAct, isWakeAct };

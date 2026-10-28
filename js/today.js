@@ -5,17 +5,18 @@ import { dayKey, esc } from "./core/util.js";
 import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
-import { bedtimeRowHTML } from "./bedtime.js";
+import { heroSliderHTML } from "./sleepcard.js";
 import { principleHTML } from "./principle.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
 function viewToday(){
   const now = Date.now(), day = dayKey(now);
-  return `
-  <section class="hero"><div class="moon"></div>
+  const hero = `<section class="hero"><div class="moon"></div>
     <div class="lbl">${day} · ${esc(weekdayLabel(new Date(now).getDay()))}</div>
     <div class="big">${esc(childName())}</div>
-    <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>
+    <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>`;
+  return `
+  ${heroSliderHTML(hero)}
   ${principleHTML("full")}
   <div class="ask-entry"><button class="chip ask-chip" data-tab="ask" data-from="today">${aiIcon(18)} ${t("咩咩咩")}</button><span class="small muted">${t("今天的课怎么调、经文怎么背、孩子不配合怎么办…")}</span></div>
   ${devotionHTML()}
@@ -33,7 +34,6 @@ function devotionHTML(){
     <div class="row"><span class="k">${t("经文")}</span><div class="v">${wv ? `<b>${esc(wv.ref)}</b><div class="small">${esc(wv.text_zh)}<span class="muted">${esc(vz(wv))}</span></div><div class="small muted">${esc(wv.text_en)}${esc(ve(wv))}</div>` : `<span class="muted">${t("本周还没选经文")}</span>`}</div><button class="chip" data-act="devo-verse">${t("选")}</button></div>
     <div class="row"><span class="k">${t("诗歌")}</span><div class="v">${S.hs.settings.hymn ? `<b>${esc(S.hs.settings.hymn)}</b>` : `<span class="muted">${t("本月诗歌还没填")}</span>`}</div><button class="chip" data-act="devo-hymn">${t("填")}</button></div>
     <div class="row"><span class="k">${t("祷告")}</span><div class="v">${d.prayer ? esc(d.prayer) : `<span class="muted">${t("今天为谁、为什么祷告")}</span>`}</div><button class="chip" data-act="devo-prayer">${t("写")}</button></div>
-    ${bedtimeRowHTML()}
     <div class="row"><span class="k">${t("参加")}</span><div class="v chips" style="margin:0">${S.children.map(c => `<button class="chip" data-devochild="${esc(c.id)}" aria-pressed="${joined.has(c.id)}">${esc(c.name || t("宝宝"))}</button>`).join("")}</div></div>
     <div class="btns">${d.done
       ? `<button class="btn" data-act="devo-undo">${t("今天敬拜过了 ✓ · 点击撤销")}</button>`

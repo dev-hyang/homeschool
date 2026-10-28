@@ -17,7 +17,7 @@ import { closeSheet, getForm, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
 import { FULL, MB, WARN, fmtBytes, storageRoom } from "./usage.js";
-import { allAsleep, loadSleep, onEntriesChange, sleepCardsHTML, sleepFromLog } from "./wake.js";
+import { allAsleep, loadSleep, onEntriesChange, sleepCardsHTML, sleepFromLog, sleepingKids } from "./wake.js";
 
 /* ============ 睡前安然：数据层 + 页面（流程 / 歌单 / 带领词 / 睡前经文 / 记录） ============
    以诗篇 4:8 为中心的睡前敬拜流程。配置（步骤、带领词版本、经文清单、上限、开关）放在 hs_family.settings.bedtime，
@@ -350,13 +350,28 @@ const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
 const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${extra}</span>` : ""}</h2>`;
 
-/* 播放页默认「谁参加了」：今天页「参加」里点选的孩子；没选过就是顶上选中的那一个孩子（只有一个孩子或没选时是全部） */
-function tonightKids(){
-  const all = kids().map(k => k.id), d = S.hs.devotion, pick = d && Array.isArray(d.children) && d.children.length ? d.children : (S.childId ? [S.childId] : all);
-  const ok = pick.filter(id => all.includes(id)); return ok.length ? ok : all;
+/* ---- 开始前第一步：选谁参加。默认是没在睡的孩子（都在睡就是全部）；只有一个孩子时直接开始 ---- */
+let PICK = new Set();
+function openKidPick(){
+  const all = kids().map(k => k.id), asleep = sleepingKids(), awake = all.filter(id => !asleep.includes(id));
+  PICK = new Set(awake.length ? awake : all);
+  drawKidPick(); showSheet();
 }
-/* ---- 今日敬拜里的一行：放在「祷告」下面、「参加」上面（js/today.js 的 devotionHTML）。点「开始」直接进播放页，点文字去设置 ---- */
-function bedtimeRowHTML(){
+function drawKidPick(){
+  const c = cfg(), asleep = sleepingKids();
+  $("#sheetIn").innerHTML = `${head(esc(t("谁参加「{flow}」？", { flow: tb(c.flowName) })))}
+  <p class="small muted" style="margin-top:0">${t("先选好参加的孩子，再开始。完成时还能再改。")}</p>
+  <div class="seg" role="group" aria-label="${t("谁参加了")}">${kids().map(k => `<button type="button" data-act="bt-pick-kid" data-id="${esc(k.id)}" aria-pressed="${PICK.has(k.id)}">${esc(k.name || t("宝宝"))}${asleep.includes(k.id) ? " 😴" : ""}</button>`).join("")}</div>
+  <div class="btns"><button class="btn primary" data-act="bt-pick-go" ${PICK.size ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(tb(c.flowName))}</button></div>`;
+}
+async function startFlow(ids){
+  const c = cfg();
+  if (!activeSteps(c).length) { toast(t("流程里没有步骤")); return; }
+  stopPreview();
+  await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), preKids: ids, members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songPool, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine });
+}
+/* ---- 今天页顶上「睡眠卡」（js/sleepcard.js）要的数据：所有孩子的睡眠状态，不再跟着「选中的孩子」走 ---- */
+function sleepCardParts(){
   const c = cfg(), n = activeSteps(c).length, last = lastLogFor(c.flowKind), today = dayKey(Date.now());
   const lastTxt = !last ? t("还没做过") : last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min });
   // 流程名长就把字号缩小一点，保证一行放得下（按字数分档）
@@ -365,14 +380,11 @@ function bedtimeRowHTML(){
   const pick = c.flows.length > 1
     ? `<select id="btFlowSel" class="bt-sel" style="font-size:${fs}px" aria-label="${t("选择流程")}">${c.flows.map(f => `<option value="${esc(f.id)}" ${f.id === c.flow ? "selected" : ""}>${icon(f)} ${esc(tb(f.name))}</option>`).join("")}</select>`
     : `<div class="bt-sel solo" style="font-size:${fs}px">${icon({ kind: c.flowKind })} ${esc(tb(c.flowName))}</div>`;
-  const ids = tonightKids(), sl = sleepCardsHTML(ids, last && last.ended_at ? new Date(last.ended_at).getTime() : 0);   // 只显示选中孩子的最近一条（睡前流程或醒来记录）
-  return `<div class="row bt-row"><span class="k">${t("睡前")}</span>
-    <div class="v bt-card">
-      ${sl.html}
-      ${allAsleep(ids) ? "" : `<div class="bt-pick">${pick}<button class="btn primary sm bt-go" data-act="bt-start" ${n ? "" : "disabled"}>${t("开始")}</button></div>`}
-      <div class="bt-card-foot"><span class="small muted">${esc(tc(c.reading))}${sl.logShown ? " · " + lastTxt : ""}</span><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button></div>
-    </div></div>`;
+  const ids = kids().map(k => k.id), sl = sleepCardsHTML(ids, last && last.ended_at ? new Date(last.ended_at).getTime() : 0);
+  return { n, pick, lastTxt, reading: tc(c.reading), sl, anyAsleep: sleepingKids().length > 0, allAsleep: allAsleep(ids) };
 }
+/* ---- 周例行页里固定的一行：睡前安然是每天都有的例行，不用逐天添加 ---- */
+const dailySleepRow = () => { const c = cfg(); return `<div class="panel mlist" style="margin-top:10px">${mrow('data-tab="bedtime"', t("睡前安然 · 每天"), esc(c.flows.map(f => `${tb(f.name)} ${flowMin(f)}`).join(" · ")) + " · " + t("从今天页顶上的睡眠卡开始"), "☾")}</div>`; };
 
 /* ---- 入口页 ---- */
 function viewBedtime(){
@@ -668,7 +680,9 @@ async function btAct(act, btn){
   if (act.startsWith("btp-")) { await playAct(act, btn); return; }
   const c = cfg();
   switch (act) {
-    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } stopPreview(); await openPlayer({ cfg: c, flow: { id: c.flow, name: c.flowName, kind: c.flowKind }, text: flowText(c), kids: kids(), preKids: tonightKids(), members: members(), readings: allReadings(c), situations: allSituations(c), principles: PRINCIPLES, outcomes: OUTCOMES, songFor, songPool, songBlob, verseText, verseError, ensureVerse, saveLog, saveEvent, parentLine }); break; }
+    case "bt-start": { if (!activeSteps(c).length) { toast(t("流程里没有步骤")); break; } if (kids().length > 1) openKidPick(); else await startFlow(kids().map(k => k.id)); break; }
+    case "bt-pick-kid": PICK.has(d.id) ? PICK.delete(d.id) : PICK.add(d.id); drawKidPick(); break;
+    case "bt-pick-go": { if (!PICK.size) break; const ids = [...PICK]; closeSheet(); await startFlow(ids); break; }
     case "bt-flow-sel": selectFlow(d.id); render(); break;
     case "bt-flow-new": openForm("新建流程", [{ k: "name", label: "流程名称", type: "text", ph: "午睡 / 晚觉 / 出门前" }, { k: "tpl", label: "从哪个模板开始", type: "seg", raw: true, opts: [...Object.entries(FLOW_TEMPLATES).map(([k, tp]) => [k, tc(tp.name)]), ["blank", t("空白")]] }], { name: "", tpl: "nap" },
       async f => { const tp = FLOW_TEMPLATES[f.tpl], name = (f.name || (tp && tp.flowName) || "").trim(); if (!name) { toast(t("请填流程名称")); return; }
@@ -793,4 +807,4 @@ initSongRows({
   onReorder: async (ids, movedId, kind) => { try { if (kind === "step") { const c = cfg(), by = new Map(c.steps.map(x => [x.id, x])); await saveSteps(ids.map(i => by.get(i)).filter(Boolean)); } else await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
 });
 
-export { songBlob, openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, bedtimeRowHTML, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+export { sleepCardParts, dailySleepRow, songBlob, openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };

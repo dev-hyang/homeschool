@@ -763,3 +763,56 @@ body.bt-playing{overflow:hidden}
 /* 深色主题下让原生日期/时间选择器的图标和弹层也用深色 */
 :root[data-theme="dark"]{color-scheme:dark}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark}}
+/* ===== 今天页顶上的滑动卡：名字卡 ⇄ 睡眠卡（js/sleepcard.js、js/weather.js）===== */
+.hero-wrap{margin-top:8px}
+.hero-slider{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;border-radius:var(--radius-lg)}
+.hero-slider::-webkit-scrollbar{display:none}
+.hero-slider:focus-visible{outline:3px solid var(--slate);outline-offset:2px}
+.hero-slide{flex:0 0 100%;min-width:0;scroll-snap-align:start;display:flex}
+.hero-slide > .hero{margin-top:0;flex:1;min-width:0}
+.hero-dots{display:flex;justify-content:center;gap:2px;margin-top:4px}
+.hero-dot{width:28px;height:24px;border:0;background:none;position:relative;cursor:pointer;padding:0}
+.hero-dot::after{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--line);transition:transform .15s,background .15s}
+.hero-dot[aria-current="true"]::after{background:var(--slate);transform:scale(1.35)}
+.hero-dot:focus-visible{outline:2px solid var(--slate);outline-offset:-2px;border-radius:6px}
+.sleepcard{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 8px 24px rgba(42,85,144,.12)}
+.sc-stage{position:relative;flex:none}
+.sc-art{position:relative;height:132px;overflow:hidden;color:#17314f}
+.sc-art::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34px;background:var(--gd,rgba(255,255,255,.7))}
+.sc-cap{position:absolute;left:14px;right:14px;bottom:7px;margin:0;z-index:3;font-size:14px;font-weight:600;line-height:1.3;color:#17314f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sky-snow{background:linear-gradient(180deg,#bcd9f7,#eef6ff)}
+.sky-cold{background:linear-gradient(180deg,#c9e2f2,#f1f8fc)}
+.sky-rain{background:linear-gradient(180deg,#a9bccd,#dbe5ee);--gd:rgba(200,225,205,.75)}
+.sky-hot{background:linear-gradient(180deg,#8fd3f4,#e6f7ff);--gd:rgba(245,222,160,.85)}
+.sky-mild{background:linear-gradient(180deg,#bfe0f7,#f5fbff);--gd:rgba(196,230,190,.8)}
+.sky-sun{background:linear-gradient(180deg,#a7dcff,#fff6d8);--gd:rgba(190,228,170,.85)}
+.sky-fall{background:linear-gradient(180deg,#f9dcae,#fff3df);--gd:rgba(222,184,130,.7)}
+.sky-night,.sky-sleep{background:linear-gradient(180deg,#14213d,#2c3f6b);--gd:rgba(0,0,0,.28);color:#fff}
+.sc-stage:has(.sky-night) .sc-cap,.sc-stage:has(.sky-sleep) .sc-cap{color:#fff}
+.sp{position:absolute;line-height:1;z-index:1;user-select:none}
+.sc-run{bottom:26px;left:4%;font-size:40px;z-index:2;animation:scRun 9s ease-in-out infinite alternate}
+.sc-bob{display:inline-block;animation:scHop .9s ease-in-out infinite;white-space:nowrap}
+.sc-d{font-size:24px;left:var(--x);animation-delay:var(--dl,0s)}
+.sc-fall{top:-30px;animation:scFall 6s linear infinite;animation-delay:var(--dl,0s)}
+.sc-sway{top:14px;animation:scSway 4s ease-in-out infinite;animation-delay:var(--dl,0s)}
+.sc-ground{bottom:30px;animation:scSway 5s ease-in-out infinite;animation-delay:var(--dl,0s)}
+@keyframes scRun{from{left:4%}to{left:calc(96% - 92px)}}
+@keyframes scHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@keyframes scFall{to{transform:translateY(190px) rotate(40deg)}}
+@keyframes scSway{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+.sc-zzz{position:absolute;left:50%;top:50%;transform:translate(-50%,-62%);z-index:2;display:block}
+.sc-big{display:block;font-size:56px;line-height:1;animation:scBreath 4s ease-in-out infinite}
+.sc-z{position:absolute;left:56px;top:6px;font-weight:700;font-family:var(--f-num);color:#cfe0ff;opacity:0;animation:scZ 3.2s ease-in infinite}
+.sc-z.z1{font-size:16px}.sc-z.z2{font-size:21px;animation-delay:1s}.sc-z.z3{font-size:26px;animation-delay:2s}
+@keyframes scBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes scZ{0%{transform:translate(0,0);opacity:0}25%{opacity:1}100%{transform:translate(26px,-48px);opacity:0}}
+.sc-ctl{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.sc-ctl .wk-list{margin-bottom:0}
+.sc-ctl .bt-card-foot{margin-top:0}
+.sc-wx{display:flex;justify-content:flex-end}
+.sc-wx .chip{min-height:30px;padding:3px 10px;font-size:13px}
+@media (prefers-reduced-motion:reduce){
+  .sc-run,.sc-bob,.sc-fall,.sc-sway,.sc-ground,.sc-big,.sc-z{animation:none}
+  .sc-run{left:42%}.sc-fall{top:20px}.sc-z{opacity:.9}.sc-z.z2{transform:translate(14px,-22px)}.sc-z.z3{transform:translate(26px,-40px)}
+  .hero-dot::after{transition:none}
+}
