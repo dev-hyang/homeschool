@@ -5,6 +5,7 @@ import { $, esc, hm, toast } from "./core/util.js";
 import { saveSettings } from "./hs.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
+import { openMusicTile } from "./music.js";
 
 /* ============ 今天页「记一笔」：一排格子，点哪个就是哪种记录的入口 ============
    和小月亮的「快速记录」一样：格子只是入口，点开是那种记录的表单（字段与小月亮同一类型一致），详细内容以记录为准。
@@ -30,6 +31,7 @@ const TILES = [
     { k: "minutes", label: "用餐时长（分钟）", type: "num" }, { k: "note", label: "备注", type: "text", ph: "喜欢 / 不喜欢、呛咳…" }] },
   { id: "outdoor", type: "activity", kind: "户外", icon: "🌳", label: "户外", desc: "公园、骑车、运动，记个时长", age: [12, 1200], preset: () => ({ kind: "户外" }), fields: ACT_FIELDS("内容", "公园、骑车、和谁一起…") },
   { id: "read", type: "activity", kind: "阅读", icon: "📚", label: "阅读", desc: "读了什么书、读了多久", age: [24, 1200], preset: () => ({ kind: "阅读" }), fields: ACT_FIELDS("书名 / 内容", "书名、和谁一起读…") },
+  { id: "music", type: "activity", kind: "音乐", icon: "🎵", label: "音乐", desc: "听歌、学歌、唱诗，记个时长；点开直接是选好的歌单", age: [12, 1200], opt: 1, preset: () => ({ kind: "音乐" }), fields: ACT_FIELDS("歌名 / 歌单", "学了哪首、听了什么…") },
   { id: "screen", type: "activity", kind: "屏幕", icon: "📱", label: "屏幕", desc: "看了多久、看的什么，帮你心里有数", age: [48, 1200], preset: () => ({ kind: "屏幕" }), fields: ACT_FIELDS("内容", "视频、游戏、作业…") },
   { id: "speech", type: "speech", icon: "💬", label: "语言", desc: "新词、短句、会问问题", age: [12, 48], opt: 1, preset: () => ({ kind: "新词" }), fields: () => [
     seg("kind", "类型", ["新词", "短句", "会指认", "听懂指令", "会问问题"]), { k: "words", label: "说了什么", type: "text", ph: "妈妈 / 要抱抱 / 这是什么…" },
@@ -133,6 +135,7 @@ function quickAct(act, btn){
   if (!ready()) return;
   if (act === "ql-new") {
     const tile = TILES.find(x => x.id === btn.dataset.id); if (!tile) return;
+    if (tile.id === "music" && !btn.dataset.form) { openMusicTile(); return; }   // 音乐格：先给选好的歌单；歌单里「记一笔」才是表单（js/music.js）
     openForm(`${tile.icon} ${t(tile.label)} · ${childName()}`, [timeField, ...tile.fields()], { at: hm(Date.now()), ...tile.preset() }, f => save(tile, null, f));
   } else if (act === "ql-edit") {
     const r = S.ql.rows.find(x => x.id === btn.dataset.id), tile = r && tileOf(r); if (!tile) return;

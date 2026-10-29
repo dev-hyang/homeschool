@@ -6,6 +6,7 @@ import { BANDS, CATS, IDEA_SOURCES, bandFor, ideas } from "./data/ideas.js";
 import { FEEDS, dailyPicks } from "./data/feeds.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
+import { musicEntry } from "./music.js";
 import { learnedCount, poolOf } from "./hs.js";
 
 /* ============ 资源：入口页（日常点子 / 资源库 / 参考来源 三个入口带摘要）→ 子页 ============ */
@@ -80,7 +81,7 @@ function scriptureEntry(){
 /** 定制流程：资源页的第一行。进去是子层级：睡前安然、冲突管理，以后陆续补充 */
 const flowEntry = () => mrow('data-tab="flows"', t("定制流程"), t("睡前安然、冲突管理：把反复出现的情境做成流程、模板和记录"), "⚙");
 function viewResources(){
-  if (!S.hs.phase2) return `<h2>${t("资源")}</h2><div class="panel mlist">${flowEntry()}${scriptureEntry()}</div>${missing()}`;
+  if (!S.hs.phase2) return `<h2>${t("资源")}</h2><div class="panel mlist">${flowEntry()}${scriptureEntry()}${musicEntry()}</div>${missing()}`;
   const f = S.ideaFilter, auto = bandFor(ageMonths()), band = BANDS.find(b => b.id === f.band) || auto, n = S.hs.resources.length;
   const kinds = {}; S.hs.resources.forEach(r => { kinds[r.type] = (kinds[r.type] || 0) + 1; });
   const kindLine = Object.entries(kinds).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${TYPES[k] ? t(TYPES[k]) : k} ${v}`).join(" · ");
@@ -90,6 +91,7 @@ function viewResources(){
     ${mrow('data-tab="res-ideas"', t("日常点子"), `${CATS[f.cat].icon} ${t(CATS[f.cat].name)} · ${t(band.name)}${band.id === auto.id ? `（${esc(childName())}）` : ""} · ${f.mode === "list" ? t("精选清单") : t("每日新鲜（博客）")}`, "✦")}
     ${mrow('data-tab="res-library"', t("资源库"), n ? t("{n} 条", { n }) + (kindLine ? ` · ${kindLine}` : "") : t("还是空的，进去导入起步资源"), "▤")}
     ${scriptureEntry()}
+    ${musicEntry()}
     ${mrow('data-tab="res-sources"', t("参考来源"), t("每日新鲜读的博客、精选清单的出处"), "↗")}
   </div>`;
 }

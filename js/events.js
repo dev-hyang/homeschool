@@ -21,6 +21,7 @@ import { askAct } from "./ask.js";
 import { btAct, btChange, stopPreview } from "./bedtime.js";
 import { isWakeAct, wakeAct } from "./wake.js";
 import { isQuickAct, quickAct } from "./quicklog.js";
+import { musicAct, routineOpts, routinePickOf, setRoutineList } from "./music.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
@@ -88,6 +89,7 @@ document.addEventListener("click", async ev => {
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
+  if (d.act && d.act.startsWith("mu-")) { try { await musicAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 音乐：歌单 / 学歌（js/music.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {
@@ -176,9 +178,9 @@ document.addEventListener("click", async ev => {
           tk, async f => { await hs.upsertTask({ ...tk, ...f }); back(); }, async () => { await hs.deleteTask(tk.id); back(); }); break; }
 
       /* 周例行 */
-      case "routine-add": openForm("添加例行", routineFields(), { title: "", subject: "bible", child_id: S.childId, weekdays: [1, 2, 3, 4, 5], start: "", minutes: 15, active: true }, async f => { if (!f.title) { toast(t("请填内容")); return; } await hs.upsertRoutine(f); back(); }); break;
+      case "routine-add": openForm("添加例行", routineFields(), { title: "", subject: "bible", child_id: S.childId, weekdays: [1, 2, 3, 4, 5], start: "", minutes: 15, active: true, playlist: "" }, async f => { if (!f.title) { toast(t("请填内容")); return; } const row = await hs.upsertRoutine(f); await setRoutineList(row.id, f.playlist); back(); }); break;
       case "routine-edit": { const r = hs.routine(d.rid); if (!r) break;
-        openForm("编辑例行", routineFields(), { ...r, child_id: r.child_id || "" }, async f => { await hs.upsertRoutine({ ...r, ...f }); back(); }, async () => { if (confirm(t("删除这条例行？今天还没做的对应任务一起删除。"))) { await hs.deleteRoutine(r.id); back(); } }); break; }
+        openForm("编辑例行", routineFields(), { ...r, child_id: r.child_id || "", playlist: routinePickOf(r.id) }, async f => { await hs.upsertRoutine({ ...r, ...f }); await setRoutineList(r.id, f.playlist); back(); }, async () => { if (confirm(t("删除这条例行？今天还没做的对应任务一起删除。"))) { await hs.deleteRoutine(r.id); back(); } }); break; }
       case "template-apply": { const n = await hs.applyTemplate(d.tpl, S.childId); render(); toast(n ? t("已套用 {n} 条例行到{name}", { n, name: childName() }) : t("模板里的内容都已经有了")); break; }
 
       /* 课程 */
@@ -273,7 +275,8 @@ function routineFields(){
   return [
     { k: "title", label: "做什么", type: "text", ph: "英文拼读" }, { k: "subject", label: "领域", type: "seg", raw: true, opts: subjectOpts() },
     { k: "child_id", label: "给谁", type: "seg", raw: true, opts: childOpts(true) }, { k: "weekdays", label: "哪几天", type: "multi", raw: true, opts: weekdayOpts() },
-    { k: "start", label: "开始时间（可空）", type: "time" }, { k: "minutes", label: "大约几分钟", type: "num" }, { k: "active", label: "启用", type: "check" }
+    { k: "start", label: "开始时间（可空）", type: "time" }, { k: "minutes", label: "大约几分钟", type: "num" }, { k: "active", label: "启用", type: "check" },
+    { k: "playlist", label: "任务上的「▶ 学歌」按钮用哪个歌单", type: "seg", raw: true, opts: routineOpts() }
   ];
 }
 // 咩咩咩：回车 / 发送按钮提交表单

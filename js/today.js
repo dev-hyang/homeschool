@@ -7,6 +7,7 @@ import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 import { heroSliderHTML } from "./sleepcard.js";
 import { quickHTML } from "./quicklog.js";
+import { learnButton } from "./music.js";
 import { principleHTML } from "./principle.js";
 
 /* ============ 今天页：敬拜 → 经文 → 任务 ============ */
@@ -93,7 +94,7 @@ function tasksHTML(day){
     return `<div class="task ${x.status}"><span class="bar" style="background:${sj.color}"></span>
       <button class="main" data-act="task-edit" data-tid="${esc(x.id)}"><span class="title">${esc(tb(x.title))}</span><span class="meta">${esc(sj.short)}${r && r.start ? ` · ${r.start}` : ""}${minutes ? ` · ${t("{n} 分钟", { n: minutes })}` : ""}${x.child_id == null ? ` · ${t("全家")}` : ""}${x.note ? ` · ${esc(x.note)}` : ""}</span></button>
       <span class="acts">${x.status === "todo"
-        ? `<button class="iconbtn ok" data-act="task-done" data-tid="${esc(x.id)}" aria-label="${t("完成")}">✓</button><button class="iconbtn" data-act="task-move" data-tid="${esc(x.id)}" aria-label="${t("顺延到明天")}">→</button><button class="iconbtn" data-act="task-skip" data-tid="${esc(x.id)}" aria-label="${t("跳过")}">✕</button>`
+        ? `${learnButton(x, r)}<button class="iconbtn ok" data-act="task-done" data-tid="${esc(x.id)}" aria-label="${t("完成")}">✓</button><button class="iconbtn" data-act="task-move" data-tid="${esc(x.id)}" aria-label="${t("顺延到明天")}">→</button><button class="iconbtn" data-act="task-skip" data-tid="${esc(x.id)}" aria-label="${t("跳过")}">✕</button>`
         : `<button class="chip" data-act="task-undo" data-tid="${esc(x.id)}">${x.status === "done" ? t("已完成 · 撤销") : t("已跳过 · 撤销")}</button>`}</span></div>`; };
   return `<h2>${t("今日任务")} · ${esc(childName())}</h2>
   <div class="panel">

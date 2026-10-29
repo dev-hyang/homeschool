@@ -345,7 +345,7 @@ const lastLog = () => S.bt.logs[0] || null;
 
 /* ============ 页面 ============ */
 const LIVE_EXTRA = new Set(["flow-conflict", "flow-emotion", "flow-trend"]);   // 这些页签里也有要等抓取结果的经文
-const BT_TABS = new Set(["flows", "bedtime", "bt-flow", "bt-songs", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
+const BT_TABS = new Set(["flows", "bedtime", "bt-flow", "bt-songs", "res-music", "bt-texts", "bt-readings", "bt-logs", "bt-cases"]);
 const migrateHTML = () => `<div class="alert info">${t("歌单和完成记录需要数据库迁移 019。")}${t("请在 Supabase 执行本地")} <code>supabase/migrations/019_bedtime.sql</code>${t("，然后刷新。")}${t("流程、带领词和经文清单不受影响。")}</div>`;
 const offlineHTML = () => online() ? "" : `<div class="alert info">${t("没连上云端：用的是这台设备上次保存的设置和歌单。可以照常播放，完成记录会在联网后自动补传；改设置要等联网。")}</div>`;
 const h2 = (title, extra = "") => `<h2>${title}${extra ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${extra}</span>` : ""}</h2>`;
@@ -486,7 +486,7 @@ function viewSongs(){
     <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
     <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></span></div></div>`;
-  return `${h2(t("歌单"), list.length ? t("{n} 首", { n: list.length }) : "")}
+  return `${h2(t("全部歌曲"), list.length ? t("{n} 首", { n: list.length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
   <div class="btns" style="margin-top:0"><button class="btn primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="btn" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
   ${songBudgetHTML()}
@@ -513,7 +513,7 @@ function drawSongForm(){
     ${d.lyrics_ai ? `<div class="alert info" style="margin-top:6px">${t("这段歌词是 AI 补的，可能和原唱有出入（公共领域的老诗歌较准，近年的歌常记错）。核对过就勾掉：")} <label class="check" style="margin-left:6px"><input type="checkbox" id="btAiOk">${t("核对过了")}</label></div>` : ""}
     <div class="btns" style="margin-top:8px"><button class="btn" data-act="bt-song-ai">${t("让 AI 补词")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("用咩咩咩里填的 API key（只存本机）。AI 只按歌名和演唱者回忆歌词，当草稿用，父母改完再保存。")}</p></div>
-  <div class="btns"><button class="btn primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="btn" data-act="bt-song-addto">${t("加到流程…")}</button><button class="btn danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
+  <div class="btns"><button class="btn primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="btn" data-act="bt-song-addto">${t("加到流程…")}</button><button class="btn" data-act="mu-song-addto" data-id="${esc(f.id)}">${t("加到歌单…")}</button><button class="btn danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
 }
 function readSongForm(){ const d = songForm.draft; d.title = ($("#btTitle") || {}).value?.trim() || ""; d.artist = ($("#btArtist") || {}).value?.trim() || ""; d.lyrics = ($("#btLyrics") || {}).value?.trim() || ""; const ok = $("#btAiOk"); if (ok && ok.checked) d.lyrics_ai = false; }
 async function aiLyrics(){
