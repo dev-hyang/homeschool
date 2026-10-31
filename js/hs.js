@@ -109,9 +109,15 @@ async function probeVersions(f){ const { error } = await SB.client.from("hs_scri
 async function refreshIfNewDay(){ if (S.hs.loaded && S.hs.day !== today()) await loadAll(); else if (S.hs.loaded) await autoAssignVerses(); }
 
 /* ---- 家庭级设置 ---- */
+/* 每次都整份写 settings：启动时排经文（savePool）和睡前补传（saveCfg）会同时调用，
+   排队按调用顺序写，免得先发的旧快照后到、把后一次的改动盖掉 */
+let settingsQ = Promise.resolve();
 async function saveSettings(patch){
   S.hs.settings = { ...S.hs.settings, ...patch };
-  await run(SB.client.from("hs_family").upsert({ family_id: fid(), settings: S.hs.settings }));
+  const snap = S.hs.settings;
+  const p = settingsQ.then(() => run(SB.client.from("hs_family").upsert({ family_id: fid(), settings: snap })));
+  settingsQ = p.catch(() => {});
+  await p;
 }
 
 /* ---- 读经计划 ---- */
