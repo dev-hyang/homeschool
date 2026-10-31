@@ -2,6 +2,7 @@ import { t } from "./core/i18n.js";
 import { S } from "./core/state.js";
 import { D, dayKey, esc } from "./core/util.js";
 import { weekdayLabel } from "./data/subjects.js";
+import { paged, resetPage } from "./pager.js";
 
 /* ============ 记录的日期筛选 + 列表 / 时间线 ============
    按习惯养成的看法：先看「今天」「本周」，再往回看「近 2 周」「本月」，最后「近 3 个月」「全部」，由近到远。
@@ -24,16 +25,17 @@ function barHTML(key, shown, total){
       <div class="seg rf-view" role="group" aria-label="${t("视图")}"><button type="button" data-act="rf-set" data-key="${esc(key)}" data-view="list" aria-pressed="${s.view === "list"}">${t("列表")}</button><button type="button" data-act="rf-set" data-key="${esc(key)}" data-view="timeline" aria-pressed="${s.view === "timeline"}">${t("时间线")}</button></div></div></div>`;
 }
 /** 筛选条 + 列表或时间线。items 要有 date（YYYY-MM-DD）；rowHTML(item) 返回 .task 行（列表）；tlHTML(item) 返回时间线里的一小块 */
+/* 条数按全量算；只画前一页（js/pager.js），时间线按画出来的那几条分组 */
 function recordsHTML(key, items, rowHTML, tlHTML, empty){
-  const shown = inRange(key, items), s = st(key);
+  const shown = inRange(key, items), s = st(key), pg = paged("rf:" + key, shown);
   let body;
   if (!shown.length) body = `<div class="empty">${empty}</div>`;
   else if (s.view === "timeline") {
-    const groups = []; shown.forEach(x => { const g = groups[groups.length - 1]; if (g && g.date === x.date) g.items.push(x); else groups.push({ date: x.date, items: [x] }); });
+    const groups = []; pg.rows.forEach(x => { const g = groups[groups.length - 1]; if (g && g.date === x.date) g.items.push(x); else groups.push({ date: x.date, items: [x] }); });
     body = `<div class="tl">${groups.map(g => `<div class="tl-day"><div class="tl-head"><b>${esc(dayLabel(g.date))}</b> <span class="small muted">${g.date}</span></div>${g.items.map(x => `<div class="tl-item">${(tlHTML || rowHTML)(x)}</div>`).join("")}</div>`).join("")}</div>`;
-  } else body = `<div class="tasks">${shown.map(rowHTML).join("")}</div>`;
-  return `${barHTML(key, shown.length, items.length)}<div class="panel" style="margin-top:8px">${body}</div>`;
+  } else body = `<div class="tasks">${pg.rows.map(rowHTML).join("")}</div>`;
+  return `${barHTML(key, shown.length, items.length)}<div class="panel" style="margin-top:8px">${body}${pg.more}</div>`;
 }
-function setFilter(key, d){ const s = st(key); if (d.range) s.range = d.range; if (d.view) s.view = d.view; }
+function setFilter(key, d){ const s = st(key); if (d.range) s.range = d.range; if (d.view) s.view = d.view; resetPage("rf:" + key); }
 
 export { recordsHTML, setFilter, inRange, rangeFrom, dayLabel, RANGES };

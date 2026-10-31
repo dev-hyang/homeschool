@@ -27,6 +27,8 @@ const EN = {
   "版本": "Version", "姊妹应用：": "Sister app: ", "关于家庭学堂": "About Family Homeschool", "设计原则": "Principles", "每一页怎么用": "How each page works",
   "学习节奏怎么把握": "Finding the right pace", "安排是否合理，看这些信号": "Signals that the plan fits", "数据与隐私": "Data & privacy",
   "界面语言": "Language", "显示": "Display", "外观": "Appearance", "跟随系统": "System", "浅色": "Light", "深色": "Dark",
+  "继续加载": "Load more", "每页显示": "Items per page", "长列表每次显示几条": "Items shown per page in long lists",
+  "记录、经文卡库、资源库、歌单、学习目标先显示这么多条，往下点「继续加载」再多一页。只存在这台设备上。": "Records, the scripture library, resources, songs and goals show this many at first; tap “Load more” for another page. Saved on this device only.",
   "切换整个界面的文字：页签、标题、按钮、表单、提示。你们自己录入的内容（任务、课时、经文卡、备注……）保持输入时的样子，简体、繁体、英文都可以输入。法规、介绍和课程库这些自带内容，繁体会自动转换，英文界面下暂时保持中文。":
     "Switches every label in the app: tabs, headings, buttons, forms and toasts. Whatever you enter yourself (tasks, lessons, scripture cards, notes…) stays exactly as typed, in any script. Built-in content such as the law pages, the intro and the curriculum library is converted for Traditional Chinese and stays in Chinese in the English UI for now.",
 

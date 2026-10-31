@@ -26,6 +26,7 @@ import { cardAct, isCardAct } from "./sleepcard.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
 import { setFilter } from "./recfilter.js";
+import { morePage, resetPage, setPageSize } from "./pager.js";
 
 /* ============ 事件分发 ============
    表单的标题、字段名、占位都写简体（画的时候翻译）；toast 用 t()。写进数据库的值不翻译。 */
@@ -33,20 +34,20 @@ const close = () => closeSheet();
 const back = (fn) => { close(); fn && fn(); };
 
 // 经文卡库：图表 / 图例点一下 = 套用“类型|状态”筛选并切到列表
-const libDrill = v => { const [kind, st] = String(v).split("|"); Object.assign(S.scrFilter, { kind: kind || "all", st: st || "active", view: "list" }); openScriptures(); };
+const libDrill = v => { const [kind, st] = String(v).split("|"); Object.assign(S.scrFilter, { kind: kind || "all", st: st || "active", view: "list" }); resetPage("lib"); openScriptures(); };
 document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest && ev.target.closest("svg [data-libf]")) { ev.preventDefault(); libDrill(ev.target.closest("[data-libf]").dataset.libf); } });
 // 卡库的下拉 / 搜索：类型和每批设置整页重画（图表跟着变），状态 / 排序 / 搜索只刷新列表
 document.addEventListener("change", async ev => {
   if (await bkChange(ev)) return;   // 备份设置 / 选了备份文件
   if (btChange(ev)) return;         // 睡前安然：选了音频文件、播放页的音量 / 备注
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
-  if (id === "libKind") { S.scrFilter.kind = v; openScriptures(); }
-  else if (id === "libSt") { S.scrFilter.st = v; renderLibList(); }
-  else if (id === "libSort") { S.scrFilter.sort = v; renderLibList(); }
+  if (id === "libKind") { S.scrFilter.kind = v; resetPage("lib"); openScriptures(); }
+  else if (id === "libSt") { S.scrFilter.st = v; resetPage("lib"); renderLibList(); }
+  else if (id === "libSort") { S.scrFilter.sort = v; resetPage("lib"); renderLibList(); }
   else if (id === "poolBatch") { await hs.saveSettings({ verseBatch: +v }); toast(t("每批 {n} 节，下一批起生效", { n: +v })); openScriptures(); }
   else if (id === "poolCat") { await hs.saveSettings({ catShare: +v }); toast(t("问答占 {n}%，下一批起生效", { n: +v })); openScriptures(); }
 });
-document.addEventListener("input", ev => { if (ev.target && ev.target.id === "libQ") { S.scrFilter.q = ev.target.value; renderLibList(); } });
+document.addEventListener("input", ev => { if (ev.target && ev.target.id === "libQ") { S.scrFilter.q = ev.target.value; resetPage("lib"); renderLibList(); } });
 
 document.addEventListener("click", async ev => {
   if (!$("#kids").hidden && !ev.target.closest("#bname")) toggleKids(false);
@@ -59,7 +60,9 @@ document.addEventListener("click", async ev => {
     // data-from：子页记住从哪个页签进来的（面包屑）；没带 data-from 的入口（比如资源页的行）清掉旧记忆，路径回到默认层级。面包屑和迷你栏里的返回不清
     if (d.from) (S.from ||= {})[d.tab] = d.from; else if (S.from && !btn.classList.contains("crumb-link") && !btn.closest(".minibar")) delete S.from[d.tab];
     S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
-  if (d.lv) { S.scrFilter.view = d.lv; openScriptures(); return; }
+  if (d.pgMore) { morePage(d.pgMore); if (d.pgMore === "lib") renderLibList(); else render(); return; }   // 长列表的「继续加载」（js/pager.js）；卡库只刷新列表块
+  if (d.pageSize) { setPageSize(d.pageSize); openSettings(); return; }
+  if (d.lv) { S.scrFilter.view = d.lv; resetPage("lib"); openScriptures(); return; }
   if (d.lm) { S.scrFilter.menu = S.scrFilter.menu === d.lm ? "" : d.lm; openScriptures(); return; }   // 经文卡库抬头的“添加 / 设置”面板，一次开一个
   if (d.tf) { S.todayFilter = d.tf; render(); return; }
   if (d.babylog) { try { localStorage.setItem("xiaoyueliang.v1.child", d.babylog); } catch (e) {} location.href = BABY_LOG_URL; return; }   // 1 岁以下的宝宝：切回小月亮，并让它选中这个孩子
@@ -74,7 +77,7 @@ document.addEventListener("click", async ev => {
   if (d.plan) { await hs.choosePlan(d.plan); openSettings(); toast(t("已切换读经计划")); return; }
   if (d.state) { setLawState(d.state); render(); return; }
   if (d.subject) { S.courseSubject = d.subject; render(); return; }
-  if (d.rf) { S.resFilter[d.rf] = d.v; render(); return; }
+  if (d.rf) { S.resFilter[d.rf] = d.v; resetPage("res"); render(); return; }
   if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
   if (d.rday !== undefined) { S.routineDay = d.rday === "week" ? "week" : +d.rday; render(); return; }

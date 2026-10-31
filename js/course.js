@@ -5,6 +5,7 @@ import { GOAL_TEMPLATES, SCOPE_PREK } from "./data/seeds.js";
 import { SUBJECTS, subject } from "./data/subjects.js";
 import { nextInChain, unitDone, unitLessons, unitPace, unitProgress, yearInfo } from "./hs.js";
 import { mrow } from "./me.js";
+import { paged } from "./pager.js";
 
 /* ============ 课程：入口页（学年一行 + 三个入口带摘要）→ 子页：单元与课时 / 年度范围 / 学习目标 ============
    单元卡默认折叠：只显示进度和下一节没做的课时，点“展开”看全部。 */
@@ -107,12 +108,12 @@ function viewScope(){
 /* 子页：学习目标 */
 function viewGoals(){
   if (!S.hs.phase2) return missing();
-  const cid = S.childId, goals = myGoals(cid);
+  const cid = S.childId, goals = myGoals(cid), pg = paged("goals", goals);
   return `<h2>${t("学习目标")} · ${esc(childName())}</h2>
   <div class="panel">
-    ${goals.length ? goals.map(g => `<div class="task ${g.achieved_on ? "done" : ""}"><span class="bar" style="background:${subject(g.area).color}"></span>
+    ${goals.length ? pg.rows.map(g => `<div class="task ${g.achieved_on ? "done" : ""}"><span class="bar" style="background:${subject(g.area).color}"></span>
       <button class="main" data-act="goal-edit" data-gid="${esc(g.id)}"><span class="title">${esc(tb(g.title))}</span><span class="meta">${esc(subject(g.area).short)}${g.achieved_on ? ` · ${t("达成于 {d}", { d: esc(g.achieved_on) })}` : g.target_on ? ` · ${t("目标 {d}", { d: esc(g.target_on) })}` : ""}${g.evidence ? ` · ${esc(tb(g.evidence))}` : ""}</span></button>
-      <span class="acts"><button class="iconbtn ${g.achieved_on ? "" : "ok"}" data-act="goal-toggle" data-gid="${esc(g.id)}" aria-label="${g.achieved_on ? t("撤销达成") : t("标记达成")}">${g.achieved_on ? "↺" : "✓"}</button></span></div>`).join("")
+      <span class="acts"><button class="iconbtn ${g.achieved_on ? "" : "ok"}" data-act="goal-toggle" data-gid="${esc(g.id)}" aria-label="${g.achieved_on ? t("撤销达成") : t("标记达成")}">${g.achieved_on ? "↺" : "✓"}</button></span></div>`).join("") + pg.more
       : `<p class="muted">${t("还没有目标。学前阶段用清单而不是考试。")}</p>`}
     <div class="btns" style="margin-top:8px"><button class="btn" data-act="goal-add">＋ ${t("目标")}</button>${goals.length ? "" : Object.entries(GOAL_TEMPLATES).map(([k, g]) => `<button class="btn" data-act="goal-template" data-tpl="${k}">${t("套用：")}${tc(g.name)}</button>`).join("")}</div>
   </div>`;

@@ -8,6 +8,7 @@ import { render } from "./views.js";
 import { mrow } from "./me.js";
 import { musicEntry } from "./music.js";
 import { learnedCount, poolOf } from "./hs.js";
+import { paged } from "./pager.js";
 
 /* ============ 资源：入口页（日常点子 / 资源库 / 参考来源 三个入口带摘要）→ 子页 ============ */
 const missing = () => `<div class="empty">${t("资源库需要数据库迁移 004。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/004_homeschool_phase2_4.sql</code>${t("，然后刷新。")}</div>`;
@@ -101,6 +102,7 @@ function viewLibrary(){
   if (!S.hs.phase2) return missing();
   const f = S.resFilter;
   const list = S.hs.resources.filter(r => (!f.subject || r.subject === f.subject) && (!f.lang || r.lang === f.lang) && (!f.type || r.type === f.type)).sort((a, b) => a.sort - b.sort);
+  const pg = paged("res", list);   // 只画前一页，筛选一换回到第一页（js/events.js）
   const chip = (attr, val, label, cur) => `<button class="chip" data-rf="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
   const age = r => r.age_min != null || r.age_max != null ? ` · ${r.age_min ?? ""}${r.age_min != null && r.age_max != null ? "–" : ""}${r.age_max ?? ""} ${t("岁")}${r.age_min != null && r.age_max == null ? t("起") : ""}` : "";
   const row = r => `<div class="res"><span class="bar" style="background:${r.subject ? subject(r.subject).color : "var(--line)"}"></span>
@@ -111,7 +113,7 @@ function viewLibrary(){
   return `<h2>${t("资源库")}</h2>
   <div class="chips" role="group" aria-label="${t("领域")}">${chip("subject", "", t("全部"), f.subject)}${Object.keys(SUBJECTS).map(k => chip("subject", k, SUBJECTS[k].short, f.subject)).join("")}</div>
   <div class="chips" role="group" aria-label="${t("语言与类型")}" style="margin-top:0">${chip("lang", "", t("所有语言"), f.lang)}${Object.entries(LANGS).map(([k, l]) => chip("lang", k, t(l), f.lang)).join("")}<span style="flex-basis:100%"></span>${chip("type", "", t("所有类型"), f.type)}${Object.entries(TYPES).map(([k, l]) => chip("type", k, t(l), f.type)).join("")}</div>
-  <div class="panel">${list.length ? list.map(row).join("") : `<p class="muted">${S.hs.resources.length ? t("没有符合筛选的资源。") : t("资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。")}</p>`}
+  <div class="panel">${list.length ? pg.rows.map(row).join("") + pg.more : `<p class="muted">${S.hs.resources.length ? t("没有符合筛选的资源。") : t("资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。")}</p>`}
     <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="res-add">＋ ${t("资源")}</button><button class="btn" data-act="seed-resources">${S.hs.resources.length ? t("补充导入起步资源") : t("导入起步资源")}</button></div></div>
   <p class="small muted" style="margin-top:8px">${t("资源属于全家。链接随时会失效，发现了就点编辑改掉。")}</p>`;
 }

@@ -1,4 +1,5 @@
 import { SB } from "./core/auth.js";
+import { selectAll } from "./core/paged.js";
 import { t, tc } from "./core/i18n.js";
 import { S, ageMonths, ageText } from "./core/state.js";
 import { D, dayKey, esc, toast } from "./core/util.js";
@@ -14,13 +15,18 @@ import { render } from "./views.js";
    ① 冲突管理的每张状况卡（小月亮里的表现）；② 趋势与分析页的图表；③ 把摘要交给咩咩咩（askAbout）：
    状况卡的「问一问咩咩咩」、趋势页的「让咩咩咩分析」、定制流程页的直接入口，用的是同一个摘要（flowContext），页面上「会发送什么」能看原文。
    摘要只有统计和你写的处理办法 / 起因，不含孩子姓名和备注。小月亮的记录只读，不写回。 */
-const B = (S.cf = S.cf || { loaded: false, loading: false, rows: [], ts: 0, err: "" });
+const B = (S.cf = S.cf || { loaded: false, loading: false, rows: [], ts: 0, err: "", fresh: 0, key: "", gen: 0 });
 const fid = () => S.family && S.family.id;
 
 /* ---- 小月亮的记录（只读）：情绪行为、社交、睡眠、情绪、自律、活动（屏幕），近 61 天 ----
    默认自动同步：每次打开带「从小月亮重新读取」按钮的页面（冲突管理、情绪管理、趋势与分析），都在后台先拉一次；
    拉的时候按钮是灰色的、点不了；拉完提示「已同步最新小月亮记录」。一直停在这页、小月亮那边又有新记录时，可以再点按钮手动拉。 */
 const PULL_TABS = new Set(["flow-conflict", "flow-emotion", "flow-trend"]);
+const DAYS = 61, MAX_ROWS = 4000;
+/* 新鲜度：60 秒内拉过、家庭和天数都没变，在这几页之间来回切换就直接用上次的，不再重拉；
+   小月亮的记录有变动（实时推送 entries）或这里回写了冲突记录时，bedtime.js 把 S.cf.fresh 清零、S.cf.gen 加一，下次进来照常拉。手动按钮总是重拉。 */
+const FRESH_MS = 60e3;
+const isFresh = () => B.loaded && B.fresh && Date.now() - B.fresh < FRESH_MS && B.key === `${fid()}|${DAYS}`;
 const canPull = () => !!(SB.client && fid() && S.hs.loaded);
 let enteredTab = null;
 async function pull({ quiet = false, renderNow = true } = {}){
@@ -28,18 +34,21 @@ async function pull({ quiet = false, renderNow = true } = {}){
   B.loading = true; B.err = "";
   if (renderNow && PULL_TABS.has(S.tab)) render();   // 按钮立刻变灰
   let data = null, error = null;
-  try { ({ data, error } = await SB.client.from("entries").select("id,type,ts,data").eq("family_id", fid()).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity"]).eq("deleted", false).gte("ts", Date.now() - 61 * D).order("ts", { ascending: false }).limit(4000)); }
+  const f = fid(), since = Date.now() - DAYS * D, gen = B.gen || 0;
+  // 一次最多回 1000 行：按 1000 行一页读，最多 4000 行；ts 相同时按 id 排，翻页不重不漏（js/core/paged.js）
+  try { ({ data, error } = await selectAll(() => SB.client.from("entries").select("id,type,ts,data").eq("family_id", f).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity"]).eq("deleted", false).gte("ts", since).order("ts", { ascending: false }).order("id"), MAX_ROWS)); }
   catch (e) { error = { message: (e && e.message) || "network" }; }   // 网络异常也要把按钮放开
   B.loading = false; B.ts = Date.now(); B.loaded = !error; B.err = error ? (error.message || "error") : "";
+  B.fresh = error || (B.gen || 0) !== gen ? 0 : B.ts; B.key = `${f}|${DAYS}`;   // 拉的途中被清过（gen 变了）就不算新鲜
   if (!error) B.rows = (data || []).map(r => ({ ...(r.data || {}), id: r.id, type: r.type, ts: r.ts }));
   if (PULL_TABS.has(S.tab)) render();
   if (!quiet) toast(error ? t("读取小月亮失败：") + String(B.err).slice(0, 80) : t("已同步最新小月亮记录（{n} 条）", { n: (data || []).length }));
 }
-/* views.js 每次画页面之前调：刚进入这几页就自动拉一次；离开这几页再进来会再拉 */
+/* views.js 每次画页面之前调：刚进入这几页就自动拉一次；离开这几页再进来会再拉（60 秒内拉过的不重拉，见 isFresh） */
 function beforeRender(tab){
   if (!PULL_TABS.has(tab)) { enteredTab = null; return; }
   if (enteredTab === tab || !canPull()) return;
-  enteredTab = tab; pull({ renderNow: false });
+  enteredTab = tab; if (!isFresh()) pull({ renderNow: false });
 }
 const loadBaby = () => pull({ quiet: true });
 const hhmm = ts => { const d = new Date(ts); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); };

@@ -11,6 +11,7 @@ import { SOURCES, SOURCE_FROM, parseRef, refKey } from "./data/bible.js";
 import { CC_PARTS, VERSE_SETS } from "./data/verse-sets.js";
 import { render } from "./views.js";
 import { usageHTML } from "./usage.js";
+import { pageSizeHTML } from "./pager.js";
 
 /* ============ 整页表单（替换内容区，和小月亮一样的交互） ============ */
 /* 关掉后要回到打开前的位置。坑：pushState 必须在隐藏页面之前——页面一隐藏，文档高度归零，浏览器给旧历史条目
@@ -216,6 +217,9 @@ function openSettings(){
 
   <h2>${t("显示")}</h2>
   <div class="seg" role="group" aria-label="${t("外观")}">${[["", t("跟随系统")], ["light", t("浅色")], ["dark", t("深色")]].map(([v, l]) => `<button data-theme-set="${v}" aria-pressed="${themePref() === v}">${esc(l)}</button>`).join("")}</div>
+  <p class="small" style="margin:14px 0 0">${t("长列表每次显示几条")}</p>
+  ${pageSizeHTML()}
+  <p class="small muted">${t("记录、经文卡库、资源库、歌单、学习目标先显示这么多条，往下点「继续加载」再多一页。只存在这台设备上。")}</p>
   <p class="small muted" style="margin-top:24px">${t("版本")} ${APP_VERSION}</p>`;
   showSheet();
 }

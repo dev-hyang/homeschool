@@ -7,6 +7,7 @@ import { INTERVALS, fetchVersions, poolCfg, poolOf, progressOf } from "./hs.js";
 import { closeSheet, head, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
+import { paged } from "./pager.js";
 
 /* ============ 经文卡库：总览（图表）+ 列表（按类型分层）============
    筛选集成在一行：类型 / 状态 / 排序 / 搜索，都是下拉和输入框，没有标签条。
@@ -122,11 +123,14 @@ function listHTML(){
   const cid = S.childId, day = dayKey(Date.now()), f = S.scrFilter, name = esc(childName()), pool = poolOf(cid);
   const list = sorted(S.hs.scriptures.filter(s => matches(s, cid, day, f)), cid, f.sort);
   if (!list.length) return { n: 0, html: `<div class="empty">${f.st === "active" && f.kind === "all" && !f.q ? t("{name}现在没有在背的经文。到“没开始”里挑一张开始背，或等 8 点自动拉一批。", { name }) : t("这个筛选下没有卡。")}</div>` };
-  const html = KINDS.map(([k, kn]) => {
-    const own = list.filter(s => kindOf(s) === k); if (!own.length) return "";
+  // 分页按页面上的先后（类型分层 → 层内排序）连成一串算：只画前一页，后面的层等「继续加载」再出来；层头的张数和状态统计仍按全量
+  const groups = KINDS.map(([k, kn]) => ({ kn, own: list.filter(s => kindOf(s) === k) })).filter(g => g.own.length);
+  const pg = paged("lib", groups.flatMap(g => g.own)), vis = new Set(pg.rows);
+  const html = groups.map(({ kn, own }) => {
+    const rows = own.filter(s => vis.has(s)); if (!rows.length) return "";
     const c = Object.fromEntries(Object.keys(ST).map(x => [x, own.filter(s => statusOf(s, cid) === x).length]));
-    return `<details class="lib-group" open><summary><b>${t(kn)}</b> <span class="small muted">${t("{n} 张", { n: own.length })} · ${Object.keys(ST).filter(x => c[x]).map(x => `${t(ST[x].name)} ${c[x]}`).join(" · ")}</span></summary>${own.map(s => cardHTML(s, cid, day, name, pool)).join("")}</details>`;
-  }).join("");
+    return `<details class="lib-group" open><summary><b>${t(kn)}</b> <span class="small muted">${t("{n} 张", { n: own.length })} · ${Object.keys(ST).filter(x => c[x]).map(x => `${t(ST[x].name)} ${c[x]}`).join(" · ")}</span></summary>${rows.map(s => cardHTML(s, cid, day, name, pool)).join("")}</details>`;
+  }).join("") + pg.more;
   return { n: list.length, html };
 }
 /** 只刷新列表块（搜索框打字、排序、状态下拉用，不丢输入焦点） */

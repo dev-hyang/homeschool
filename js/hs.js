@@ -9,7 +9,8 @@ import { stageOf } from "./core/state.js";
 import { startOfDay } from "./core/util.js";
 import { DEFAULT_EN, DEFAULT_ZH } from "./data/versions.js";
 import { t, t as tr } from "./core/i18n.js";
-import { attachBedtimeRealtime, loadBedtime } from "./bedtime.js";
+import { attachBedtimeRealtime, fetchBedtime, loadBedtime } from "./bedtime.js";
+import { selectAll } from "./core/paged.js";
 import { biRef, canFetch, fetchPassage, parseRef, refKey } from "./data/bible.js";
 import { CC_PARTS, VERSE_SETS, fetchChildrensCatechism, parseCatechism } from "./data/verse-sets.js";
 import { CC_ZH, CC_ZH_PENDING, CC_ZH_REVIEWED } from "./data/cc-zh.js";
@@ -27,42 +28,52 @@ const missingTable = err => err && (err.code === "42P01" || err.code === "PGRST2
 async function run(p, msg){ const { data, error } = await p; if (error) { console.error(error); toast(t(msg || "云端保存失败") + (error.message ? "：" + String(error.message).slice(0, 80) : "")); throw error; } return data; }
 const put = (list, row, key = "id") => { const i = list.findIndex(x => x[key] === row[key]); if (i >= 0) list[i] = row; else list.push(row); return row; };
 
+/* 一轮并发读完：今天页的表、阶段 2–4 的表、睡前安然的表同时发（原来是三批依次等）。
+   缺列探测只在表是空的时候才要，也并发做。之后补今天的任务、8 点经文、整理睡前记录这三件互不依赖，同时跑。
+   经文卡、背诵进度、课时可能超过 1000 行：按 1000 行一页读到底（js/core/paged.js），排序列相同时用主键兜底 */
 async function loadAll(){
   const f = fid(), day = today(), from = dayKey(Date.now() - 7 * D);
-  const rs = await Promise.all([
+  const bt = fetchBedtime(); if (bt) bt.catch(() => {});   // 睡前安然（迁移 019）：先发出去，结果在 loadBedtime 里用；hs 表出错提前返回时不留未处理的 rejection
+  const q1 = Promise.all([
     SB.client.from("hs_family").select("settings").eq("family_id", f).maybeSingle(),
-    SB.client.from("hs_scriptures").select("*").eq("family_id", f).order("sort"),
-    SB.client.from("hs_scripture_progress").select("*").eq("family_id", f),
+    selectAll(() => SB.client.from("hs_scriptures").select("*").eq("family_id", f).order("sort").order("id")),
+    selectAll(() => SB.client.from("hs_scripture_progress").select("*").eq("family_id", f).order("scripture_id").order("child_id")),
     SB.client.from("hs_routines").select("*").eq("family_id", f).order("sort"),
     SB.client.from("hs_tasks").select("*").eq("family_id", f).gte("date", from).order("date"),
     SB.client.from("hs_devotions").select("*").eq("family_id", f).eq("date", day).maybeSingle()
   ]);
-  const bad = rs.find(r => r.error);
-  if (bad) { console.error(bad.error); S.hs.loaded = false; S.hs.error = missingTable(bad.error) ? "missing" : "error"; return; }
-  const [fam, scr, prog, rout, tasks, devo] = rs.map(r => r.data);
-  // 迁移 005 加的译本列：任一行带该字段即视为已迁移；没有卡时写一次探测
-  const versions = (scr && scr.length) ? ("version_zh" in scr[0]) : await probeVersions(f);
-  // 迁移 011 加的背诵记录列：同样的探测方式
-  const reviewLog = (prog && prog.length) ? ("last_on" in prog[0]) : !(await SB.client.from("hs_scripture_progress").select("last_on").eq("family_id", f).limit(1)).error;
-  S.hs = { ...S.hs, loaded: true, error: null, day, versions, reviewLog, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
   // 阶段 2–4 的表（迁移 004）；还没建时这些页面单独提示，不影响今天页
-  const rs2 = await Promise.all([
+  const q2 = Promise.all([
     SB.client.from("hs_units").select("*").eq("family_id", f).order("sort"),
-    SB.client.from("hs_lessons").select("*").eq("family_id", f).order("sort"),
+    selectAll(() => SB.client.from("hs_lessons").select("*").eq("family_id", f).order("sort").order("id")),
     SB.client.from("hs_goals").select("*").eq("family_id", f).order("sort"),
     SB.client.from("hs_resources").select("*").eq("family_id", f).order("sort")
   ]);
-  if (rs2.some(r => r.error)) { S.hs.phase2 = false; }
-  else {
-    const [u, l, g, r] = rs2.map(x => x.data || []);
+  q2.catch(() => {});
+  const rs = await q1;
+  const bad = rs.find(r => r.error);
+  if (bad) { console.error(bad.error); S.hs.loaded = false; S.hs.error = missingTable(bad.error) ? "missing" : "error"; return; }
+  const [fam, scr, prog, rout, tasks, devo] = rs.map(r => r.data);
+  const rs2 = await q2, phase2 = !rs2.some(r => r.error);
+  const [u, l, g, r] = rs2.map(x => x.data || []);
+  const probe = (table, col) => SB.client.from(table).select(col).eq("family_id", f).limit(1).then(x => !x.error);
+  const [versions, reviewLog, pacing, tplCol] = await Promise.all([
+    // 迁移 005 加的译本列：任一行带该字段即视为已迁移；没有卡时写一次探测
+    (scr && scr.length) ? ("version_zh" in scr[0]) : probeVersions(f),
+    // 迁移 011 加的背诵记录列：同样的探测方式
+    (prog && prog.length) ? ("last_on" in prog[0]) : probe("hs_scripture_progress", "last_on"),
     // 迁移 006 加的节奏列：任一单元带该字段即视为已迁移；没有单元时探测一次
-    const pacing = u.length ? ("weeks" in u[0]) : !(await SB.client.from("hs_units").select("weeks").eq("family_id", f).limit(1)).error;
-    const tplCol = u.length ? ("tpl" in u[0]) : !(await SB.client.from("hs_units").select("tpl").eq("family_id", f).limit(1)).error; // 迁移 008
-    S.hs = { ...S.hs, phase2: true, pacing, tplCol, units: u, lessons: l, goals: g, resources: r };
-  }
-  await ensureTodayTasks();
-  await autoAssignVerses();
-  await loadBedtime();   // 睡前安然：歌单与完成记录（迁移 019；表没建时只提示）
+    !phase2 ? undefined : u.length ? ("weeks" in u[0]) : probe("hs_units", "weeks"),
+    !phase2 ? undefined : u.length ? ("tpl" in u[0]) : probe("hs_units", "tpl")   // 迁移 008
+  ]);
+  S.hs = { ...S.hs, loaded: true, error: null, day, versions, reviewLog, settings: (fam && fam.settings) || {}, scriptures: scr || [], progress: prog || [], routines: rout || [], tasks: tasks || [], devotion: devo || null, ranges: {} };
+  if (!phase2) { S.hs.phase2 = false; }
+  else S.hs = { ...S.hs, phase2: true, pacing, tplCol, units: u, lessons: l, goals: g, resources: r };
+  await Promise.all([
+    ensureTodayTasks(),
+    autoAssignVerses(),
+    loadBedtime(bt)   // 睡前安然：歌单与完成记录（迁移 019；表没建时只提示）；补传离线记录要用家庭设置，所以等 S.hs 就位
+  ]);
 }
 
 /* ---- 学年：开学日、周数、学期长度、假期（settings.year）---- */
@@ -361,7 +372,7 @@ async function pullBatch(cid, want, except = new Set()){
   const cats = free().filter(isCatechism);
   const nVerse = Math.min(want - Math.min(nCatWant, cats.length), verses.length), nCat = Math.min(cats.length, want - nVerse);
   const picked = [...shuffle(verses).slice(0, nVerse), ...cats.slice(0, nCat)];
-  for (const s of picked) await setProgress(s.id, cid, "start");
+  await Promise.all(picked.map(s => setProgress(s.id, cid, "start")));   // 每张卡各自一行，同时写
   return picked;
 }
 /** 本批会背完了（没有在学的卡）就拉下一批；今天页勾“会背了”之后、每天 8 点都会调用 */
@@ -378,7 +389,7 @@ async function swapBatch(cid){
   const cfg = poolCfg(), want = Math.max(untouched.length, cfg.batch - keep.length);
   const picked = await pullBatch(cid, want, new Set(untouched.map(x => x.s.id)));
   if (!picked.length) return 0;
-  for (const x of untouched) await setProgress(x.s.id, cid, "reset");
+  await Promise.all(untouched.map(x => setProgress(x.s.id, cid, "reset")));
   await savePool(cid, [...keep.map(x => x.s.id), ...picked.map(s => s.id)]);
   return picked.length;
 }
@@ -394,8 +405,10 @@ async function deleteRoutine(id){
   await run(SB.client.from("hs_routines").delete().eq("family_id", fid()).eq("id", id));
   S.hs.routines = S.hs.routines.filter(x => x.id !== id);
   // today's not-yet-done tasks generated from it go too
-  const gone = S.hs.tasks.filter(t => t.routine_id === id && t.date === today() && t.status === "todo");
-  for (const t of gone) await deleteTask(t.id);
+  const gone = S.hs.tasks.filter(t => t.routine_id === id && t.date === today() && t.status === "todo").map(t => t.id);
+  if (!gone.length) return;
+  await run(SB.client.from("hs_tasks").delete().eq("family_id", fid()).in("id", gone));   // 一次删完（原来一条一请求）
+  S.hs.tasks = S.hs.tasks.filter(x => !gone.includes(x.id));
 }
 async function applyTemplate(key, childId){
   const tpl = ROUTINE_TEMPLATES[key]; if (!tpl) return 0;
@@ -586,9 +599,9 @@ async function ensureMonth(ym){
   S.hs.ranges[ym] = { loading: true, loaded: false, tasks: [], devotions: [] };
   const { from, to } = monthRange(ym), f = fid();
   const [t, d, b] = await Promise.all([
-    SB.client.from("hs_tasks").select("*").eq("family_id", f).gte("date", from).lte("date", to),
+    selectAll(() => SB.client.from("hs_tasks").select("*").eq("family_id", f).gte("date", from).lte("date", to).order("date").order("id")),   // 孩子多、周例行多时一个月能过 1000 行
     SB.client.from("hs_devotions").select("*").eq("family_id", f).gte("date", from).lte("date", to),
-    SB.client.from("hs_bedtime_logs").select("*").eq("family_id", f).gte("date", from).lte("date", to)   // 表还没建时 error，当空
+    selectAll(() => SB.client.from("hs_bedtime_logs").select("*").eq("family_id", f).gte("date", from).lte("date", to).order("date").order("id"))   // 表还没建时 error，当空
   ]);
   S.hs.ranges[ym] = { loading: false, loaded: true, tasks: t.data || [], devotions: d.data || [], bedtime: b.error ? [] : (b.data || []) };
   // keep today's in-memory tasks authoritative

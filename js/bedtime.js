@@ -1,5 +1,6 @@
 import { aiReady, askText } from "./ai.js";
 import { SB, memberName } from "./core/auth.js";
+import { selectAll } from "./core/paged.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t, tc, tb, locale } from "./core/i18n.js";
 import { S } from "./core/state.js";
@@ -10,6 +11,7 @@ import { fetchVersions, saveSettings } from "./hs.js";
 import { mrow } from "./me.js";
 import { CONFLICTS, SIDES } from "./data/flows.js";
 import { recordsHTML } from "./recfilter.js";
+import { paged } from "./pager.js";
 import { initSongRows } from "./songs-ui.js";
 import { EMOTIONS } from "./data/emotions.js";
 import { angerHTML } from "./principle.js";
@@ -195,14 +197,20 @@ function songBudgetHTML(){
 }
 const fmtSize = b => b ? (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB") : "";
 
-/* ---- 读取（loadAll 末尾调用）---- */
-async function loadBedtime(){
-  const f = fid(); if (!f) return;
-  const [sg, lg, ev] = await Promise.all([
+/* ---- 读取 ----
+   fetchBedtime 只发查询（loadAll 一开始就和其他表一起发）；loadBedtime 等结果、整理、补传离线记录（要用家庭设置，所以在 S.hs 读完之后）。
+   完成记录 120 天、状况记录 180 天可能超过 1000 行：按 1000 行一页读到底（js/core/paged.js），同一天的按 id 排，翻页不重不漏。 */
+function fetchBedtime(){
+  const f = fid(); if (!f) return null;
+  return Promise.all([
     SB.client.from("hs_bedtime_songs").select("*").eq("family_id", f).order("sort"),
-    SB.client.from("hs_bedtime_logs").select("*").eq("family_id", f).gte("date", dayKey(Date.now() - 120 * D)).order("date", { ascending: false }),
-    SB.client.from("hs_bedtime_events").select("*").eq("family_id", f).gte("date", dayKey(Date.now() - 180 * D)).order("date", { ascending: false })
+    selectAll(() => SB.client.from("hs_bedtime_logs").select("*").eq("family_id", f).gte("date", dayKey(Date.now() - 120 * D)).order("date", { ascending: false }).order("id")),
+    selectAll(() => SB.client.from("hs_bedtime_events").select("*").eq("family_id", f).gte("date", dayKey(Date.now() - 180 * D)).order("date", { ascending: false }).order("id"))
   ]);
+}
+async function loadBedtime(fetching = fetchBedtime()){
+  const f = fid(); if (!f || !fetching) return;
+  const [sg, lg, ev] = await fetching;
   const bad = (sg.error && sg) || (lg.error && lg) || (ev.error && ev);
   if (bad) { console.error(bad.error); S.bt = { ...S.bt, loaded: false, missing: missingTable(bad.error), error: bad.error.message || "error", songs: [], logs: [], events: [] }; writeCache(); return; }
   S.bt = { ...S.bt, loaded: true, missing: false, error: null, songs: sg.data || [], logs: lg.data || [], events: ev.data || [] }; sortEvents();
@@ -214,21 +222,32 @@ async function loadBedtime(){
   prefetchTonight().catch(() => {});
 }
 /* 离线时排队的完成记录，联网后补传 */
+/* 各条同时传：每条照旧单独成败，传不上的留在队列里下次再补。离线时改过几次的同一条只传最后一版（结果和依次传一样）。
+   回写小月亮也同时做；只有「开始睡」（sleepFromLog）按原来的顺序一条条来：它要先看小月亮里这个孩子是不是已经在睡，同时写会重复 */
+const lastById = rows => [...new Map(rows.map(r => [r.id, r])).values()];
+const upsertEach = (table, rows) => Promise.all(lastById(rows).map(row => run(SB.client.from(table).upsert({ ...withSides(row), family_id: fid() }).select().single()).then(saved => ({ saved }), () => ({ row }))));
 async function flushPending(){
-  if (!S.bt.pending.length || !online()) return;
-  const left = [], before = S.bt.pending.length;
-  for (const row of S.bt.pending) { try { const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.logs, saved); await mirrorLog(saved); await sleepFromLog(saved).catch(() => {}); } catch (e) { left.push(row); } }
+  if (!S.bt.pending.length && !S.bt.pendingEv.length || !online()) return;
+  const before = S.bt.pending.length, res = before ? await upsertEach("hs_bedtime_logs", S.bt.pending) : [];
+  const left = res.filter(r => r.row).map(r => r.row), saved = res.filter(r => r.saved).map(r => r.saved);
+  saved.forEach(s => put(S.bt.logs, s));
+  await Promise.all(saved.map(s => mirrorLog(s).catch(e => console.error(e))));
+  for (const s of saved) await sleepFromLog(s).catch(() => {});
   S.bt.pending = left; saveJSON(PEND_KEY, left); sortLogs();
-  const leftEv = [];
-  for (const row of S.bt.pendingEv) { try { const saved = await run(SB.client.from("hs_bedtime_events").upsert({ ...withSides(row), family_id: fid() }).select().single()); put(S.bt.events, saved); await mirrorEvent(saved); } catch (e) { leftEv.push(row); } }
-  const beforeEv = S.bt.pendingEv.length; S.bt.pendingEv = leftEv; saveJSON(PENDEV_KEY, leftEv); sortEvents();
-  if (left.length < before || leftEv.length < beforeEv) toast(t("离线时的睡前记录已补传"));
+  const beforeEv = S.bt.pendingEv.length, resEv = beforeEv ? await upsertEach("hs_bedtime_events", S.bt.pendingEv) : [];
+  const leftEv = resEv.filter(r => r.row).map(r => r.row), savedEv = resEv.filter(r => r.saved).map(r => r.saved);
+  savedEv.forEach(s => put(S.bt.events, s));
+  await Promise.all(savedEv.map(s => mirrorEvent(s).catch(e => console.error(e))));
+  S.bt.pendingEv = leftEv; saveJSON(PENDEV_KEY, leftEv); sortEvents();
+  if (saved.length || savedEv.length) toast(t("离线时的睡前记录已补传"));
 }
 const sortEvents = () => S.bt.events.sort((a, b) => (b.date + (b.updated_at || "")).localeCompare(a.date + (a.updated_at || "")));
 const sortLogs = () => S.bt.logs.sort((a, b) => (b.date + (b.started_at || "")).localeCompare(a.date + (a.started_at || "")));
+/* 小月亮的记录变了：趋势 / 冲突 / 情绪页下次进来要重拉（js/flows-trend.js 的新鲜度缓存；这里不 import 它，免得循环引用） */
+const staleBaby = () => { if (S.cf) { S.cf.fresh = 0; S.cf.gen = (S.cf.gen || 0) + 1; } };
 function attachBedtimeRealtime(channel, onChange){
   channel
-    .on("postgres_changes", { event: "*", schema: "public", table: "entries", filter: "family_id=eq." + fid() }, onEntriesChange)
+    .on("postgres_changes", { event: "*", schema: "public", table: "entries", filter: "family_id=eq." + fid() }, payload => { staleBaby(); onEntriesChange(payload); })
     .on("postgres_changes", { event: "*", schema: "public", table: "hs_bedtime_songs", filter: "family_id=eq." + fid() }, payload => {
       if (payload.eventType === "DELETE") { const id = payload.old && payload.old.id; if (id) S.bt.songs = S.bt.songs.filter(s => s.id !== id); }
       else if (payload.new && payload.new.id) put(S.bt.songs, payload.new);
@@ -302,12 +321,15 @@ async function deleteLog(id){
 async function mirrorLog(l, remove = false){
   if (!cfg().mirror || !SB.client) return;
   const ts = l.started_at ? new Date(l.started_at).getTime() : new Date(l.date + "T20:30:00").getTime(), now = Date.now();
-  for (const child of l.children || []) {
+  // 每个孩子一行，合成一次批量 upsert（原来一个孩子一次请求）；失败照旧只记日志
+  const rows = (l.children || []).map(child => {
     const id = "hsbt-" + String(l.id).replace(/[^a-z0-9]/gi, "") + "-" + String(child).replace(/[^a-z0-9]/gi, "").slice(0, 12);
     const data = { id, type: "faith", ts, updated: now, child, kind: "家庭敬拜", minutes: l.actual_min || l.planned_min || null, who: "全家", what: `${flowOfLog(l) || "睡前安然"}${l.passage ? "：" + l.passage : ""}${l.songs && l.songs.length ? " · " + l.songs.join("、") : ""}`, note: l.note ? l.note + "（来自家庭学堂）" : "来自家庭学堂" };
-    const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id, type: "faith", ts, updated: now, deleted: remove, data }, { onConflict: "family_id,id" });
-    if (error) console.error(error);
-  }
+    return { family_id: fid(), id, type: "faith", ts, updated: now, deleted: remove, data };
+  });
+  if (!rows.length) return;
+  const { error } = await SB.client.from("entries").upsert(rows, { onConflict: "family_id,id" });
+  if (error) console.error(error);
 }
 /* 状况记录：离线时同样先排队 */
 async function saveEvent(ev){
@@ -332,13 +354,17 @@ async function mirrorEvent(ev, { remove = false, only = null } = {}){
   const sit = CONFLICTS.find(x => x.id === ev.situation) || cfg().situations.find(x => x.id === ev.situation), kind = (sit && sit.write) || "发脾气", today = dayKey(Date.now());
   const ts = ev.date === today ? Date.now() : new Date(ev.date + "T12:00:00").getTime(), now = Date.now();
   const trigger = [sit ? sit.when : "", ev.title].filter(Boolean).join("：") || "冲突";
-  for (const child of (only || ev.children || [])) {
+  // 每个孩子一行，合成一次批量 upsert；失败照旧只记日志。写过就让趋势页下次重拉
+  const rows = (only || ev.children || []).map(child => {
     const id = "hscf-" + String(ev.id).replace(/[^a-z0-9]/gi, "") + "-" + String(child).replace(/[^a-z0-9]/gi, "").slice(0, 12);
     const data = { id, type: "behavior", ts, updated: now, child, kind, trigger, how: ev.approach || "", note: "来自家庭学堂 · 冲突管理" + (ev.note ? "：" + ev.note : "") };
     if (ev.minutes != null) data.minutes = +ev.minutes;
-    const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id, type: "behavior", ts, updated: now, deleted: remove, data }, { onConflict: "family_id,id" });
-    if (error) console.error(error);
-  }
+    return { family_id: fid(), id, type: "behavior", ts, updated: now, deleted: remove, data };
+  });
+  if (!rows.length) return;
+  const { error } = await SB.client.from("entries").upsert(rows, { onConflict: "family_id,id" });
+  if (error) console.error(error);
+  staleBaby();
 }
 const nightsIn = (from, to) => S.bt.logs.filter(l => l.date >= from && l.date <= to);
 const lastLog = () => S.bt.logs[0] || null;
@@ -481,7 +507,7 @@ async function saveSteps(steps){ const c = cfg(); await saveFlows(c.flows.map(f 
 /* ---- 歌单 ---- */
 let songForm = null;   // { id, draft, file, oldPath }
 function viewSongs(){
-  const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length;
+  const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length, pg = paged("songs", list);
   const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-add">＋ ${t("加到流程")}</span><span class="sb-del">🗑 ${t("删除")}</span></div>
     <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
     <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
@@ -493,7 +519,7 @@ function viewSongs(){
   <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
   <p class="small muted" style="margin:0 0 8px">${t("想用来唤醒孩子（午睡醒来 / 早上）：点开歌，用在哪一段里勾上「轻柔唤醒」，然后在今天页「在睡」那一行点 ♪ 一键放。")}</p>
   <p class="small muted" style="margin:0 0 8px">${t("每首歌：向左滑删除，向右滑加到流程（睡前流程的某一步，或冲突 / 情绪话题的推荐歌曲），长按最右边的 ⋮⋮ 上下拖动调顺序。")}</p>
-  <div class="panel">${list.length ? `<div class="tasks song-list">${list.map(row).join("")}</div>` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
+  <div class="panel">${list.length ? `<div class="tasks song-list">${pg.rows.map(row).join("")}</div>${pg.more}` : `<div class="empty">${t("还没有歌。先放两三首：一首被爱与安慰的、一首经文歌、一段纯音乐。")}</div>`}</div>
   <h2>${t("可以去找的歌")}</h2>
   <div class="panel"><p class="small muted" style="margin-top:0">${t("不内置音频：自己买或下载 MP3 后传进来。优先慢速、轻柔、没有突然增强的鼓点和高音的版本。")}</p>
     <div class="tasks">${SONG_IDEAS.map(([n, a, tag, why]) => `<div class="task"><span class="bar" style="background:var(--honey)"></span><div class="main"><span class="title">${esc(tc(n))}</span><span class="meta">${esc(tc(a))} · ${t(SONG_TAGS[tag])} · ${esc(tc(why))}</span></div><span></span></div>`).join("")}</div></div>`;
@@ -798,11 +824,12 @@ function openPickSongsForTopic(topicId, name){
   showSheet();
 }
 const previewing = id => previewId === id;
-async function reorderSongs(ids){ for (let i = 0; i < ids.length; i++) { const s = song(ids[i]); if (s && s.sort !== i) await upsertSong({ ...s, sort: i }); } }
+// 歌单页分页时拖动只拿到画出来的那几首：没画出来的接在后面、保持原来的先后，免得 sort 撞号
+async function reorderSongs(ids){ ids = [...ids, ...songs().map(s => s.id).filter(id => !ids.includes(id))]; for (let i = 0; i < ids.length; i++) { const s = song(ids[i]); if (s && s.sort !== i) await upsertSong({ ...s, sort: i }); } }
 initSongRows({
   onDelete: async (id, kind) => { if (kind === "step") { const c = cfg(), st = c.steps.find(x => x.id === id); if (st && confirm(t("删除这一步？"))) { try { await saveSteps(c.steps.filter(x => x.id !== id)); } catch (e) { /* 已 toast */ } } render(); return; } const s = song(id); if (!s) return; if (!confirm(t("删除「{t}」和它的音频？流程里用到它的步骤改为不放歌。", { t: s.title }))) return; try { await deleteSong(s); toast(t("已删除")); } catch (e) { /* 已 toast */ } render(); },
   onAdd: id => openAddToFlow(id),
   onReorder: async (ids, movedId, kind) => { try { if (kind === "step") { const c = cfg(), by = new Map(c.steps.map(x => [x.id, x])); await saveSteps(ids.map(i => by.get(i)).filter(Boolean)); } else await reorderSongs(ids); } catch (e) { /* 已 toast */ } render(); const h = document.querySelector(`.song-row[data-id="${movedId}"] .song-handle`); if (h) h.focus(); }
 });
 
-export { sleepCardParts, dailySleepRow, songBlob, openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, loadBedtime, attachBedtimeRealtime, cacheReady, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
+export { sleepCardParts, dailySleepRow, songBlob, openPickSongsForTopic, topicSongsOf, songs, previewing, flowOfLog, isNapLog, isEm, verseText, verseError, ensureVerse, retryVerse, scheduleRender, sidesLine, sidesHint, cfg, saveCfg, kids, kidName, online, offlineHTML, migrateHTML, h2, saveEvent, deleteEvent, outcomeLabel, sitStats, isCf, lastLog, totalMin, activeSteps, BT_TABS, fetchBedtime, loadBedtime, attachBedtimeRealtime, cacheReady, viewBedtime, viewFlow, viewSongs, viewTexts, viewReadings, viewLogs, viewCases, btAct, btChange, stopPreview, cfg as bedtimeCfg, nightsIn, playerOpen };
