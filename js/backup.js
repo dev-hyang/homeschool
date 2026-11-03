@@ -17,7 +17,8 @@ import { render } from "./views.js";
 
 const CFG = {
   app: "homeschool", title: "家庭学堂", key: "homeschool.backup",
-  tables: ["hs_family", "hs_scriptures", "hs_scripture_progress", "hs_routines", "hs_tasks", "hs_devotions", "hs_units", "hs_lessons", "hs_goals", "hs_resources"],   // 恢复顺序：被引用的在前
+  tables: ["hs_family", "hs_scriptures", "hs_scripture_progress", "hs_routines", "hs_tasks", "hs_devotions", "hs_units", "hs_lessons", "hs_goals", "hs_resources",   // 恢复顺序：被引用的在前
+    "hs_bedtime_songs", "hs_bedtime_logs", "hs_bedtime_events"],   // 睡前安然（baby-log 迁移 019 / 020）：歌单只备份行，media 桶里的音频文件不在备份里。以后每加一张表都要想一下要不要进这里（以及 小月亮 js/backup.js、迁移 029 的 backup_family / restore_family）
   extraTables: ["children"],   // 只备份不恢复
   col: "family_id",
   ready: () => S.cloud === "ready" && !!S.family,

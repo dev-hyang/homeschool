@@ -17,6 +17,7 @@
 - 邀请与批准（迁移 022）：邀请码 7 天有效，家主可「重新生成（7 天）」或「关闭邀请」；用邀请码加入的人先是待批准，看到「等家主批准」页（每 20 秒自动检查），家主在设置 → 家庭和今天页的提醒里批准 / 拒绝。部署顺序：先部署本页面（新旧库都能用），再执行 baby-log 的 `022_join_hardening.sql`。
 - 孩子的名字和生日在小月亮里维护；这里只读。数据库里孩子来自 `children` 表（迁移 002），表还没建时回退到 `families.settings` 的 JSON。
 - 数据库脚本（基线 `schema.sql` 加编号迁移）放在 baby-log 本地检出的 `supabase/` 目录，不进 git。本仓库以后新增的表也写成那里的迁移文件，在 Supabase SQL Editor 里手动执行。
+- 备份与恢复（`js/backup.js`）按家庭备份 `hs_*`，含睡前安然 `hs_bedtime_*`（media 桶里的音频文件不在备份里）。**以后每加一张表，都要同时加进 `CFG.tables`、小月亮 `js/backup.js` 的 `HS_TABLES` 和 baby-log 迁移里的 `backup_family` / `restore_family`**（最新版在 029；只加列不用改）。
 - 在线优先：直接读写 Supabase，不做离线队列；本机只存"当前看哪个孩子"和主题。
 
 ## 文件结构
