@@ -29,8 +29,9 @@ js/
   app.js          入口
   bedtime.js      睡前安然：数据层（hs_bedtime_songs / hs_bedtime_logs / hs_bedtime_events，media 桶，本机缓存与离线排队）+ 页面（入口、流程、歌单、带领词、睡前经文、记录、状况与应对）
   wake.js 睡前 → 小月亮睡眠记录与唤醒：流程完成时写「开始睡」，今天页显示 😴 在睡 + 「唤醒」，补记 / 修改同一条，轻柔唤醒音乐
+  sleep.js        睡眠页（今天 → 睡眠卡 →「睡眠记录与趋势」）：2 岁以上不在小月亮显示，这里看近 61 天的睡眠记录（按晚分组，点开改 / 删，＋ 补记），趋势（每天夜间 + 午睡 vs 分龄建议、入睡 / 起床时间、入睡波动）；读写同一张 entries，记录上的 nap 标夜间 / 午睡
   bedtime-play.js 睡前安然的播放页：整页深色、一个「下一步」、每步软计时、Media Session、「遇到状况」内联记一笔、完成后记一晚
-  core/config.js  Supabase 地址与公开 key、版本号、小月亮地址
+  core/config.js  Supabase 地址与公开 key、版本号（每次推送都改成 YYYY-MM-DD.N，index.html 里的 app-version 和 ?v= 一起改）、小月亮地址
   core/util.js    DOM / 时间小工具
   core/state.js   状态 S、孩子与年龄、阶段
   core/auth.js    登录、家庭、成员、孩子读取、实时刷新

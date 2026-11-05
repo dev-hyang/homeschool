@@ -81,7 +81,7 @@ function blStats(sit){
 function sleepNights(days){
   const from = Date.now() - days * D, by = {};
   for (const e of mineRows()) {
-    if (e.type !== "sleep" || !e.end || e.end <= e.ts || e.ts < from - D) continue;
+    if (e.type !== "sleep" || !e.end || e.end <= e.ts || e.ts < from - D || e.nap === true) continue;   // 标了午睡的不算（睡眠页 / 睡眠表单写的 nap）
     const d = new Date(e.ts), h = d.getHours(), dur = e.end - e.ts; if (!(h >= 18 || h < 4) || dur < 3 * 3600e3) continue;
     const date = h >= 18 ? dayKey(e.ts) : dayKey(e.ts - D), w = new Date(e.end);
     if (!by[date] || dur > by[date].dur) by[date] = { date, bed: (h >= 18 ? h - 18 : h + 6) * 60 + d.getMinutes(), wake: w.getHours() * 60 + w.getMinutes(), dur };
@@ -199,7 +199,7 @@ function viewTrend(){
   <div class="chips" role="group" aria-label="${t("时间范围")}">${TREND_DAYS.map(d => `<button type="button" class="chip" data-act="tr-days" data-v="${d}" aria-pressed="${days === d}">${t("近 {n} 天", { n: d })}</button>`).join("")}</div>
   <div class="panel"><div class="stats">${stat(t("睡前流程"), `${logs.length}<small>/${days}</small>`, t("晚"))}${stat(t("平均入睡"), nights.length ? bedClock(avg(nights.map(n => n.bed))) : "–", "")}${stat(t("冲突记录"), evs.length, t("次"))}${stat(t("大人情绪升高"), heated, t("次"))}</div>
     <div class="btns" style="margin-top:10px"><button class="btn primary sm" data-act="tr-ask">${aiIcon(16)} ${t("让咩咩咩分析最近的记录")}</button></div><p style="margin:8px 0 0">${pullButtonHTML()}</p>
-    <p class="small muted" style="margin:8px 0 0">${B.loaded ? t("睡眠来自小月亮的记录（只读）；睡前流程和冲突是这里记的。点分析会带着这一页的摘要去问咩咩咩，「会发送什么」里能看到原文。") : B.loading ? t("正在读取小月亮的记录…") : B.err ? t("读不到小月亮的记录：") + esc(B.err) : ""}</p></div>
+    <p class="small muted" style="margin:8px 0 0">${B.loaded ? t("睡眠来自小月亮的记录，要补记或修改到「睡眠」页；睡前流程和冲突是这里记的。点分析会带着这一页的摘要去问咩咩咩，「会发送什么」里能看到原文。") + ` <button type="button" class="bt-more" data-tab="sleep" data-from="flow-trend">${t("睡眠")} ›</button>` : B.loading ? t("正在读取小月亮的记录…") : B.err ? t("读不到小月亮的记录：") + esc(B.err) : ""}</p></div>
 
   <h2>${t("入睡时间")}</h2><div class="panel">${timeDots(t("入睡时间"), nights.map(n => ({ date: n.date, v: n.bed, on: on.has(n.date) })), dates, bedClock)}</div>
   <h2>${t("起床时间")}</h2><div class="panel">${timeDots(t("起床时间"), nights.map(n => ({ date: n.date, v: n.wake, on: on.has(n.date) })), dates, clockOfDay)}</div>
@@ -225,4 +225,5 @@ async function trAct(act, btn){
   }
 }
 
+export { timeDots, bedClock, clockOfDay };
 export { B, pull, beforeRender, pullButtonHTML, loadBaby, genderOf, bandKey, allEmotions, hasBl, mineRows, allConflicts, sitOf, whyOf, blStats, sleepNights, flowContext, ctxName, hubAskHTML, viewTrend, trAct };

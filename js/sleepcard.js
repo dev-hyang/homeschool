@@ -37,7 +37,7 @@ function sleepSlideHTML(p){
     ${asleep ? sleepArtHTML() : `${artHTML(sc)}<p class="sc-cap">${esc(t(sc.cap))}</p>`}
     <div class="sc-ctl">
       ${asleep ? p.actions : `<div class="bt-pick">${p.pick}<button class="btn primary sm bt-go" data-act="bt-start" data-kid="${esc(S.childId || "")}" ${p.n ? "" : "disabled"}>${t("开始")}</button></div>
-      <div class="bt-card-foot"><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button>${wx}</div>`}
+      <div class="bt-card-foot"><button class="bt-more" data-tab="bedtime" data-from="today">${t("流程与歌单")} ›</button><button class="bt-more" data-tab="sleep" data-from="today">${t("睡眠记录与趋势")} ›</button>${wx}</div>`}
     </div></section>`;
 }
 

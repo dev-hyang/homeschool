@@ -1,11 +1,12 @@
 import { SB } from "./core/auth.js";
 import { t, tc } from "./core/i18n.js";
-import { S } from "./core/state.js";
+import { S, ageMonths } from "./core/state.js";
 import { $, H, esc, hm, pad, toast } from "./core/util.js";
 import { WAKE_IDEAS } from "./data/bedtime.js";
 import { cfg, kidName, kids, songBlob, songs } from "./bedtime.js";
 import { closeSheet, head, showSheet } from "./sheet.js";
 import { render } from "./views.js";
+import { isNap, sleepRow } from "./sleep.js";
 
 /* ============ 睡前 → 小月亮睡眠记录 · 唤醒 ============
    睡前流程「记下今晚」之后，给每个参加的孩子在小月亮的 entries 里写一条「睡眠」（type = sleep，入睡 = 流程结束的时间，
@@ -38,7 +39,9 @@ async function loadSleep(){
 const sig = () => JSON.stringify(S.wk.rows.map(r => [r.id, r.ts, r.data.end || 0]));
 let repaintTimer = null;
 function repaintToday(){ clearTimeout(repaintTimer); repaintTimer = setTimeout(() => { if (S.tab === "today" && !$("#sheet").open) render(); }, 150); }
-const rowOf = id => S.wk.rows.find(r => r.id === id) || null;
+const rowOf = id => S.wk.rows.find(r => r.id === id) || sleepRow(id);   // 近 48 小时的（今天页）找不到就到睡眠页读到的 61 天里找
+/** 睡眠记录变了：睡眠页（js/sleep.js）听这个事件重读 */
+const changed = () => window.dispatchEvent(new Event("hs-sleep-changed"));
 /** 每个孩子最近一条睡眠：在睡的一直显示；已醒的 12 小时内显示一行小字（可改） */
 function status(){
   const out = [];
@@ -106,15 +109,27 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 let refreshTimer = null;
 function refresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(async () => { await loadSleep(); if (S.tab === "today" && !$("#sheet").open) render(); }, 400); }
 /** 实时：小月亮那边（或另一个家人）点了开始睡 / 醒来，这里的状态跟着变 */
-function onEntriesChange(payload){ const r = payload && payload.new; if (r && r.type === "sleep") refresh(); }
+function onEntriesChange(payload){ const r = payload && payload.new; if (r && r.type === "sleep") { refresh(); changed(); } }
 
 /* ---- 唤醒 / 补记 / 修改 ---- */
 let W = null;   // 正在编辑的那条 { id, wake: 是不是「唤醒」按钮进来的, d: 草稿 }
 const HOW = ["自主入睡", "奶睡", "抱睡", "拍睡/摇睡"], WHERE = ["婴儿床", "怀里", "推车/安全座椅", "大床"], WAKEHOW = ["自然醒", "被叫醒"];
+// 2 岁以上：换成大孩子的说法（小月亮里记过的旧值仍会显示在选项里，不会丢）
+const HOW_BIG = ["自己睡着", "听故事睡着", "大人陪着睡"], WHERE_BIG = ["自己的床", "爸妈的床", "车上"], KIND = ["night", "nap"];
+const KIND_NAME = { night: "夜间睡眠", nap: "午睡" };
+const optsFor = (base, cur) => (cur && !base.includes(cur) ? [...base, cur] : base);
 function openWake(id, asWake){
   const r = rowOf(id); if (!r) return;
   const d = r.data;
-  W = { id, wake: !!asWake, d: { start: toInput(r.ts), end: d.end ? toInput(d.end) : asWake ? toInput(Date.now()) : "", how: d.how || "", where: d.where || "", wakeHow: d.wake || "自然醒", note: String(d.note || "").replace(WAKE_NOTE, "") } };
+  W = { id, wake: !!asWake, child: childOf(r), d: { start: toInput(r.ts), end: d.end ? toInput(d.end) : asWake ? toInput(Date.now()) : "", how: d.how || "", where: d.where || "", wakeHow: d.wake || "自然醒", kind: isNap(r) ? "nap" : "night", note: String(d.note || "").replace(WAKE_NOTE, "") } };
+  drawWake(); showSheet();
+}
+/** 补记一段睡眠（睡眠页的「＋ 补记」）：默认昨晚 20:30 → 今早 07:00，现在还不到 7 点就再往前一天 */
+function openNewSleep(child){
+  if (!child) return;
+  const wake = new Date(); if (wake.getHours() < 7) wake.setDate(wake.getDate() - 1);
+  wake.setHours(7, 0, 0, 0); const bed = new Date(wake); bed.setDate(bed.getDate() - 1); bed.setHours(20, 30, 0, 0);
+  W = { id: "hssl-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), isNew: true, wake: false, child, d: { start: toInput(bed), end: toInput(wake), how: "", where: "", wakeHow: "自然醒", kind: "night", note: "" } };
   drawWake(); showSheet();
 }
 function readWake(){
@@ -124,24 +139,25 @@ function readWake(){
   if (s != null) W.d.start = s; if (e != null) W.d.end = e; if (n != null) W.d.note = n.trim();
 }
 function drawWake(){
-  const r = rowOf(W.id), d = W.d, name = esc(kidName(childOf(r)));
+  const d = W.d, name = esc(kidName(W.child)), big = ageMonths(W.child) >= 24;
   const seg = (k, opts) => `<div class="seg">${opts.map(o => `<button type="button" data-act="wk-seg" data-k="${k}" data-v="${esc(o)}" aria-pressed="${d[k] === o}">${t(o)}</button>`).join("")}</div>`;
   const wakeSongs = songs().filter(s => (s.tags || []).includes("wake") && s.path);
   const ideas = `<details class="wk-ideas"><summary class="small">${t("可以去找的唤醒歌")}</summary><p class="small muted" style="margin:6px 0">${t("原则：中速偏慢、大调、原声乐器（吉他、钢琴、竖琴），没有突然的鼓点和高音；不要比催眠曲更慢，也不要像闹钟。音量从很小慢慢升上来，同时拉开窗帘、轻声叫名字。")}</p>${WAKE_IDEAS.map(([n, a, why]) => `<div class="small"><b>${esc(tc(n))}</b> <span class="muted">${esc(tc(a))} · ${esc(tc(why))}</span></div>`).join("")}</details>`;
   const musicHTML = `<div class="field"><div class="lab">${t("轻柔唤醒音乐")}</div>${wakeSongs.length
     ? `<div class="seg" style="flex-direction:column;align-items:stretch">${wakeSongs.map(s => `<button type="button" data-act="wk-play" data-song="${esc(s.id)}" aria-pressed="${music.song && music.song.id === s.id}">♪ ${esc(s.title)}</button>`).join("")}</div><p class="small muted" style="margin:6px 0 0">${t("音量 30 秒慢慢升上来；放完自动接下一首，整个唤醒歌单循环到你点「停止」。")}</p>`
     : `<p class="small muted" style="margin:0 0 6px">${t("歌单里还没有标了「轻柔唤醒」的歌：在睡前页的歌单里加歌时勾上这个标签。")}</p>`}${music.song ? `<div class="btns" style="margin-top:6px">${wakeSongs.length > 1 ? `<button class="btn" data-act="wk-prev">⏮ ${t("上一首")}</button><button class="btn" data-act="wk-next">${t("下一首")} ⏭</button>` : ""}<button class="btn" data-act="wk-stop">${t("停止音乐")}</button></div>` : ""}${ideas}</div>`;
-  $("#sheetIn").innerHTML = `${head(esc(W.wake ? t("唤醒 · {n}", { n: name }) : t("睡眠记录 · {n}", { n: name })))}
+  $("#sheetIn").innerHTML = `${head(esc(W.wake ? t("唤醒 · {n}", { n: name }) : W.isNew ? t("补记睡眠 · {n}", { n: name }) : t("睡眠记录 · {n}", { n: name })))}
   ${W.wake ? musicHTML : ""}
+  ${W.wake ? "" : `<div class="field"><div class="lab">${t("这一段是")}</div><div class="seg">${KIND.map(k => `<button type="button" data-act="wk-seg" data-k="kind" data-v="${k}" aria-pressed="${d.kind === k}">${t(KIND_NAME[k])}</button>`).join("")}</div></div>`}
   <div class="field"><label for="wkStart">${t("入睡时间")}</label><input id="wkStart" type="datetime-local" value="${esc(d.start)}"></div>
   <div class="field"><label for="wkEnd">${t("醒来时间（还在睡就留空）")}</label><input id="wkEnd" type="datetime-local" value="${esc(d.end)}"></div>
   <div class="field"><div class="lab">${t("怎么醒的")}</div>${seg("wakeHow", WAKEHOW)}</div>
-  <div class="field"><div class="lab">${t("怎么入睡")}</div>${seg("how", HOW)}</div>
-  <div class="field"><div class="lab">${t("在哪儿睡")}</div>${seg("where", WHERE)}</div>
+  <div class="field"><div class="lab">${t("怎么入睡")}</div>${seg("how", optsFor(big ? HOW_BIG : HOW, d.how))}</div>
+  <div class="field"><div class="lab">${t("在哪儿睡")}</div>${seg("where", optsFor(big ? WHERE_BIG : WHERE, d.where))}</div>
   <div class="field"><label for="wkNote">${t("备注")}</label><input id="wkNote" type="text" value="${esc(d.note)}" placeholder="${esc(t("夜醒次数、哭闹…"))}"></div>
   ${W.wake ? "" : musicHTML}
-  <p class="small muted">${t("改的就是小月亮里的这条睡眠记录，那边会同步更新。")}</p>
-  <div class="btns"><button class="btn primary" data-act="wk-save">${W.wake ? t("记下醒来") : t("保存")}</button><button class="btn danger" data-act="wk-del">${t("删除这条")}</button></div>`;
+  <p class="small muted">${W.isNew ? t("会记进小月亮的睡眠记录，两边同步。") : t("改的就是小月亮里的这条睡眠记录，那边会同步更新。")}</p>
+  <div class="btns"><button class="btn primary" data-act="wk-save">${W.wake ? t("记下醒来") : t("保存")}</button>${W.isNew ? "" : `<button class="btn danger" data-act="wk-del">${t("删除这条")}</button>`}</div>`;
 }
 async function saveWake(btn){
   readWake(); const d = W.d, start = fromInput(d.start), end = fromInput(d.end);
@@ -150,14 +166,16 @@ async function saveWake(btn){
   btn.disabled = true;
   try {
     const { data: cur } = await SB.client.from("entries").select("data,deleted").eq("family_id", fid()).eq("id", W.id).maybeSingle();   // 先读最新的再合并，免得盖掉小月亮那边刚改的
-    const base = (cur && cur.data) || rowOf(W.id).data, now = Date.now(), data = { ...base, id: W.id, type: "sleep", ts: start, updated: now };
+    const base = (cur && cur.data) || (rowOf(W.id) || {}).data || { child: W.child }, now = Date.now(), data = { ...base, id: W.id, type: "sleep", ts: start, updated: now };
+    if (!data.child && W.child) data.child = W.child;
+    if (W.d.kind && !W.wake) data.nap = W.d.kind === "nap";   // 唤醒时没出示这一项，不替用户定   // 夜间 / 午睡：写明了，睡眠页和趋势页就不用按时间猜
     for (const k of ["how", "where"]) { if (d[k]) data[k] = d[k]; else delete data[k]; }
     if (end) { data.end = end; data.wake = d.wakeHow; } else { delete data.end; delete data.wake; }
     data.note = [d.note, end ? d.wakeHow : ""].filter(Boolean).join("；");
     if (!data.note) delete data.note;
     const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id: W.id, type: "sleep", ts: start, updated: now, deleted: false, data }, { onConflict: "family_id,id" });
     if (error) throw error;
-    const was = W.wake; W = null; await loadSleep();
+    const was = W.wake; W = null; await loadSleep(); changed();
     closeSheet(); toast(was ? t("记下了，早安") : t("已保存，小月亮里同步更新"));
   } catch (e) { console.error(e); toast(t("云端保存失败") + (e.message ? "：" + String(e.message).slice(0, 80) : "")); btn.disabled = false; }
 }
@@ -166,7 +184,7 @@ async function deleteWake(){
   const now = Date.now(), r = rowOf(W.id);
   const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id: W.id, type: "sleep", ts: r.ts, updated: now, deleted: true, data: { ...r.data, updated: now } }, { onConflict: "family_id,id" });
   if (error) { toast(t("云端保存失败") + "：" + String(error.message).slice(0, 80)); return; }
-  W = null; await loadSleep(); closeSheet();
+  W = null; await loadSleep(); changed(); closeSheet();
 }
 
 /* ---- 轻柔唤醒音乐：从很小声慢慢升到 0.5（30 秒）---- */
@@ -210,7 +228,7 @@ async function wakeAct(act, btn){
   switch (act) {
     case "wk-wake": openWake(d.id, true); break;
     case "wk-edit": openWake(d.id, false); break;
-    case "wk-seg": readWake(); W.d[d.k] = W.d[d.k] === d.v ? "" : d.v; if (d.k === "wakeHow" && !W.d.wakeHow) W.d.wakeHow = "自然醒"; drawWake(); break;
+    case "wk-seg": readWake(); W.d[d.k] = W.d[d.k] === d.v && d.k !== "kind" ? "" : d.v; if (d.k === "wakeHow" && !W.d.wakeHow) W.d.wakeHow = "自然醒"; drawWake(); break;
     case "wk-save": await saveWake(btn); break;
     case "wk-del": await deleteWake(); break;
     case "wk-play": await playWake(d.song); break;
@@ -225,4 +243,4 @@ async function wakeAct(act, btn){
 }
 const isWakeAct = act => act.startsWith("wk-");
 
-export { loadSleep, sleepFromLog, sleepCardsHTML, allAsleep, sleepingKids, childSleepHTML, isAsleep, onEntriesChange, wakeAct, isWakeAct };
+export { loadSleep, openNewSleep, sleepFromLog, sleepCardsHTML, allAsleep, sleepingKids, childSleepHTML, isAsleep, onEntriesChange, wakeAct, isWakeAct };

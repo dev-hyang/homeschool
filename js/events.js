@@ -23,6 +23,7 @@ import { isWakeAct, wakeAct } from "./wake.js";
 import { isQuickAct, quickAct } from "./quicklog.js";
 import { musicAct, routineOpts, routinePickOf, setRoutineList } from "./music.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
+import { sleepAct } from "./sleep.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
 import { setFilter } from "./recfilter.js";
@@ -93,6 +94,7 @@ document.addEventListener("click", async ev => {
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
   if (d.act && d.act.startsWith("mu-")) { try { await musicAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 音乐：歌单 / 学歌（js/music.js）
+  if (d.act && d.act.startsWith("sl-")) { try { await sleepAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 睡眠页：记录与趋势（js/sleep.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）
   try {
