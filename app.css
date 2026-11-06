@@ -302,6 +302,13 @@ body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;bo
 .crumb .sep{color:var(--muted);opacity:.7;font-size:12px;padding:0 1px}
 .crumb b{font-weight:700;color:var(--ink);padding:4px 5px;min-width:0;overflow-wrap:anywhere}
 @media print{.crumb{display:none}}
+/* 浏览器直接打印今天页（不是「打印今日页」那张纸）：只留今日敬拜、经文背诵、今日任务；顶栏、底栏、名字卡、大原则、咩咩咩、记一笔和各种按钮都不打 */
+@media print{
+  body:not(.printview) header.top,body:not(.printview) nav.tabs,body:not(.printview) #toast,.today-extra{display:none!important}
+  .today-print-h[hidden]{display:block!important;margin:0 0 6px;font-weight:700;font-size:15px}
+  #main .devo .chip:not([data-devochild]),#main .btns,#main .acts,#main .today-filter,#main .pool-line .chip{display:none!important}
+  #main .task{break-inside:avoid}
+}
 /* 咩咩咩（js/ask.js）：今天页的入口行、问答表单、回答、折叠的 AI 设置 */
 .ask-entry{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .ai-ico{vertical-align:-4px;flex:none} .mrow .mi .ai-ico{vertical-align:middle}
