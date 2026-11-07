@@ -855,6 +855,16 @@ body.bt-playing{overflow:hidden}
 .ql-tile:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
 .ql-ico{font-size:24px;line-height:1}
 .ql-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+/* 夜间干爽（js/nightdry.js）：格子下面一行，连续干爽几晚；够 5 晚变绿（可以试内裤），穿内裤后湿得多变暖色（先换回拉拉裤） */
+.ql-night{display:flex;align-items:center;gap:8px;justify-content:space-between;margin:10px 0 0;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft);font-size:14px;line-height:1.45}
+.ql-night.good{background:var(--sage-soft)}
+.ql-night.warn{background:var(--honey-soft)}
+.ql-night .chip{flex:none}
+p.ql-night{display:block}
+/* 趋势页的夜间干爽：每晚一格，✓ / ✗ 文字和颜色一起表达 */
+.nd-strip{display:flex;flex-wrap:wrap;gap:3px;margin:12px 0 4px}
+.nd-c{width:20px;height:20px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--surface)}
+.nd-c.dry{background:var(--sage)} .nd-c.wet{background:var(--rose)} .nd-c.none{border:1px dashed var(--muted);opacity:.55}
 .ql-row{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:36px;padding:4px 8px;border-radius:8px;font-size:13.5px;cursor:pointer}
 .ql-row:hover,.ql-row:focus-visible{background:var(--slate-soft)}
 .ql-row:focus-visible{outline:2px solid var(--slate);outline-offset:-2px}

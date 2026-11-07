@@ -6,6 +6,7 @@ import { saveSettings } from "./hs.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { openMusicTile } from "./music.js";
+import { nightAdvice, nightList } from "./nightdry.js";
 
 /* ============ 今天页「记一笔」：一排格子，点哪个就是哪种记录的入口 ============
    和小月亮的「快速记录」一样：格子只是入口，点开是那种记录的表单（字段与小月亮同一类型一致），详细内容以记录为准。
@@ -25,6 +26,10 @@ const TILES = [
   { id: "potty", type: "potty", icon: "🚽", label: "如厕", desc: "如厕训练：尿 / 便、在哪儿、是不是自己提出", age: [18, 72], preset: () => ({ what: "尿", where: "小马桶" }), fields: () => [
     seg("what", "内容", ["尿", "便", "尿+便", "坐了没出"]), seg("where", "在哪儿", ["小马桶", "马桶", "尿裤里", "裤子湿了"]),
     { k: "self", label: "自己提出要去", type: "check" }, { k: "note", label: "备注", type: "text" }] },
+  // 夜间干爽：早上记昨晚（14 点前记的算前一晚，js/nightdry.js）；格子下面一行写连续干爽几晚，够 5 晚提示可以试试晚上穿内裤
+  { id: "night", type: "night", icon: "🩲", label: "夜间干爽", desc: "早上记昨晚尿没尿；连续干爽 5 晚会提示可以试试晚上穿内裤", age: [24, 84], preset: () => ({ result: "干爽", wear: lastWear() }), fields: () => [
+    seg("result", "昨晚", ["干爽", "湿了"]), seg("wear", "穿的", ["拉拉裤", "内裤"]), seg("drink", "睡前 1 小时喝水", ["没喝", "喝了几口", "一杯以上"]),
+    { k: "woke", label: "夜里自己醒来去尿", type: "check" }, { k: "note", label: "备注", type: "text" }] },
   { id: "meal", type: "food", icon: "🍚", label: "吃饭", desc: "哪一餐、吃了多少、吃饭专不专心", age: [12, 96], preset: () => ({ meal: mealByHour() }), fields: () => [
     seg("meal", "哪一餐", ["早餐", "午餐", "晚餐", "加餐"]), { k: "foods", label: "吃了什么", type: "text", ph: "米饭、青菜、鸡蛋…" },
     seg("amount", "吃了多少", ["尝一口", "几口", "一半", "大部分", "吃完"]), seg("focus", "吃饭时", ["专心吃", "边吃边玩", "离座走动", "要人追着喂"]),
@@ -52,7 +57,7 @@ function tilesFor(cid = S.childId){
   const pref = ((S.hs.settings || {}).quickTiles || {})[cid];
   return pref ? TILES.filter(x => pref.includes(x.id)) : TILES.filter(x => !x.opt && recommended(x));
 }
-S.ql = { rows: [], loaded: false, loading: false };
+S.ql = { rows: [], loaded: false, loading: false, nights: [], nKey: "", nLoading: false };
 const fid = () => S.family && S.family.id;
 const ready = () => !!(SB.client && fid() && S.hs.loaded);
 const dayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -69,6 +74,25 @@ async function loadQuick(){
   if (changed && S.tab === "today" && !$("#sheet").open) render();
 }
 
+/* 夜间干爽：近 60 天的记录（每晚一条，最多两百来行），算连续干爽几晚；按家庭记着，换了家庭重新读 */
+const myNightRows = (cid = S.childId) => { const first = S.children[0] && S.children[0].id; return S.ql.nights.filter(r => (r.child || (first === cid ? cid : "")) === cid); };
+const lastWear = () => { const l = myNightRows().sort((a, b) => b.ts - a.ts)[0]; return (l && l.wear) || "拉拉裤"; };
+async function loadNights(){
+  if (!ready() || S.ql.nLoading || S.ql.nKey === fid()) return;
+  S.ql.nLoading = true;
+  const { data, error } = await SB.client.from("entries").select("id,ts,data").eq("family_id", fid()).eq("type", "night").eq("deleted", false).gte("ts", Date.now() - 60 * 864e5).order("ts", { ascending: false }).limit(400);
+  S.ql.nLoading = false;
+  if (error) { console.warn("nights", error.message); return; }
+  S.ql.nights = (data || []).map(r => ({ ...(r.data || {}), id: r.id, ts: +r.ts })); S.ql.nKey = fid();
+  if (S.tab === "today" && !$("#sheet").open) render();
+}
+function nightLine(){
+  const adv = nightAdvice(nightList(myNightRows()));
+  if (!adv) return `<p class="ql-night small muted">🩲 ${t("夜间干爽：早上点上面的格子记一下昨晚，连续干爽 5 晚会提示可以试试晚上穿内裤。")}</p>`;
+  const head = `${t("连续干爽 {n} 晚", { n: adv.streak })} · ${t("近 14 晚干爽 {a}/{b}", { a: adv.dry14, b: adv.n14 })}${adv.stale ? ` · ${t("最近一次记在 {d}", { d: adv.last.date.slice(5) })}` : ""}`;
+  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="flow-trend" data-from="today">${t("趋势")} ›</button></div>`;
+}
+
 /** 一条记录的一行小字 */
 function summary(r){
   const d = r.data, v = x => (x == null || x === "" ? "" : t(String(x)));
@@ -76,6 +100,7 @@ function summary(r){
     case "mood": return [v(d.kind), d.trigger, d.how].filter(Boolean).join(" · ");
     case "potty": return [v(d.what), v(d.where), d.self ? t("自己提出要去") : ""].filter(Boolean).join(" · ");
     case "food": return [v(d.meal), d.foods, v(d.amount), v(d.focus)].filter(Boolean).join(" · ");
+    case "night": return [v(d.result), v(d.wear), d.woke ? t("夜里自己醒来去尿") : "", d.drink ? t("睡前喝水：{s}", { s: t(d.drink) }) : ""].filter(Boolean).join(" · ");
     default: return [v(d.kind), d.minutes ? t("{n} 分钟", { n: d.minutes }) : "", d.what].filter(Boolean).join(" · ");
   }
 }
@@ -83,11 +108,14 @@ function summary(r){
 function quickHTML(){
   if (!ready() || !S.childId) return "";
   if (!S.ql.loaded) loadQuick();
+  const tiles = tilesFor(), showNight = tiles.some(x => x.id === "night");
+  if (showNight) loadNights();
   const mine = S.ql.rows.filter(r => (r.data.child || "") === S.childId);
   const list = mine.length ? `<ul class="ql-list" aria-label="${esc(t("今天记过的"))}">${mine.slice(0, 8).map(r => { const tl = tileOf(r) || {}; return `<li><button type="button" class="ql-row" data-act="ql-edit" data-id="${esc(r.id)}"><span aria-hidden="true">${tl.icon || "📝"}</span><b>${hm(r.ts)}</b><span class="ql-sum">${esc(summary(r))}</span></button></li>`; }).join("")}</ul>` : "";
   return `<h2>${t("记一笔")}</h2><div class="panel ql-card">
     <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></div>
-    <div class="ql-grid" role="group" aria-label="${esc(t("记一笔"))}">${tilesFor().map(x => `<button type="button" class="ql-tile" data-act="ql-new" data-id="${x.id}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span>${esc(t(x.label))}</span></button>`).join("")}</div>
+    <div class="ql-grid" role="group" aria-label="${esc(t("记一笔"))}">${tiles.map(x => `<button type="button" class="ql-tile" data-act="ql-new" data-id="${x.id}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span>${esc(t(x.label))}</span></button>`).join("")}</div>
+    ${showNight ? nightLine() : ""}
     ${list}</div>`;
 }
 
@@ -102,12 +130,13 @@ async function save(tile, old, f){
   const { error } = await SB.client.from("entries").upsert({ family_id: fid(), id, type: tile.type, ts, updated: now, deleted: false, data }, { onConflict: "family_id,id" });
   if (error) { console.error(error); toast(t("没记上：{m}", { m: error.message })); return; }
   S.ql.rows = [{ id, ts, data }, ...S.ql.rows.filter(x => x.id !== id)].sort((a, b) => b.ts - a.ts);
+  if (tile.type === "night") S.ql.nights = [{ ...data, id, ts }, ...S.ql.nights.filter(x => x.id !== id)];
   closeSheet(); toast(t("已记下")); render();
 }
 async function remove(old){
   const now = Date.now(), { error } = await SB.client.from("entries").upsert({ family_id: fid(), id: old.id, type: old.data.type, ts: old.ts, updated: now, deleted: true, data: { ...old.data, updated: now } }, { onConflict: "family_id,id" });
   if (error) { console.error(error); toast(t("没删掉：{m}", { m: error.message })); return; }
-  S.ql.rows = S.ql.rows.filter(x => x.id !== old.id); closeSheet(); render();
+  S.ql.rows = S.ql.rows.filter(x => x.id !== old.id); S.ql.nights = S.ql.nights.filter(x => x.id !== old.id); closeSheet(); render();
 }
 const timeField = { k: "at", label: "时间", type: "time" };
 

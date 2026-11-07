@@ -9,6 +9,7 @@ import { aiIcon, askAbout } from "./ask.js";
 import { bars, stack } from "./charts.js";
 import { cfg, h2, isCf, offlineHTML, sidesHint } from "./bedtime.js";
 import { render } from "./views.js";
+import { nightAdvice, nightList, streakOf } from "./nightdry.js";
 
 /* ============ 定制流程的数据、趋势与「问咩咩咩」 ============
    一份数据（家庭学堂自己的睡前记录 + 冲突记录 + 小月亮里的睡眠 / 情绪行为 / 社交记录），三种用法：
@@ -36,7 +37,7 @@ async function pull({ quiet = false, renderNow = true } = {}){
   let data = null, error = null;
   const f = fid(), since = Date.now() - DAYS * D, gen = B.gen || 0;
   // 一次最多回 1000 行：按 1000 行一页读，最多 4000 行；ts 相同时按 id 排，翻页不重不漏（js/core/paged.js）
-  try { ({ data, error } = await selectAll(() => SB.client.from("entries").select("id,type,ts,data").eq("family_id", f).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity"]).eq("deleted", false).gte("ts", since).order("ts", { ascending: false }).order("id"), MAX_ROWS)); }
+  try { ({ data, error } = await selectAll(() => SB.client.from("entries").select("id,type,ts,data").eq("family_id", f).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity", "night"]).eq("deleted", false).gte("ts", since).order("ts", { ascending: false }).order("id"), MAX_ROWS)); }
   catch (e) { error = { message: (e && e.message) || "network" }; }   // 网络异常也要把按钮放开
   B.loading = false; B.ts = Date.now(); B.loaded = !error; B.err = error ? (error.message || "error") : "";
   B.fresh = error || (B.gen || 0) !== gen ? 0 : B.ts; B.key = `${f}|${DAYS}`;   // 拉的途中被清过（gen 变了）就不算新鲜
@@ -115,6 +116,11 @@ function flowContext({ days = 14, focus = null } = {}){
     const part = (a, label) => a.length ? `${label}（${a.length} 晚）平均入睡 ${bedClock(avg(a.map(x => x.bed)))}、起床 ${clockOfDay(avg(a.map(x => x.wake)))}` : "";
     L.push(`睡眠（小月亮的记录，${nights.length} 晚）：平均入睡 ${bedClock(avg(nights.map(n => n.bed)))}（最早 ${bedClock(Math.min(...nights.map(n => n.bed)))}，最晚 ${bedClock(Math.max(...nights.map(n => n.bed)))}），平均起床 ${clockOfDay(avg(nights.map(n => n.wake)))}，平均睡 ${(avg(nights.map(n => n.dur)) / 3600e3).toFixed(1)} 小时。${[part(withR, "做了睡前流程的晚上"), part(without, "没做的晚上")].filter(Boolean).join("；")}`);
   } else L.push("睡眠：小月亮里这段时间没有可用的夜间睡眠记录。");
+  const ndAll = nightList(mineRows().filter(e => e.type === "night")), nd = ndAll.filter(x => x.date >= sinceKey(days));
+  if (nd.length) {
+    const fr = a => `${a.filter(x => x.dry).length}/${a.length}`, last = nd[nd.length - 1];
+    L.push(`夜间干爽（如厕训练，早上记昨晚）：记了 ${nd.length} 晚，干爽 ${nd.filter(x => x.dry).length} 晚，现在连续干爽 ${streakOf(ndAll)} 晚，最近穿${last.wear || "（没记）"}；夜里自己醒来去尿 ${nd.filter(x => x.woke).length} 晚；睡前 1 小时没喝水的晚上干爽 ${fr(nd.filter(x => x.drink === "没喝"))}，喝了的 ${fr(nd.filter(x => x.drink && x.drink !== "没喝"))}。`);
+  }
   if (evs.length) {
     const by = count(evs, e => (sitOf(e.situation) || { when: e.title || "其他" }).when), calm = evs.filter(e => e.outcome === "calm").length, mins = evs.filter(e => e.minutes != null).map(e => +e.minutes);
     const heated = evs.filter(e => SIDES.heated.includes(e.parent_state)).length;
@@ -156,6 +162,30 @@ const HUB_PROMPTS = [
 function hubAskHTML(){
   return `<div class="panel bt-ask"><div class="bt-card-row"><div><b>${aiIcon(20)} ${t("咩咩咩 · 问一问")}</b><div class="small muted">${t("会带上最近 14 天的睡眠、睡前流程和冲突记录（孩子和大人两方面）。点一个话题，或自己写问题；「会发送什么」里能看到原文。")}</div></div></div>
     <div class="chips">${HUB_PROMPTS.map(([n], i) => `<button type="button" class="chip" data-act="tr-ask-hub" data-i="${i}">${esc(t(n))}</button>`).join("")}<button type="button" class="chip" data-act="tr-ask-hub" data-i="free">${t("自己写…")}</button></div></div>`;
+}
+
+/* ---- 夜间干爽（js/nightdry.js）：每晚一格（✓ 干爽 / ✗ 湿了 / 空 = 没记），连续干爽几晚，和睡前喝水、入睡早晚、睡前流程对照 ---- */
+function nightDryHTML(dates, sleep, on){
+  const all = nightList(mineRows().filter(e => e.type === "night")), list = all.filter(x => x.date >= dates[0]);
+  if (!all.length) return `<h2>${t("夜间干爽")}</h2><div class="panel"><p class="small muted" style="margin:0">${t("还没有夜间干爽的记录。在今天页「记一笔」里放上「夜间干爽」格子，早上记一下昨晚，这里就能看到每晚干湿、连续干爽几晚，以及和睡前喝水、入睡时间的对照。")}</p></div>`;
+  const adv = nightAdvice(all), by = new Map(list.map(x => [x.date, x]));
+  const cell = d => { const x = by.get(d), lab = `${d.slice(5)} ${x ? t(x.dry ? "干爽" : "湿了") + (x.wear ? ` · ${t(x.wear)}` : "") : t("没记")}`;
+    return `<span class="nd-c ${!x ? "none" : x.dry ? "dry" : "wet"}" title="${esc(lab)}" role="img" aria-label="${esc(lab)}">${!x ? "" : x.dry ? "✓" : "✗"}</span>`; };
+  const frac = a => (a.length ? `${a.filter(x => x.dry).length}/${a.length}<small>（${Math.round(a.filter(x => x.dry).length / a.length * 100)}%）</small>` : "–");
+  const bedOf = new Map(sleep.map(n => [n.date, n.bed])), withBed = list.filter(x => bedOf.has(x.date)), beds = withBed.map(x => bedOf.get(x.date)).sort((a, b) => a - b), med = beds.length ? beds[Math.floor(beds.length / 2)] : null;
+  const row = (label, a) => `<tr><td>${label}</td><td class="num">${frac(a)}</td></tr>`;
+  const stat = (k, v) => `<div class="stat"><div class="k">${k}</div><div class="v num">${v}</div></div>`;
+  return `<h2>${t("夜间干爽")}</h2><div class="panel">
+    <div class="stats">${stat(t("干爽"), `${list.filter(x => x.dry).length}<small>/${list.length} ${t("晚")}</small>`)}${stat(t("连续干爽"), `${adv.streak}<small>${t("晚")}</small>`)}${stat(t("最近穿"), esc(t(adv.last.wear || "–")))}${stat(t("夜里自己醒来去尿"), `${list.filter(x => x.woke).length}<small>${t("晚")}</small>`)}</div>
+    ${adv.tip ? `<p class="ql-night ${adv.tone}" style="display:block">${esc(adv.tip)}</p>` : ""}
+    <div class="nd-strip" role="group" aria-label="${esc(t("每晚干湿"))}">${dates.map(cell).join("")}</div>
+    <p class="legend-line"><span><i style="background:var(--sage)"></i>✓ ${t("干爽")}</span><span><i style="background:var(--rose)"></i>✗ ${t("湿了")}</span><span><i style="background:transparent;border:1px dashed var(--muted)"></i>${t("没记")}</span><span class="muted">${esc(dates[0].slice(5))} → ${esc(dates[dates.length - 1].slice(5))}</span></p>
+    ${list.length ? `<div class="scroll-x"><table><thead><tr><th>${t("对照")}</th><th class="num">${t("干爽的晚上")}</th></tr></thead><tbody>
+      ${row(t("睡前 1 小时没喝"), list.filter(x => x.drink === "没喝"))}${row(t("睡前 1 小时喝了（几口或更多）"), list.filter(x => x.drink && x.drink !== "没喝"))}
+      ${med != null ? row(t("入睡在 {c} 或更早", { c: bedClock(med) }), withBed.filter(x => bedOf.get(x.date) <= med)) + row(t("入睡晚于 {c}", { c: bedClock(med) }), withBed.filter(x => bedOf.get(x.date) > med)) : ""}
+      ${row(t("做了睡前流程"), list.filter(x => on.has(x.date)))}${row(t("没做睡前流程"), list.filter(x => !on.has(x.date)))}</tbody></table></div>
+    <p class="small muted" style="margin:6px 0 0">${t("夜里不尿床主要靠身体发育（夜里少产尿的激素、膀胱变大），不是练出来的；这些对照只帮你看喝水、作息有没有影响。样本少时只作参考。常见做法：拉拉裤连续 5–7 个早上是干的，再试晚上穿内裤。")}</p>` : ""}
+  </div>`;
 }
 
 /* ============ 趋势与分析页 ============ */
@@ -208,6 +238,7 @@ function viewTrend(){
     ${cmpRow("晚数", withR.length, without.length, v => v)}${cmpRow("平均入睡", withR.length ? avg(withR.map(n => n.bed)) : null, without.length ? avg(without.map(n => n.bed)) : null, bedClock)}${cmpRow("平均起床", withR.length ? avg(withR.map(n => n.wake)) : null, without.length ? avg(without.map(n => n.wake)) : null, clockOfDay)}
     ${cmpRow("每天冲突次数", rate(d => on.has(d)), rate(d => !on.has(d)), v => v.toFixed(1))}</tbody></table></div>
     <p class="small muted" style="margin:6px 0 0">${t("样本少时只作参考；一个月以上的对比才比较可靠。")}</p>` : `<p class="small muted" style="margin:0">${t("还没有可对比的夜晚：需要小月亮里的睡眠记录，和这里的睡前流程记录。")}</p>`}</div>
+  ${nightDryHTML(dates, nights, on)}
   <h2>${t("睡前流程完成")}</h2><div class="panel">${bars(bk.map(b => ({ label: b.label, value: logs.filter(l => inB(b, l.date)).length, color: "var(--sage)" })), { title: t("睡前流程完成") })}<p class="small muted" style="margin:0">${days <= 14 ? t("每天一格") : t("每周一格（按周起始日标日期）")}</p></div>
   <h2>${t("冲突次数与结果")}</h2><div class="panel">${evs.length ? stack(bk.map(b => { const e = evs.filter(x => inB(b, x.date)); return { label: b.label, segs: [{ name: t("平静下来"), value: e.filter(x => x.outcome === "calm").length, color: "var(--sage)" }, { name: t("勉强过去"), value: e.filter(x => x.outcome === "partly").length, color: "var(--honey)" }, { name: t("没用或更糟"), value: e.filter(x => ["none", "worse"].includes(x.outcome)).length, color: "var(--rose)" }, { name: t("没记结果"), value: e.filter(x => !x.outcome).length, color: "var(--line)" }] }; }), { title: t("冲突次数与结果") }) + `<p class="legend-line"><span><i style="background:var(--sage)"></i>${t("平静下来")}</span><span><i style="background:var(--honey)"></i>${t("勉强过去")}</span><span><i style="background:var(--rose)"></i>${t("没用或更糟")}</span></p><p class="small muted" style="margin:0">${t("平静下来 {a} / {b} 次", { a: calm, b: evs.length })}</p>` : `<p class="small muted" style="margin:0">${t("这段时间没有冲突记录。")}</p>`}</div>
   <h2>${t("大人的状态")}</h2><div class="panel">${parentRows.length ? stack(parentRows, { title: t("大人的状态") }) + legend(parentNames) + `<p class="small muted" style="margin:6px 0 0">${t("大人情绪升高（有点急 / 提高了声音 / 发了脾气）共 {n} 次。看到它变多，先照顾自己：换人接手、休息，再回来修复。", { n: heated })}</p>` : `<p class="small muted" style="margin:0">${t("记录时选一下「大人当时的状态」，这里就能看到趋势。")}</p>`}</div>
