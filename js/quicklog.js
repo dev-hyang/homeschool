@@ -90,7 +90,7 @@ function nightLine(){
   const adv = nightAdvice(nightList(myNightRows()));
   if (!adv) return `<p class="ql-night small muted">🩲 ${t("夜间干爽：早上点上面的格子记一下昨晚，连续干爽 5 晚会提示可以试试晚上穿内裤。")}</p>`;
   const head = `${t("连续干爽 {n} 晚", { n: adv.streak })} · ${t("近 14 晚干爽 {a}/{b}", { a: adv.dry14, b: adv.n14 })}${adv.stale ? ` · ${t("最近一次记在 {d}", { d: adv.last.date.slice(5) })}` : ""}`;
-  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="flow-trend" data-from="today">${t("趋势")} ›</button></div>`;
+  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-from="today" data-grview="trend">${t("趋势")} ›</button></div>`;
 }
 
 /** 一条记录的一行小字 */
@@ -113,7 +113,7 @@ function quickHTML(){
   const mine = S.ql.rows.filter(r => (r.data.child || "") === S.childId);
   const list = mine.length ? `<ul class="ql-list" aria-label="${esc(t("今天记过的"))}">${mine.slice(0, 8).map(r => { const tl = tileOf(r) || {}; return `<li><button type="button" class="ql-row" data-act="ql-edit" data-id="${esc(r.id)}"><span aria-hidden="true">${tl.icon || "📝"}</span><b>${hm(r.ts)}</b><span class="ql-sum">${esc(summary(r))}</span></button></li>`; }).join("")}</ul>` : "";
   return `<h2>${t("记一笔")}</h2><div class="panel ql-card">
-    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></div>
+    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><span class="ql-acts"><button type="button" class="chip" data-tab="growth" data-from="today">${t("全部记录")} ›</button><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></span></div>
     <div class="ql-grid" role="group" aria-label="${esc(t("记一笔"))}">${tiles.map(x => `<button type="button" class="ql-tile" data-act="ql-new" data-id="${x.id}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span>${esc(t(x.label))}</span></button>`).join("")}</div>
     ${showNight ? nightLine() : ""}
     ${list}</div>`;
@@ -131,12 +131,14 @@ async function save(tile, old, f){
   if (error) { console.error(error); toast(t("没记上：{m}", { m: error.message })); return; }
   S.ql.rows = [{ id, ts, data }, ...S.ql.rows.filter(x => x.id !== id)].sort((a, b) => b.ts - a.ts);
   if (tile.type === "night") S.ql.nights = [{ ...data, id, ts }, ...S.ql.nights.filter(x => x.id !== id)];
+  if (S.cf && S.cf.loaded) S.cf.rows = [{ ...data, id, type: tile.type, ts }, ...S.cf.rows.filter(x => x.id !== id)];   // 成长记录 / 趋势与分析立刻看到
+  if (ts < dayStart()) S.ql.rows = S.ql.rows.filter(x => x.id !== id);   // 改的是以前的记录：不进今天的列表
   closeSheet(); toast(t("已记下")); render();
 }
 async function remove(old){
   const now = Date.now(), { error } = await SB.client.from("entries").upsert({ family_id: fid(), id: old.id, type: old.data.type, ts: old.ts, updated: now, deleted: true, data: { ...old.data, updated: now } }, { onConflict: "family_id,id" });
   if (error) { console.error(error); toast(t("没删掉：{m}", { m: error.message })); return; }
-  S.ql.rows = S.ql.rows.filter(x => x.id !== old.id); S.ql.nights = S.ql.nights.filter(x => x.id !== old.id); closeSheet(); render();
+  S.ql.rows = S.ql.rows.filter(x => x.id !== old.id); S.ql.nights = S.ql.nights.filter(x => x.id !== old.id); if (S.cf) S.cf.rows = S.cf.rows.filter(x => x.id !== old.id); closeSheet(); render();
 }
 const timeField = { k: "at", label: "时间", type: "time" };
 
@@ -167,11 +169,12 @@ function quickAct(act, btn){
     if (tile.id === "music" && !btn.dataset.form) { openMusicTile(); return; }   // 音乐格：先给选好的歌单；歌单里「记一笔」才是表单（js/music.js）
     openForm(`${tile.icon} ${t(tile.label)} · ${childName()}`, [timeField, ...tile.fields()], { at: hm(Date.now()), ...tile.preset() }, f => save(tile, null, f));
   } else if (act === "ql-edit") {
-    const r = S.ql.rows.find(x => x.id === btn.dataset.id), tile = r && tileOf(r); if (!tile) return;
+    const cf = !S.ql.rows.some(x => x.id === btn.dataset.id) && S.cf && S.cf.rows.find(x => x.id === btn.dataset.id);   // 成长记录页上的旧记录（js/growth.js，数据是摊平的）
+    const r = cf ? { id: cf.id, ts: +cf.ts, data: cf } : S.ql.rows.find(x => x.id === btn.dataset.id), tile = r && tileOf(r); if (!tile) return;
     const vals = { ...r.data, at: hm(r.ts) }; if (vals.level != null) vals.level = String(vals.level);
     openForm(`${tile.icon} ${t(tile.label)}`, [timeField, ...tile.fields()], vals, f => save(tile, r, f), () => { if (confirm(t("删除这一条？"))) remove(r); });
   }
 }
 const isQuickAct = act => act.startsWith("ql-");
 
-export { quickHTML, quickAct, isQuickAct, loadQuick };
+export { quickHTML, quickAct, isQuickAct, loadQuick, TILES, tileOf, summary };

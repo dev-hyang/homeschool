@@ -24,6 +24,7 @@ import { isQuickAct, quickAct } from "./quicklog.js";
 import { musicAct, routineOpts, routinePickOf, setRoutineList } from "./music.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
 import { sleepAct } from "./sleep.js";
+import { growthAct, growthChange } from "./growth.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
 import { setFilter } from "./recfilter.js";
@@ -41,6 +42,7 @@ document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key =
 document.addEventListener("change", async ev => {
   if (await bkChange(ev)) return;   // 备份设置 / 选了备份文件
   if (btChange(ev)) return;         // 睡前安然：选了音频文件、播放页的音量 / 备注
+  if (ev.target && growthChange(ev.target)) return;   // 成长记录：趋势的指标下拉
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
   if (id === "libKind") { S.scrFilter.kind = v; resetPage("lib"); openScriptures(); }
   else if (id === "libSt") { S.scrFilter.st = v; resetPage("lib"); renderLibList(); }
@@ -60,6 +62,7 @@ document.addEventListener("click", async ev => {
   if (d.tab) { close(); stopPreview(); const wasPrint = !!S.printView; S.printView = null; if (wasPrint && history.state && history.state.print) { try { history.back(); } catch (e) {} }
     // data-from：子页记住从哪个页签进来的（面包屑）；没带 data-from 的入口（比如资源页的行）清掉旧记忆，路径回到默认层级。面包屑和迷你栏里的返回不清
     if (d.from) (S.from ||= {})[d.tab] = d.from; else if (S.from && !btn.classList.contains("crumb-link") && !btn.closest(".minibar")) delete S.from[d.tab];
+    if (d.grview) (S.gr ||= {}).view = d.grview;   // 夜间干爽的「趋势 ›」：直接打开成长记录的趋势
     S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
   if (d.pgMore) { morePage(d.pgMore); if (d.pgMore === "lib") renderLibList(); else render(); return; }   // 长列表的「继续加载」（js/pager.js）；卡库只刷新列表块
   if (d.pageSize) { setPageSize(d.pageSize); openSettings(); return; }
@@ -94,6 +97,7 @@ document.addEventListener("click", async ev => {
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
   if (d.act && d.act.startsWith("mu-")) { try { await musicAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 音乐：歌单 / 学歌（js/music.js）
+  if (d.act && d.act.startsWith("gr-")) { try { await growthAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 成长记录（js/growth.js）
   if (d.act && d.act.startsWith("sl-")) { try { await sleepAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 睡眠页：记录与趋势（js/sleep.js）
   if (d.act && isWakeAct(d.act)) { try { await wakeAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 唤醒 / 睡眠记录（js/wake.js）
   if (d.act && (d.act.startsWith("bt-") || d.act.startsWith("btp-"))) { try { await btAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 睡前安然（js/bedtime.js、bedtime-play.js）

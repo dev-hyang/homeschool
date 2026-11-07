@@ -872,6 +872,18 @@ p.ql-night{display:block}
 .kids .baby-link small{color:var(--muted)}
 .ql-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .ql-top .chip{flex:none;min-height:30px;padding:3px 10px;font-size:13px}
+.ql-acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+/* 成长记录（js/growth.js）：顶上一行相关页面链接、记录 / 趋势切换、类型筛选、对比表 */
+.gr-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin:-4px 0 10px}
+.gr-view{margin:0 0 10px}
+.gr-types{margin:0 0 6px}
+.gr-cmp td,.gr-cmp th{padding:6px 8px 6px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+.gr-cmp th{font-weight:600;color:var(--muted);font-size:13px;text-align:left}
+.gr-cmp .num{text-align:right;white-space:nowrap}
+.gr-cmp .up{color:var(--sage)} .gr-cmp .down{color:var(--rose)}
+.gr-cmp .linkbtn[aria-pressed="true"]{font-weight:700;text-decoration:underline}
+.gr-msel{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.gr-msel select{border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 8px;background:var(--surface);color:var(--ink);font-size:15px;max-width:100%}
 .ql-pool{display:grid;gap:8px;margin:10px 0}
 .ql-opt{display:flex;align-items:center;gap:10px;width:100%;box-sizing:border-box;min-height:56px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 .ql-opt[aria-pressed="true"]{border-color:var(--slate);background:var(--slate-soft)}

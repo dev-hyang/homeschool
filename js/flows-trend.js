@@ -22,7 +22,7 @@ const fid = () => S.family && S.family.id;
 /* ---- 小月亮的记录（只读）：情绪行为、社交、睡眠、情绪、自律、活动（屏幕），近 61 天 ----
    默认自动同步：每次打开带「从小月亮重新读取」按钮的页面（冲突管理、情绪管理、趋势与分析），都在后台先拉一次；
    拉的时候按钮是灰色的、点不了；拉完提示「已同步最新小月亮记录」。一直停在这页、小月亮那边又有新记录时，可以再点按钮手动拉。 */
-const PULL_TABS = new Set(["flow-conflict", "flow-emotion", "flow-trend"]);
+const PULL_TABS = new Set(["flow-conflict", "flow-emotion", "flow-trend", "growth"]);   // growth = 成长记录（js/growth.js），同一份数据
 const DAYS = 61, MAX_ROWS = 4000;
 /* 新鲜度：60 秒内拉过、家庭和天数都没变，在这几页之间来回切换就直接用上次的，不再重拉；
    小月亮的记录有变动（实时推送 entries）或这里回写了冲突记录时，bedtime.js 把 S.cf.fresh 清零、S.cf.gen 加一，下次进来照常拉。手动按钮总是重拉。 */
@@ -37,7 +37,7 @@ async function pull({ quiet = false, renderNow = true } = {}){
   let data = null, error = null;
   const f = fid(), since = Date.now() - DAYS * D, gen = B.gen || 0;
   // 一次最多回 1000 行：按 1000 行一页读，最多 4000 行；ts 相同时按 id 排，翻页不重不漏（js/core/paged.js）
-  try { ({ data, error } = await selectAll(() => SB.client.from("entries").select("id,type,ts,data").eq("family_id", f).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity", "night"]).eq("deleted", false).gte("ts", since).order("ts", { ascending: false }).order("id"), MAX_ROWS)); }
+  try { ({ data, error } = await selectAll(() => SB.client.from("entries").select("id,type,ts,data").eq("family_id", f).in("type", ["behavior", "social", "sleep", "mood", "habit", "activity", "night", "potty", "food", "speech", "companion"]).eq("deleted", false).gte("ts", since).order("ts", { ascending: false }).order("id"), MAX_ROWS)); }
   catch (e) { error = { message: (e && e.message) || "network" }; }   // 网络异常也要把按钮放开
   B.loading = false; B.ts = Date.now(); B.loaded = !error; B.err = error ? (error.message || "error") : "";
   B.fresh = error || (B.gen || 0) !== gen ? 0 : B.ts; B.key = `${f}|${DAYS}`;   // 拉的途中被清过（gen 变了）就不算新鲜
@@ -256,5 +256,5 @@ async function trAct(act, btn){
   }
 }
 
-export { timeDots, bedClock, clockOfDay };
+export { timeDots, bedClock, clockOfDay, buckets, inB, nightDryHTML, nightsIn };
 export { B, pull, beforeRender, pullButtonHTML, loadBaby, genderOf, bandKey, allEmotions, hasBl, mineRows, allConflicts, sitOf, whyOf, blStats, sleepNights, flowContext, ctxName, hubAskHTML, viewTrend, trAct };
