@@ -57,9 +57,40 @@ function heroSliderHTML(hero){
       <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[1])} 2/3">${sleepSlideHTML(p)}</div>
       <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[2])} 3/3">${musicCardHTML()}</div>
     </div>
-    <div class="hero-dots" role="group" aria-label="${esc(t("切换卡片"))}">${names.map((n, i) => `<button class="hero-dot" data-act="hero-go" data-i="${i}" aria-label="${esc(n)}" aria-current="${cur === i}"></button>`).join("")}</div>
+    ${dashesHTML(names, cur)}
   </div>`;
 }
+
+/* ── 自动换卡（11-08，和爱家小助手今日卡片同一套）：当前那条短划线像进度条，走满就到下一张（最后一张回到第一张）。
+ *    手指按着、鼠标停在卡片上、键盘焦点在里面、⚙ 菜单开着时停住；手动滑 / 点过从头走；系统减少动态效果时不走。⚙ 选 5 / 10 / 15 / 30 秒或关掉，记在本机。 */
+const SECS_KEY = "homeschool.v1.cardSecs", SECS = [5, 10, 15, 30];
+const cardSecs = () => { try { const v = localStorage.getItem(SECS_KEY); if (v === "0") return 0; return SECS.includes(+v) ? +v : 10; } catch { return 10; } };
+function dashesHTML(names, cur){
+  const secs = cardSecs();
+  const opt = v => `<button type="button" class="hd-opt" data-act="hero-secs" data-v="${v}" aria-pressed="${secs === v}">${v ? t("{s} 秒", { s: v }) : t("关闭自动切换")}${secs === v ? " ✓" : ""}</button>`;
+  return `<div class="hero-ctrl">
+    <div class="hero-dashes ${secs ? "" : "is-off"}" role="group" aria-label="${esc(t("切换卡片"))}">${names.map((n, i) => `<button class="hero-dash ${cur === i ? "is-run" : ""}" data-act="hero-go" data-i="${i}" aria-label="${esc(n)}" aria-current="${cur === i}"><i style="animation-duration:${secs || 10}s"></i></button>`).join("")}</div>
+    <details class="hero-gear"><summary aria-label="${esc(t("自动切换的时间"))}" title="${esc(t("自动切换的时间"))}">⚙</summary><div class="hd-menu">${[...SECS, 0].map(opt).join("")}</div></details>
+  </div>`;
+}
+function markDash(i){
+  document.querySelectorAll(".hero-dash").forEach((b, k) => {
+    b.setAttribute("aria-current", String(k === i));
+    if (k !== i) { b.classList.remove("is-run"); return; }
+    b.classList.remove("is-run"); void b.offsetWidth; b.classList.add("is-run");
+  });
+}
+const sliderGo = (i, smooth = true) => { const el = document.getElementById("heroSlider"); if (!el) return; const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches; el.scrollTo({ left: i * (el.clientWidth + GAP), behavior: smooth && !calm ? "smooth" : "auto" }); };
+document.addEventListener("animationend", e => {
+  if (e.animationName !== "hdprog" || !e.target.closest?.(".hero-dash.is-run") || document.hidden || !cardSecs()) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const el = document.getElementById("heroSlider"); if (!el || el._down) return;
+  const n = el.children.length; sliderGo(((S.heroSlide || 0) + 1) % n);
+}, true);
+document.addEventListener("pointerdown", e => { const el = e.target.closest?.("#heroSlider"); if (el) { el._down = true; el.closest(".hero-wrap")?.classList.add("is-hold"); } }, true);
+const heroUp = () => { const el = document.getElementById("heroSlider"); if (!el || !el._down) return; el._down = false; el.closest(".hero-wrap")?.classList.remove("is-hold"); markDash(S.heroSlide || 0); if (el.contains(document.activeElement)) document.activeElement.blur(); };
+document.addEventListener("pointerup", heroUp, true); document.addEventListener("pointercancel", heroUp, true);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) markDash(S.heroSlide || 0); });
 
 /** render() 把页面换掉之后调：滑回用户刚才停的那一张 */
 function restoreHero(){
@@ -71,19 +102,24 @@ document.addEventListener("scroll", e => {
   const el = e.target; if (!el || el.id !== "heroSlider") return;
   const i = Math.round(el.scrollLeft / Math.max(1, el.clientWidth + GAP));
   if (i === S.heroSlide) return;
-  S.heroSlide = i;
-  document.querySelectorAll(".hero-dot").forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
+  S.heroSlide = i; markDash(i);
 }, true);
 
 const isCardAct = act => act.startsWith("hero-") || act.startsWith("wx-");
 async function cardAct(act, btn){
   switch (act) {
-    case "hero-go": { const el = document.getElementById("heroSlider"); if (!el) break;
-      const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-      el.scrollTo({ left: +btn.dataset.i * (el.clientWidth + GAP), behavior: calm ? "auto" : "smooth" }); break; }
+    case "hero-go": { if (+btn.dataset.i === (S.heroSlide || 0)) markDash(S.heroSlide || 0); else sliderGo(+btn.dataset.i); btn.blur(); break; }
+    case "hero-secs": {   // ⚙ 选了秒数：存下来，当前那条按新时间从头走
+      try { localStorage.setItem(SECS_KEY, btn.dataset.v); } catch (e) { /* 忽略 */ }
+      const v = cardSecs(); document.querySelectorAll(".hero-dash i").forEach(i => { i.style.animationDuration = `${v || 10}s`; });
+      document.querySelector(".hero-dashes")?.classList.toggle("is-off", !v);
+      document.querySelectorAll(".hd-opt").forEach(o => { const on = +o.dataset.v === v; o.setAttribute("aria-pressed", String(on)); o.textContent = (+o.dataset.v ? t("{s} 秒", { s: +o.dataset.v }) : t("关闭自动切换")) + (on ? " ✓" : ""); });
+      btn.closest("details")?.removeAttribute("open"); markDash(S.heroSlide || 0); break; }
     case "wx-locate": { const ok = await askLocation(repaint); toast(ok ? t("已用当地天气") : t("没拿到位置，先按季节显示")); repaint(); break; }
     case "wx-off": clearLocation(); repaint(); break;
   }
 }
 
 export { heroSliderHTML, restoreHero, isCardAct, cardAct };
+
+document.addEventListener("click", e => { document.querySelectorAll(".hero-gear[open]").forEach(d => { if (!d.contains(e.target)) d.removeAttribute("open"); }); });

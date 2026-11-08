@@ -89,7 +89,7 @@ export function playerControlsHTML(size = "card"){
   const s = current(), a = PL.audio, pos = a && a.duration ? (a.currentTime / a.duration) * 100 : 0;
   const btn = (act, label, ch, cls = "") => `<button type="button" class="pl-btn ${cls}" data-act="${act}" aria-label="${esc(label)}" title="${esc(label)}">${ch}</button>`;
   return `<div class="pl pl-${size}" data-pl>
-    <div class="pl-now"><div class="pl-title">${s ? esc(s.title) : esc(t("还没有在播放"))}</div><div class="pl-sub">${s ? `${s.artist ? `${esc(s.artist)} · ` : ""}${esc(PL.listName || "")} · ${PL.i + 1}/${PL.queue.length}` : esc(t("选一个歌单开始"))}</div></div>
+    ${size === "card" ? "" : `<div class="pl-now"><div class="pl-title">${s ? esc(s.title) : esc(t("还没有在播放"))}</div><div class="pl-sub">${s ? `${s.artist ? `${esc(s.artist)} · ` : ""}${esc(PL.listName || "")} · ${PL.i + 1}/${PL.queue.length}` : esc(t("选一个歌单开始"))}</div></div>`}
     <div class="pl-prog"><span class="pl-cur">${mmss(a?.currentTime || 0)}</span><input class="pl-bar" type="range" min="0" max="100" step="0.1" value="${pos}" aria-label="${esc(t("播放进度"))}" ${s ? "" : "disabled"} style="--p:${pos}%"><span class="pl-dur">${mmss(a?.duration || s?.duration || 0)}</span></div>
     <div class="pl-ctrl">
       ${btn("pl-loop", t(LOOPS[PL.loop][1]), ICON[LOOPS[PL.loop][0]], `pl-loop ${PL.loop === "off" ? "" : "is-on"}`)}

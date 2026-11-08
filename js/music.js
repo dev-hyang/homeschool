@@ -123,18 +123,18 @@ function musicCardHTML(){
   const all = lists(), P = PLY.player(), playing = PLY.hasTrack();
   const listId = playing && P.listId ? P.listId : (cardList && L.findList(all, cardList) ? cardList : L.tilePickOf(music(), S.childId, all));
   const l = L.findList(all, listId), q = L.playable(l ? l.songs : []);
-  const head = `<div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span><b>${t("音乐")}</b><button class="mc-link" data-tab="res-music" data-from="today">${t("歌单")} ›</button></div>`;
-  if (!songs().length) return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}<div class="mc-idle"><div class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</div><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div></section>`;
-  const curSong = playing ? PLY.current() : null;
-  const pickers = `<div class="mc-pick">
-      <label class="mc-sel"><span>${t("歌单")}</span><select data-mcpl aria-label="${esc(t("选歌单"))}">${all.map((x) => `<option value="${esc(x.id)}" ${x.id === listId ? "selected" : ""}>${esc(listName(x))}（${L.playable(x.songs).length}）</option>`).join("")}</select></label>
-      <label class="mc-sel"><span>${t("歌曲")}</span><select data-mcsong aria-label="${esc(t("选歌"))}" ${q.length ? "" : "disabled"}>${playing ? "" : `<option value="">${t("从第一首开始")}</option>`}${q.map((x, i) => `<option value="${i}" ${curSong && curSong.id === x.id ? "selected" : ""}>${i + 1}. ${esc(x.title)}</option>`).join("")}</select></label>
-    </div>`;
-  if (playing) return `<section class="musiccard" aria-label="${esc(t("音乐卡"))}">${head}${pickers}${PLY.playerControlsHTML("card")}<div class="mc-foot"><button class="mc-link" data-act="mu-show-player">${t("歌词")}</button><button class="mc-link" data-act="pl-stop">${t("停止")}</button></div></section>`;
-  return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}${pickers}
-    <div class="mc-idle"><div><div class="pl-title">${esc(l ? listName(l) : "")}</div><div class="pl-sub">${t("{n} 首", { n: q.length })}</div></div>
-      ${q.length ? `<button class="pl-btn pl-main" data-act="mu-card-play" data-id="${esc(listId)}" aria-label="${esc(t("开始播放"))}">${PLY.ICON.play}</button>` : ""}</div>
-  </section>`;
+  if (!songs().length) return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}"><div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span><b>${t("音乐")}</b></div>
+    <div class="mc-empty"><span class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</span><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div></section>`;
+  const cur = playing ? PLY.current() : null;
+  // 第一行：🎵 + 歌单选择 + 歌单 ›；第二行：选歌（就是歌名）+ 演唱者 · 第几首；下面进度和控件
+  const plSel = `<select class="mc-plsel" data-mcpl aria-label="${esc(t("选歌单"))}">${all.map((x) => `<option value="${esc(x.id)}" ${x.id === listId ? "selected" : ""}>${esc(listName(x))}（${L.playable(x.songs).length}）</option>`).join("")}</select>`;
+  const songSel = `<select class="mc-songsel" data-mcsong aria-label="${esc(t("选歌"))}" ${q.length ? "" : "disabled"}>${playing ? "" : `<option value="">${esc(t("选一首，或点 ▶ 从头放"))}</option>`}${q.map((x, i) => `<option value="${i}" ${cur && cur.id === x.id ? "selected" : ""}>${esc(x.title)}</option>`).join("")}</select>`;
+  const sub = playing ? `${cur?.artist ? `${esc(cur.artist)} · ` : ""}${P.i + 1}/${P.queue.length}` : t("{n} 首", { n: q.length });
+  const head = `<div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span>${plSel}<button class="mc-link" data-tab="res-music" data-from="today" aria-label="${esc(t("歌单"))}">${t("歌单")} ›</button></div>`;
+  const body = playing ? PLY.playerControlsHTML("card")
+    : `<div class="mc-start">${q.length ? `<button class="pl-btn pl-main mc-play" data-act="mu-card-play" data-id="${esc(listId)}" aria-label="${esc(t("开始播放"))}">${PLY.ICON.play}</button>` : ""}<span class="pl-sub">${t("开始后可以拖动进度、单曲循环、调音量；换页也不停")}</span></div>`;
+  return `<section class="musiccard ${playing ? "" : "is-idle"}" aria-label="${esc(t("音乐卡"))}">${head}<div class="mc-song">${songSel}<div class="pl-sub">${sub}</div></div>${body}
+    ${playing ? `<div class="mc-foot"><button class="mc-link" data-act="mu-show-player">${t("歌词")}</button><button class="mc-link" data-act="pl-stop">${t("停止")}</button></div>` : ""}</section>`;
 }
 /* 音乐卡上换歌单 / 选歌 */
 document.addEventListener("change", (e) => {
