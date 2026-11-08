@@ -3,6 +3,7 @@ import { aiIcon } from "./ask.js";
 import { t, tc } from "./core/i18n.js";
 import { S, ageText, childName } from "./core/state.js";
 import { esc } from "./core/util.js";
+import { releasePageHTML } from "./releases-ui.js";
 
 /* ============ “我的”页：把不常用的入口收到一处 ============
    报告、法规、设置、介绍、打印、姊妹应用。底部一个页签，宽窄屏一样，不再折叠。
@@ -25,13 +26,14 @@ function viewMe(){
     ${row('data-act="bk-open"', t("备份与恢复"), t("定时备份到云端 / 电脑文件夹 / 下载；换手机或重建数据库时导回来"), "🛟")}
     ${row('data-tab="me-print"', t("打印"), t("今日页、本周、本月：不想一直看手机，打一张贴在冰箱上"), "🖨")}
     ${row('data-act="about"', t("介绍"), t("设计思路、每页用法、节奏怎么把握"), "✎")}
+    ${row('data-tab="me-releases"', t("发布日志"), t("每次更新了什么"), "📰")}
   </div>
 
 
   <h2>${t("姊妹应用")}</h2>
   <div class="panel mlist">${SISTER_APPS.filter(a => a.id !== THIS_APP).map(link).join("")}</div>
   <p class="small muted">${t("同一个账号、同一个家庭，四个站点互通。")}</p>
-  <p class="small muted" style="margin-top:24px">${t("家庭学堂")} · ${t("版本")} ${APP_VERSION}</p>`;
+  <p class="small muted" style="margin-top:24px">${t("家庭学堂")} · <button type="button" class="verlink" data-tab="me-releases" aria-label="${esc(`${t("发布日志")} · ${t("版本")} ${APP_VERSION}`)}" title="${esc(t("发布日志"))}">${t("版本")} ${APP_VERSION}</button></p>`;
 }
 
 /* 打印：「我的」下的一个子层级。三个入口各打开对应的那张纸（打印视图），返回回到这里；纸的顶上有完整路径 */
@@ -45,4 +47,7 @@ function viewPrintHub(){
   </div>`;
 }
 
-export { viewMe, viewPrintHub, mrow };
+/* 发布日志：「我的」下的子页；页面内容、筛选和样式都在 js/releases-ui.js（四个姊妹应用共用），数据在 js/data/releases.js */
+const viewReleases = () => releasePageHTML();
+
+export { viewMe, viewPrintHub, viewReleases, mrow };

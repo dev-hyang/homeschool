@@ -1,7 +1,7 @@
 /* ============ boot ============
    模块顺序：core/config → core/util → core/state → hs ↔ core/auth ↔ views ↔ sheet → events。
    跨模块调用都在函数体内，循环引用是安全的。 */
-import { t } from "./core/i18n.js";
+import { locale, t } from "./core/i18n.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import "./data/content-en.js";   // 应用自带内容的英文登记（英文界面下 tc / tb 用）
 import "./events.js";
@@ -11,11 +11,13 @@ import { APP_VERSION } from "./core/config.js";
 import { S } from "./core/state.js";
 import { refreshIfNewDay } from "./hs.js";
 import { render } from "./views.js";
+import { initReleases } from "./releases-ui.js";
+import { RELEASES } from "./data/releases.js";
 
 /* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起（内部 import 没有版本号）。
    index.html 里的 meta 版本与 config.js 不一致时，强制重新抓取所有模块并刷新一次。 */
 const MODULES = ["app", "ai", "ask", "backup", "cloud-drives", "events", "views", "minibar", "swipe-rows", "sheet", "today", "course", "resources", "routines", "reports", "law", "about", "print", "me", "hs", "library", "charts",
-  "bedtime", "bedtime-play", "flows", "flows-trend", "recfilter", "principle", "songs-ui", "music", "music-lists", "data/principle", "data/emotions", "data/music", "data/content-en", "data/en-flows", "data/en-content", "data/plans", "data/seeds", "data/bedtime", "data/flows", "core/config", "core/util", "core/state", "core/auth", "core/i18n", "data/feeds", "data/subjects", "data/plans", "data/seeds", "data/law", "data/versions", "data/about", "data/curriculum", "data/bible", "data/verse-sets", "data/ideas"].map(m => `js/${m}.js`);
+  "bedtime", "bedtime-play", "flows", "flows-trend", "recfilter", "principle", "songs-ui", "music", "music-lists", "data/principle", "data/emotions", "data/music", "data/content-en", "data/en-flows", "data/en-content", "data/plans", "data/seeds", "data/bedtime", "data/flows", "core/config", "core/util", "core/state", "core/auth", "core/i18n", "data/feeds", "data/subjects", "data/plans", "data/seeds", "data/law", "data/versions", "data/about", "data/curriculum", "data/bible", "data/verse-sets", "data/ideas", "releases-ui", "data/releases"].map(m => `js/${m}.js`);
 async function healStaleModules(){
   const want = (document.querySelector('meta[name="app-version"]') || {}).content;
   if (!want || want === APP_VERSION) return false;
@@ -27,6 +29,8 @@ async function healStaleModules(){
 
 if (!(await healStaleModules())) {
   { const v = document.getElementById("appver"); if (v) v.textContent = "v" + APP_VERSION; } // 顶栏版本号：不用翻到最后一页就能对照有没有更新
+  // 发布日志（js/releases-ui.js，四个姊妹应用共用）：我的 → 发布日志；新版本头几次打开时今天页顶上有提示
+  initReleases({ version: APP_VERSION, releases: RELEASES, lang: locale, accent: "var(--slate)", appId: "homeschool", open: 'data-tab="me-releases"' });
   initSwipeRows({ kinds: ["break"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
   render();          // 先画出"连接中"的壳
   initSupabase();    // 加载 supabase-js，登录状态回调里再渲染一次

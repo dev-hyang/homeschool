@@ -1,6 +1,6 @@
 import { updateMiniBar } from "./minibar.js";
-import { BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
-import { viewMe, viewPrintHub } from "./me.js";
+import { APP_VERSION, BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
+import { viewMe, viewPrintHub, viewReleases } from "./me.js";
 import { printViewHTML } from "./print.js";
 import { LOCALES, locale, t } from "./core/i18n.js";
 import { S, ageText, child, monthsOf } from "./core/state.js";
@@ -27,10 +27,10 @@ import { growthNavHTML, showGrowthNav, viewGrowth } from "./growth.js";
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
 // 子页 → 所属页：顶上一条完整路径（‹ 我的 / 报告），底部仍高亮所属的页签。咩咩咩从哪进就以哪为父页（S.from 记录）
 const PARENT = { "course-units": "course", "course-scope": "course", "course-goals": "course", "res-ideas": "resources", "res-library": "resources", "cal-routines": "calendar", reports: "me", law: "me", ask: "me",
-  "res-scriptures": "resources", "res-sources": "resources", "res-music": "resources", flows: "resources", "flow-conflict": "flows", "flow-emotion": "flows", "flow-trend": "flows", "me-print": "me",
+  "res-scriptures": "resources", "res-sources": "resources", "res-music": "resources", flows: "resources", "flow-conflict": "flows", "flow-emotion": "flows", "flow-trend": "flows", "me-print": "me", "me-releases": "me",
   bedtime: "flows", sleep: "today", growth: "today", "bt-flow": "bedtime", "bt-songs": "res-music", "bt-texts": "bedtime", "bt-readings": "bedtime", "bt-logs": "bedtime", "bt-cases": "bedtime" };
 const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", "cal-routines": "周例行", reports: "报告", law: "法规", ask: "咩咩咩",
-  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-emotion": "情绪管理", "flow-trend": "趋势与分析", "me-print": "打印",
+  "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-emotion": "情绪管理", "flow-trend": "趋势与分析", "me-print": "打印", "me-releases": "发布日志",
   bedtime: "睡前安然", sleep: "睡眠", growth: "成长记录", "bt-flow": "流程", "bt-songs": "全部歌曲", "res-music": "音乐", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
@@ -49,11 +49,12 @@ function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印�
 }
 const CORE_TABS = new Set(["course", "resources", "calendar", "me", "flows", "bedtime", "flow-conflict", "flow-emotion", "flow-trend", "ask"]);
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
-  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub,
+  "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub, "me-releases": viewReleases,
   bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], pending: ["", t("等家主批准")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
+  { const v = $("#appver"); if (v) { const l = `${t("发布日志")} · v${APP_VERSION}`; v.setAttribute("aria-label", l); v.title = l; } }   // 顶栏版本号点开发布日志（换语言时跟着换）
   const c = child();
   $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="chev" aria-hidden="true"></span>`;
   $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? (S.babies.length ? t("1 岁以下的宝宝在小月亮里记") : t("家庭里还没有孩子")) : t("登录后显示孩子"));
@@ -113,7 +114,7 @@ function render(){
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
-  $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
+  $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
   if (S.tab === "today") restoreHero();
   updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-act="nav-back" data-parent="${parent}">‹ ${esc(t("返回"))}</button>` : "", t("回到顶部"));
 }

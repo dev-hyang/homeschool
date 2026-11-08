@@ -396,6 +396,13 @@ details.more summary .small{font-weight:400;font-family:var(--f-body)}
 /* app version next to the sync status (the same line in all four sister apps), so an update can be checked without scrolling to the About page */
 .hdr-line{display:inline-flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:2px 8px}
 .appver{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 版本号 = 发布日志的入口（顶栏、我的页底部）：样子不变，悬停下划线，键盘有焦点框 */
+.verlink{all:unset;box-sizing:border-box;cursor:pointer;color:inherit;font:inherit;font-variant-numeric:tabular-nums;white-space:nowrap;text-underline-offset:3px;border-radius:4px}
+.verlink:hover{text-decoration:underline}
+.verlink:focus-visible{outline:2px solid var(--slate);outline-offset:2px;text-decoration:underline}
+.appver.verlink{font-size:11px;color:var(--muted);padding:2px 0}
+/* 今天页顶上的新版本提示（js/releases-ui.js）：和下面的名字卡同宽，上下间距与卡片一致 */
+.today-extra > .rl-badge{margin:8px 0 2px}
 /* version vs sync status: stacked on a phone (status on top, version under it), side by side once there is room */
 .hdr-line{flex-direction:column;align-items:flex-end;gap:0}
 @media (min-width:600px){.hdr-line{flex-direction:row;align-items:center;gap:0 8px}}

@@ -6,6 +6,7 @@ import { subject, weekdayLabel } from "./data/subjects.js";
 import { ve, vz } from "./data/versions.js";
 import { devotionDraft, learnedCount, nextToStart, poolOf, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 import { heroSliderHTML } from "./sleepcard.js";
+import { releaseBadgeHTML } from "./releases-ui.js";
 import { quickHTML } from "./quicklog.js";
 import { learnButton } from "./music.js";
 import { principleHTML } from "./principle.js";
@@ -19,9 +20,10 @@ function viewToday(){
     <div class="meta"><span>${esc(ageText())}</span><span>${esc(stageOf().name)}</span><button class="chip hero-chip" data-act="print-day" title="${esc(t("打一张今天的纸：敬拜、背诵经文全文、任务、备注"))}">🖨 ${t("打印今日页")}</button></div></section>`;
   const me = S.user && S.members[S.user.id], np = (S.pending || []).length;
   const joinNote = me && me.role === "owner" && np ? `<div class="panel" role="status"><span class="small">${t("{n} 人申请加入家庭，等你批准", { n: np })}</span> <button class="chip" data-act="settings">${t("去批准")}</button></div>` : "";
-  // 浏览器直接打印今天页（Ctrl+P / 分享 → 打印）：只留今日敬拜、经文背诵、今日任务；名字卡、大原则、咩咩咩、记一笔收在 .today-extra 里，打印时隐藏（app.css）
+  // 浏览器直接打印今天页（Ctrl+P / 分享 → 打印）：只留今日敬拜、经文背诵、今日任务；新版本提示、名字卡、大原则、咩咩咩、记一笔收在 .today-extra 里，打印时隐藏（app.css）
   return `
   <div class="today-extra">
+  ${releaseBadgeHTML()}
   ${heroSliderHTML(hero)}
   ${joinNote}
   ${principleHTML("full")}
