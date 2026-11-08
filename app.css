@@ -903,3 +903,50 @@ p.ql-night{display:block}
 .sl-main{flex:1;min-width:0;display:flex;flex-direction:column}
 .sl-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sl-dur{flex:none;color:var(--muted);font-size:13px}
+/* 睡前安然：一步超时后的倒数横幅（10 秒后自动下一步；碰一下屏幕或点「留在这一步」就不走） */
+.btp-cd{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,213,128,.14);border:1px solid rgba(255,213,128,.35);font-size:15px;line-height:1.4}
+.btp-cd-n{display:inline-block;min-width:1.4em;text-align:center;font-size:20px;font-variant-numeric:tabular-nums}
+.btp-cd-acts{display:flex;gap:8px;flex-wrap:wrap}
+.btp-cd-acts button{min-height:40px;padding:6px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:transparent;color:inherit;font:inherit;font-size:14px;cursor:pointer}
+.btp-cd-acts button:last-child{background:rgba(185,194,207,.85);color:#0a0d12;border-color:transparent;font-weight:600}
+/* ── 音乐播放器（js/player.js）：今天页音乐卡 / 音乐页「正在播放」/ 弹层共用一套控件 ── */
+.pl{display:flex;flex-direction:column;gap:10px;min-width:0}
+.pl-now{min-width:0}
+.pl-title{font-weight:700;font-size:17px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-sub{font-size:13px;opacity:.75;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl-prog{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;font-size:12px;font-variant-numeric:tabular-nums;opacity:.9}
+.pl-bar{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;margin:0;cursor:pointer;--p:0%}
+.pl-bar::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,currentColor var(--p),color-mix(in srgb,currentColor 25%,transparent) var(--p))}
+.pl-bar::-moz-range-track{height:4px;border-radius:2px;background:color-mix(in srgb,currentColor 25%,transparent)}
+.pl-bar::-moz-range-progress{height:4px;border-radius:2px;background:currentColor}
+.pl-bar::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:currentColor;border:0}
+.pl-bar::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:currentColor;border:0}
+.pl-bar:disabled{opacity:.4;cursor:default}
+.pl-bar:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:4px}
+.pl-ctrl{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.pl-btn{display:grid;place-items:center;width:40px;height:40px;border:0;border-radius:50%;background:color-mix(in srgb,currentColor 12%,transparent);color:inherit;font-size:16px;line-height:1;cursor:pointer;flex:none}
+.pl-btn:hover{background:color-mix(in srgb,currentColor 22%,transparent)}
+.pl-btn:focus-visible{outline:2px solid currentColor;outline-offset:2px}
+.pl-main{width:52px;height:52px;font-size:19px;background:currentColor}
+.pl-main{color:inherit}
+.pl-vol{display:flex;align-items:center;gap:6px;margin-left:4px;font-size:14px}
+.pl-vol input{width:86px;accent-color:currentColor}
+/* 播放键：反色（卡片白字 → 白底深色图标；页面深字 → 深底白图标） */
+.pl .pl-main{background:var(--pl-fg,var(--ink));color:var(--pl-bg,var(--surface))}
+/* 今天页音乐卡：深色渐变，和名字卡一样的分量 */
+.musiccard{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:10px;min-height:184px;padding:16px 18px 14px;border-radius:var(--radius-lg);color:#fff;background:radial-gradient(120% 140% at 100% 0%,#6d5bd0 0%,transparent 55%),linear-gradient(135deg,#1f2a5a,#3b2f73 60%,#5a2f6e);box-shadow:0 8px 24px rgba(31,42,90,.25);overflow:hidden;--pl-fg:#fff;--pl-bg:#2a2a5e}
+.mc-head{display:flex;align-items:center;gap:8px;font-size:14px;opacity:.95}
+.mc-ico{font-size:18px}
+.mc-head b{font-weight:600}
+.mc-link{margin-left:auto;background:none;border:0;color:inherit;opacity:.8;font:inherit;font-size:13px;cursor:pointer;padding:6px 2px;min-height:32px}
+.mc-link:hover{opacity:1;text-decoration:underline}
+.mc-foot{display:flex;justify-content:flex-end;gap:14px;margin-top:-4px}
+.mc-foot .mc-link{margin-left:0}
+.mc-idle{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto}
+.mc-idle > div{min-width:0}
+.mc-tip{margin:0;color:inherit;opacity:.7}
+.musiccard .pl-title{font-size:18px}
+@media (max-width:420px){.pl-vol input{width:64px}.pl-btn{width:38px;height:38px}.pl-main{width:48px;height:48px}}
+/* 音乐页 / 弹层：浅底深字 */
+.pl-page,.pl-sheet{color:var(--ink)}
+.pl-sheet{margin:4px 0}

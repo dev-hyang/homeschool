@@ -1,4 +1,5 @@
 import { CC_PARTS } from "./data/verse-sets.js";
+import { isPlayerAct, playerAct } from "./player.js";
 import { bkAct, bkChange } from "./backup.js";
 import { loadChildren, memberName, sbAuth, sbFamily, sbLogout, sbMember, sbRename, sbResetCode, sbCloseInvite, sbRecheck, sbCancelJoin } from "./core/auth.js";
 import { BABY_LOG_URL, LS_PREFIX } from "./core/config.js";
@@ -96,6 +97,7 @@ document.addEventListener("click", async ev => {
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
+  if (d.act && isPlayerAct(d.act)) { try { await playerAct(d.act); } catch (e) { console.error(e); } return; }   // 音乐播放器（js/player.js）：播放 / 暂停、上下首、循环
   if (d.act && d.act.startsWith("mu-")) { try { await musicAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 音乐：歌单 / 学歌（js/music.js）
   if (d.act && d.act.startsWith("gr-")) { try { await growthAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 成长记录（js/growth.js）
   if (d.act && d.act.startsWith("sl-")) { try { await sleepAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 睡眠页：记录与趋势（js/sleep.js）

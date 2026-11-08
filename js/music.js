@@ -8,6 +8,7 @@ import { render } from "./views.js";
 import { mrow } from "./me.js";
 import { h2, migrateHTML, offlineHTML, songBlob, songs, stopPreview } from "./bedtime.js";
 import * as L from "./music-lists.js";
+import * as PLY from "./player.js";
 
 /* ============ 音乐：歌单 + 学歌 / 播放（资源页的一个入口） ============
    歌曲库（上传 MP3、标签、歌词）还是 js/bedtime.js 里的「全部歌曲」页；这里管歌单和播放：
@@ -42,6 +43,7 @@ function viewMusic(){
   const all = lists(), cid = S.childId, pick = L.tilePickOf(music(), cid, all), custom = all.filter(l => l.kind === "custom");
   return `${h2(t("音乐"), songs().length ? t("{n} 首", { n: songs().length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
+  ${PLY.hasTrack() ? `<h2>${t("正在播放")}</h2><div class="panel">${PLY.playerControlsHTML("page")}<div class="btns" style="margin-top:6px;justify-content:center"><button class="btn sm" data-act="mu-show-player">${t("歌词与歌单")}</button></div></div>` : ""}
   <p class="small muted">${t("先在「全部歌曲」里上传歌，再建歌单、学歌。睡前、冲突、情绪、唤醒的流程也用这里的歌。")}</p>
   <div class="panel mlist">${mrow('data-tab="bt-songs"', t("全部歌曲"), songs().length ? t("添加 / 编辑歌曲、标签、歌词、下载到本机") : t("还没有歌：点进去添加 MP3"), "♬")}</div>
   <h2>${t("歌单")}</h2>
@@ -101,59 +103,43 @@ const nameForm = (title, initial, onSave) => openForm(title, [{ k: "name", label
 });
 const nameError = e => toast(e === "dup" ? t("已经有同名的歌单了") : t("请填歌单名称"));
 
-/* ============ 播放 / 学歌 ============ */
-const P = { open: false, listId: "", queue: [], i: 0, audio: null, url: null, loop: "list", lyrics: true, tid: "", playing: false };
-function stopAudio(){
-  if (P.audio) { try { P.audio.pause(); P.audio.onended = null; P.audio.ontimeupdate = null; } catch (e) { /* 忽略 */ } }
-  if (P.url) URL.revokeObjectURL(P.url);
-  P.audio = P.url = null; P.playing = false;
-}
-function stopPlayer(){ stopAudio(); P.open = false; P.tid = ""; }
-async function playAt(i){
-  const s = P.queue[i]; if (!s) return;
-  stopAudio(); stopPreview();
-  try {
-    const blob = await songBlob(s);
-    if (!P.open) return;   // 加载期间用户已经关了
-    const a = new Audio(URL.createObjectURL(blob));
-    P.url = a.src; P.audio = a; P.i = i; P.playing = true;
-    a.onended = advance;
-    a.ontimeupdate = () => { const b = $("#muBar"); if (b && a.duration) b.value = String(a.currentTime / a.duration * 100); };
-    await a.play();
-  } catch (e) { P.playing = false; toast(e.message || t("播放失败")); }
-  drawPlayer();
-}
-function advance(){
-  const n = L.nextIndex(P.i, P.queue.length, P.loop);
-  if (n < 0) { stopAudio(); drawPlayer(); return; }
-  if (P.loop === "one" && P.audio) { P.audio.currentTime = 0; P.audio.play().catch(() => {}); return; }
-  playAt(n);
-}
-function openPlayer(listId, i = 0, tid = ""){
+/* ============ 播放 / 学歌 ============
+   声音在 js/player.js（一直在，今天页音乐卡、音乐页、这个弹层共用）；这里只管弹层：歌词、歌单里的歌、记一笔、学完。关掉弹层音乐照常放。 */
+const SH = { open: false, lyrics: true };
+PLY.initPlayer({ songBlob, stopPreview }, () => { if (SH.open) drawPlayer(); if (S.tab === "today" || S.tab === "res-music") render(); });
+function stopPlayer(){ PLY.stop(); SH.open = false; }
+function openPlayer(listId, i = 0, tid = "", { sheet = true } = {}){
   const l = L.findList(lists(), listId), q = L.playable(l ? l.songs : []);
   if (!q.length) { toast(t("这个歌单里还没有可以播放的歌")); return; }
-  P.open = true; P.listId = listId; P.queue = q; P.tid = tid;
   const start = l.songs[i] ? Math.max(0, q.findIndex(s => s.id === l.songs[i].id)) : 0;
-  playAt(start);
+  SH.open = sheet;
+  PLY.playQueue(q, start, { listId, listName: listName(l), tid });
+  if (sheet) drawPlayer();
 }
-const LOOPS = { list: ["🔁", "循环播放这个歌单"], one: ["🔂", "单曲循环"], off: ["➡", "播完就停"] };
+/** 今天页滑动卡片里的「🎵 音乐卡」：在放就是完整的播放控件（进度、循环、上下首、音量）；没在放就是给这个孩子选好的歌单 + 开始 */
+function musicCardHTML(){
+  const all = lists(), id = L.tilePickOf(music(), S.childId, all), l = L.findList(all, id), n = l ? L.playable(l.songs).length : 0;
+  const head = `<div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span><b>${t("音乐")}</b><button class="mc-link" data-tab="res-music" data-from="today">${t("歌单")} ›</button></div>`;
+  if (PLY.hasTrack()) return `<section class="musiccard" aria-label="${esc(t("音乐卡"))}">${head}${PLY.playerControlsHTML("card")}<div class="mc-foot"><button class="mc-link" data-act="mu-show-player">${t("歌词")}</button><button class="mc-link" data-act="pl-stop">${t("停止")}</button></div></section>`;
+  return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}
+    ${songs().length ? `<div class="mc-idle"><div><div class="pl-title">${esc(l ? listName(l) : t("全部歌曲"))}</div><div class="pl-sub">${t("{n} 首", { n })} · ${esc(t("给 {n} 选好的歌单", { n: childName() }))}</div></div>
+      ${n ? `<button class="pl-btn pl-main" data-act="mu-card-play" data-id="${esc(id)}" aria-label="${esc(t("开始播放"))}">▶</button>` : ""}</div>
+      <p class="small muted mc-tip">${t("开始后可以在这里拖动进度、单曲循环、调音量；换页也不停")}</p>`
+      : `<div class="mc-idle"><div class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</div><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div>`}
+  </section>`;
+}
 function drawPlayer(){
-  if (!P.open) return;
-  const s = P.queue[P.i], l = L.findList(lists(), P.listId), lines = String(s?.lyrics || "").split(/\r?\n/);
+  if (!SH.open) return;
+  const P = PLY.player(), s = PLY.current(), lines = String(s?.lyrics || "").split(/\r?\n/);
   $("#sheetIn").innerHTML = `${head(esc(t(P.tid ? "学歌" : "播放")))}
-  <p class="small muted" style="margin-top:0">${esc(l ? listName(l) : "")} · ${P.i + 1}/${P.queue.length}</p>
-  <h2 style="margin:4px 0">${esc(s?.title || "")}</h2>${s?.artist ? `<p class="small muted" style="margin:0 0 8px">${esc(s.artist)}</p>` : ""}
-  <input id="muBar" type="range" min="0" max="100" step="0.1" value="0" style="width:100%" aria-label="${esc(t("播放进度"))}">
-  <div class="btns" style="justify-content:center"><button class="btn" data-act="mu-prev" aria-label="${esc(t("上一首"))}">⏮</button><button class="btn primary" data-act="mu-toggle" aria-label="${esc(P.playing ? t("暂停") : t("播放"))}">${P.playing ? "⏸" : "▶"}</button><button class="btn" data-act="mu-next" aria-label="${esc(t("下一首"))}">⏭</button>
-    <button class="btn" data-act="mu-loop" aria-label="${esc(t(LOOPS[P.loop][1]))}" title="${esc(t(LOOPS[P.loop][1]))}">${LOOPS[P.loop][0]}</button>
-    <button class="btn" data-act="mu-lyrics" aria-pressed="${P.lyrics}">${t("歌词")}</button></div>
-  ${P.lyrics ? (s?.lyrics ? `<div class="panel" style="font-size:1.25em;line-height:1.9;text-align:center;max-height:38vh;overflow:auto">${lines.map(x => x.trim() ? `<div>${esc(x)}</div>` : `<div style="height:.8em"></div>`).join("")}</div>${s.lyrics_ai ? `<p class="small muted">${t("这段歌词是 AI 补的，可能和原唱有出入。")}</p>` : ""}` : `<p class="small muted">${t("这首歌还没有歌词：到歌曲编辑页粘贴，或点「让 AI 补词」。")}</p>`) : ""}
-  <details style="margin-top:8px"><summary>${t("歌单里的歌")}</summary><div class="tasks">${P.queue.map((x, i) => `<button type="button" class="task" data-act="mu-jump" data-i="${i}" style="width:100%;text-align:left"><span class="bar" style="background:${i === P.i ? "var(--honey)" : "var(--sage)"}"></span><span class="main"><span class="title">${i === P.i ? "♪ " : ""}${esc(x.title)}</span></span></button>`).join("")}</div></details>
-  <div class="btns"><button class="btn" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button>${P.tid ? `<button class="btn primary" data-act="mu-finish">${t("学完了 ✓ 完成这项任务")}</button>` : ""}</div>`;
+  ${PLY.playerControlsHTML("sheet")}
+  <div class="btns" style="justify-content:center;margin-top:4px"><button class="btn" data-act="mu-lyrics" aria-pressed="${SH.lyrics}">${t("歌词")}</button></div>
+  ${SH.lyrics ? (s?.lyrics ? `<div class="panel" style="font-size:1.25em;line-height:1.9;text-align:center;max-height:38vh;overflow:auto">${lines.map(x => x.trim() ? `<div>${esc(x)}</div>` : `<div style="height:.8em"></div>`).join("")}</div>` : `<p class="small muted" style="text-align:center">${t("这首歌还没有歌词。")}</p>`) : ""}
+  <details style="margin-top:8px"><summary>${t("歌单里的歌")}</summary><div class="tasks">${P.queue.map((x, i) => `<button type="button" class="task" data-act="mu-jump" data-i="${i}" style="width:100%;text-align:left"><span class="bar" style="background:${i === P.i ? "var(--honey)" : "var(--line)"}"></span><span class="main"><span class="title">${esc(x.title)}</span></span></button>`).join("")}</div></details>
+  <div class="btns"><button class="btn" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button>${P.tid ? `<button class="btn primary" data-act="mu-finish">${t("学完了 ✓ 完成这项任务")}</button>` : ""}<button class="btn" data-act="pl-stop">${t("停止播放")}</button></div>`;
   showSheet();
-  const bar = $("#muBar"); if (bar) bar.oninput = e => { if (P.audio && P.audio.duration) P.audio.currentTime = e.target.value / 100 * P.audio.duration; };
 }
-$("#sheet")?.addEventListener("close", () => { if (P.open) stopPlayer(); });
+$("#sheet")?.addEventListener("close", () => { SH.open = false; });   // 关弹层不停音乐（今天页音乐卡、音乐页上还能控制）
 
 /* ============ 今天页「音乐」格：点开直接是选好的歌单 ============ */
 function openMusicTile(){
@@ -207,13 +193,11 @@ async function musicAct(act, el){
     case "mu-play-all": openPlayer(d.id, 0); break;
     case "mu-play": openPlayer(d.id, +d.i || 0); break;
     case "mu-learn": openPlayer(d.id, 0, d.tid); break;
-    case "mu-prev": playAt(L.prevIndex(P.i, P.queue.length)); break;
-    case "mu-next": { const n = L.nextIndex(P.i, P.queue.length, P.loop === "one" ? "list" : P.loop); if (n >= 0) playAt(n); break; }
-    case "mu-jump": playAt(+d.i || 0); break;
-    case "mu-toggle": if (P.audio) { if (P.audio.paused) { await P.audio.play().catch(() => {}); P.playing = true; } else { P.audio.pause(); P.playing = false; } drawPlayer(); } else playAt(P.i); break;
-    case "mu-loop": P.loop = P.loop === "list" ? "one" : P.loop === "one" ? "off" : "list"; drawPlayer(); break;
-    case "mu-lyrics": P.lyrics = !P.lyrics; drawPlayer(); break;
-    case "mu-finish": { const tid = P.tid; stopPlayer(); closeSheet(); if (tid) { await hs.setTaskStatus(tid, "done"); toast(t("已完成")); } refresh(); break; }
+    case "mu-jump": PLY.jump(+d.i || 0); break;
+    case "mu-lyrics": SH.lyrics = !SH.lyrics; drawPlayer(); break;
+    case "mu-show-player": SH.open = true; drawPlayer(); break;
+    case "mu-card-play": openPlayer(d.id, 0, "", { sheet: false }); break;
+    case "mu-finish": { const tid = PLY.player().tid; stopPlayer(); closeSheet(); if (tid) { await hs.setTaskStatus(tid, "done"); toast(t("已完成")); } refresh(); break; }
     case "mu-tile-pick": { const tp = { ...(music().tilePick || {}), [S.childId]: d.id };
       if (S.childId && await saveMusic({ tilePick: tp })) { toast(t("已设为 {n} 的音乐格歌单", { n: childName() })); refresh(); if (d.sheet === "tile") openMusicTile(); else if (d.keep) drawList(); } break; }
     case "mu-song-addto": drawAddTo(d.id); break;
@@ -228,4 +212,4 @@ async function musicAct(act, el){
   }
 }
 
-export { viewMusic, musicEntry, musicAct, openMusicTile, learnButton, routineOpts, routinePickOf, setRoutineList, stopPlayer };
+export { viewMusic, musicEntry, musicAct, openMusicTile, learnButton, routineOpts, routinePickOf, setRoutineList, stopPlayer, musicCardHTML };

@@ -23,6 +23,7 @@ const plannedSecs = st => P.ext ? P.ext : (+st.minutes || 0) * 60;   // 「再�
 
 async function openPlayer(api){
   if (P) closePlayer();
+  window.dispatchEvent(new Event("hs-music-stop"));   // 音乐播放器在放：先停（js/player.js），免得两首一起响
   const c = api.cfg;
   P = { api, c, flow: api.flow || { name: "", kind: "night" }, text: api.text, steps: c.steps.filter(s => !s.skip).map(s => ({ ...s })), i: 0, startedAt: now(), stepStart: now(), actual: [], offset: {}, played: new Set(),
     audio: null, url: null, textOn: true, lyricsOn: false, casesOn: false, flagged: false, fading: false, ext: 0, done: false, timer: null, blocked: false, loading: false,
@@ -79,7 +80,7 @@ function fadeOut(then){
 
 /* ---- 步骤 ---- */
 async function startStep(i){
-  const st = P.steps[i]; P.i = i; P.stepStart = now(); P.flagged = false; P.fading = false; P.ext = 0; P.lyricsOn = false;
+  const st = P.steps[i]; P.i = i; P.stepStart = now(); P.flagged = false; P.fading = false; P.ext = 0; P.lyricsOn = false; P.cdAt = 0; P.hold = false;
   if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
   draw();
   await playSong(st.song ? P.api.songFor(st, P.offset[st.id] || 0) : null);
@@ -101,9 +102,26 @@ function tick(){
   if (bar) bar.style.width = `${planned ? Math.min(100, el / planned * 100) : 0}%`;
   if (time) time.innerHTML = timeHTML(st, el, planned);
   if (planned && el >= planned && !P.flagged) { P.flagged = true; if (navigator.vibrate) { try { navigator.vibrate([150, 80, 150]); } catch (e) {} } const host = $("#btplay"); if (host) host.classList.add("over"); }
-  if (st.loop && planned && el >= planned && P.audio && !P.audio.paused && !P.fading) fadeOut(() => { if (P && !P.done) goFinish(); });
+  const last = P.i + 1 >= P.steps.length, over = planned && el >= planned;
+  if (over && last && st.loop && P.audio && !P.audio.paused && !P.fading) fadeOut(() => { if (P && !P.done) goFinish(); });   // 最后一步（音乐与安睡）：到时音乐淡出、结束
+  if (over && !last && !P.hold) {   // 其他步骤：倒数 10 秒自动进下一步
+    if (!P.cdAt) { P.cdAt = now() + CD_MS; drawCountdown(); }
+    const left = Math.max(0, Math.ceil((P.cdAt - now()) / 1000)), cd = $("#btplay .btp-cd-n"); if (cd) cd.textContent = String(left);
+    if (now() >= P.cdAt) { P.cdAt = 0; next(); return; }
+  } else if (!over && P.cdAt) { P.cdAt = 0; drawCountdown(); }   // 「再放 5 分钟」之类把时间加回来了：取消倒数
   const tot = $("#btplay .btp-total"); if (tot) tot.textContent = t("已用 {m}", { m: fmt(Math.floor((now() - P.startedAt) / 1000)) });
 }
+/* 超时倒数（11-07）：一条横幅「10 秒后进入下一步」+「留在这一步」「现在就下一步」；碰一下播放页任何地方也算「留在这一步」 */
+const CD_MS = 10e3;
+function countdownHTML(){
+  if (!P || !P.cdAt || P.hold) return "";
+  const left = Math.max(0, Math.ceil((P.cdAt - now()) / 1000)), nx = P.steps[P.i + 1];
+  return `<div class="btp-cd" role="status" aria-live="polite"><span>${t("时间到了：")}<b class="btp-cd-n">${left}</b>${t(" 秒后进入下一步")}${nx ? `「${esc(tb(nx.name))}」` : ""}</span>
+    <span class="btp-cd-acts"><button data-act="btp-cd-stay">${t("留在这一步")}</button><button data-act="btp-next">${t("现在就下一步")}</button></span></div>`;
+}
+function drawCountdown(){ const host = $("#btplay"); if (!host) return; const old = host.querySelector(".btp-cd"); const html = countdownHTML(); if (old) old.outerHTML = html || ""; else if (html) host.querySelector(".btp-time")?.insertAdjacentHTML("afterend", html); }
+function holdStep(){ if (!P || !P.cdAt) return; P.cdAt = 0; P.hold = true; drawCountdown(); toast(t("好的，留在这一步；准备好了点「下一步」")); }
+document.addEventListener("pointerdown", (e) => { if (P && P.cdAt && e.target.closest?.("#btplay") && !e.target.closest(".btp-cd-acts")) holdStep(); }, true);   // 家长碰了屏幕 = 还要留在这一步
 const timeHTML = (st, el, planned) => `${P.ext ? t("再放 {n} 分钟", { n: Math.round(P.ext / 60) }) : t("约 {n} 分钟", { n: st.minutes })} · ${fmt(el)}${planned && el > planned ? ` <b class="over">+${Math.ceil((el - planned) / 60)} ${t("分")}</b>` : ""}`;
 
 /* ---- 画面 ---- */
@@ -142,7 +160,7 @@ function draw(){
   <div class="btp-top"><span>${t("第 {i} 步 / {n}", { i: P.i + 1, n: P.steps.length })} · <span class="btp-total">${t("已用 {m}", { m: fmt(Math.floor((now() - P.startedAt) / 1000)) })}</span></span><button class="btp-x" data-act="btp-exit">${t("结束")}</button></div>
   <h1 class="btp-name">${esc(tb(st.name))}</h1>
   <div class="btp-bar"><span style="width:${planned ? Math.min(100, el / planned * 100) : 0}%"></span></div>
-  <div class="btp-time">${timeHTML(st, el, planned)}</div>
+  <div class="btp-time">${timeHTML(st, el, planned)}</div>${countdownHTML()}
   ${st.song ? `<div class="btp-song">${P.loading ? `<span class="muted">${t("正在加载音乐…")}</span>` : s ? `<span>♪ ${esc(s.title)}${s.artist ? ` <span class="muted">· ${esc(s.artist)}</span>` : ""}</span>
       <span class="btp-song-acts">${P.blocked ? `<button data-act="btp-play">▶ ${t("点一下开始播放")}</button>` : `<button data-act="btp-play" aria-label="${playing ? t("暂停") : t("播放")}">${playing ? "❚❚" : "▶"}</button>`}${P.api.songPool(st).length > 1 ? `<button data-act="btp-swap">${t("换一首")}</button>` : ""}${s.lyrics ? `<button data-act="btp-lyrics" aria-pressed="${P.lyricsOn}">${t("歌词")}</button>` : ""}</span>` : `<span class="muted">${t("这类标签下还没有歌")}</span>`}</div>
     ${P.lyricsOn && s && s.lyrics ? `<div class="btp-pre btp-lyrics">${esc(s.lyrics)}</div>` : ""}` : ""}
@@ -193,6 +211,7 @@ async function playAct(act, btn){
   const d = btn.dataset;
   switch (act) {
     case "btp-next": await next(); break;
+    case "btp-cd-stay": holdStep(); break;
     case "btp-prev": await prev(); break;
     case "btp-exit": if ((P.i === 0 && secs() < 60) || confirm(t("提前结束，去记录这一晚？"))) goFinish(); break;
     case "btp-play": if (P.audio) { if (P.audio.paused) { try { await P.audio.play(); P.blocked = false; } catch (e) { toast(e.message); } } else P.audio.pause(); draw(); } else if (P.song) await playSong(P.song); break;

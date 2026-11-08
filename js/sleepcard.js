@@ -1,4 +1,5 @@
 import { t } from "./core/i18n.js";
+import { musicCardHTML } from "./music.js";
 import { S, ageMonths } from "./core/state.js";
 import { $, esc, toast } from "./core/util.js";
 import { sleepCardParts } from "./bedtime.js";
@@ -49,11 +50,12 @@ function heroSliderHTML(hero){
   if (S.heroSlide == null || (p.asleep && !S.heroAsleep)) S.heroSlide = p.asleep ? 1 : 0;
   S.heroAsleep = p.asleep;
   const cur = S.heroSlide;
-  const names = [t("名字卡"), t("睡眠卡")];
+  const names = [t("名字卡"), t("睡眠卡"), t("音乐卡")];
   return `<div class="hero-wrap">
-    <div class="hero-slider" id="heroSlider" role="region" aria-roledescription="carousel" aria-label="${esc(t("今天：名字与睡眠"))}" tabindex="0">
-      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[0])} 1/2">${hero}</div>
-      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[1])} 2/2">${sleepSlideHTML(p)}</div>
+    <div class="hero-slider" id="heroSlider" role="region" aria-roledescription="carousel" aria-label="${esc(t("今天：名字、睡眠与音乐"))}" tabindex="0">
+      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[0])} 1/3">${hero}</div>
+      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[1])} 2/3">${sleepSlideHTML(p)}</div>
+      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[2])} 3/3">${musicCardHTML()}</div>
     </div>
     <div class="hero-dots" role="group" aria-label="${esc(t("切换卡片"))}">${names.map((n, i) => `<button class="hero-dot" data-act="hero-go" data-i="${i}" aria-label="${esc(n)}" aria-current="${cur === i}"></button>`).join("")}</div>
   </div>`;
