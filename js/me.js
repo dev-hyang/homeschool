@@ -48,6 +48,6 @@ function viewPrintHub(){
 }
 
 /* 发布日志：「我的」下的子页；页面内容、筛选和样式都在 js/releases-ui.js（四个姊妹应用共用），数据在 js/data/releases.js */
-const viewReleases = () => releasePageHTML();
+function viewReleases(){ return releasePageHTML(); }   // 函数声明：views.js 和 me.js 互相 import，const 在 VIEWS 建表时还没初始化
 
 export { viewMe, viewPrintHub, viewReleases, mrow };
