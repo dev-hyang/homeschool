@@ -1039,3 +1039,11 @@ p.ql-night{display:block}
 .hd-opt{all:unset;box-sizing:border-box;display:block;padding:9px 12px;border-radius:8px;font-size:14px;cursor:pointer;color:var(--ink)}
 .hd-opt:hover,.hd-opt:focus-visible{background:var(--slate-soft)}
 .hd-opt[aria-pressed="true"]{color:var(--slate);font-weight:600}
+/* ── 11-08 音乐卡下拉框：一眼看得出能选（边框 + 底色 + 下箭头），字号和其他行一致 ── */
+.musiccard .mc-plsel,.musiccard .mc-songsel{-webkit-appearance:none;appearance:none;min-height:34px;padding:5px 32px 5px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.4);background-color:rgba(255,255,255,.14);color:#fff;font:inherit;font-size:13.5px;font-weight:600;line-height:1.3;text-overflow:ellipsis;cursor:pointer;background-image:linear-gradient(45deg,transparent 50%,#fff 50%),linear-gradient(135deg,#fff 50%,transparent 50%);background-position:calc(100% - 17px) 52%,calc(100% - 12px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+.musiccard .mc-plsel{flex:1;max-width:none;min-height:30px;padding:3px 30px 3px 10px;font-size:12.5px;font-weight:500;border-radius:999px}
+.musiccard .mc-songsel{display:block;width:100%}
+.musiccard .mc-plsel:hover,.musiccard .mc-songsel:hover{background-color:rgba(255,255,255,.2)}
+.musiccard .mc-song .pl-sub{margin-top:3px;font-size:11.5px}
+.musiccard .mc-start .pl-sub{font-size:11.5px;line-height:1.4}
+.musiccard .mc-head .mc-link{flex:none}
