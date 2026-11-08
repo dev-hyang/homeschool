@@ -2,7 +2,8 @@ import { t } from "./core/i18n.js";
 import { S, ageMonths, ageText, childName } from "./core/state.js";
 import { D, dayKey, esc, hm } from "./core/util.js";
 import { bars } from "./charts.js";
-import { recordsHTML } from "./recfilter.js";
+import { dayLabel } from "./recfilter.js";
+import { paged, resetPage } from "./pager.js";
 import { aiIcon, askAbout } from "./ask.js";
 import { TILES, summary, tileOf } from "./quicklog.js";
 import { nightList } from "./nightdry.js";
@@ -12,12 +13,13 @@ import { render } from "./views.js";
 /* ============ 成长记录：2 岁以上孩子的日常记录与趋势（小月亮不再显示 2 岁以上，这里是找它们的地方） ============
    入口：今天页「记一笔」卡片的「全部记录 ›」、我的页的「成长记录」、夜间干爽那行的「趋势 ›」。
    数据：和趋势与分析同一份（flows-trend.js 的 S.cf：小月亮 entries 近 61 天，按 1000 行一页读，最多 4000 行），不另外读。
-   两个视图：
-   ① 记录：记一笔的各种记录 + 小月亮里的情绪行为，按类型筛、按日期范围看，点一条用记一笔的同一张表单改 / 删；
-   ② 趋势：近 7 / 14 / 30 天 vs 前一段同样长的对比表、选一个指标看柱状图（14 天以内每天一根，30 天每周一根）、夜间干爽一节（和趋势与分析同一块），
-      「让咩咩咩分析」带上这些指标 + 趋势与分析的摘要（睡眠、睡前流程、冲突、夜间干爽）。
-   睡眠、睡前安然、睡前流程和冲突的趋势还在原来的页面，顶上一行链接过去。 */
-const G = (S.gr = S.gr || { view: "list", type: "all", days: 14, metric: null });
+   11-08 重排：顶上一排页面导航（宽屏页签、手机下拉）：总览 / 夜间干爽 / 睡眠 / 睡前安然 / 趋势与分析（后三个是原来的页面，进去后顶上同样有这一排）。
+   总览：一个筛选器（时间范围、类型、排序：默认最新在前）管下面两块——
+   ① 趋势：每个指标一块（这段时间 vs 前一段同样长），点一块看柱状图（14 天以内每天一根，30 天每周一根）；
+      点柱子 / 「看…的记录」把下面的记录筛到那一类、那一天或那一周；「让咩咩咩分析」带上这些指标 + 趋势与分析的摘要；
+   ② 记录：列表 | 时间线，记一笔的各种记录 + 小月亮里的情绪行为，点一条用记一笔的同一张表单改 / 删。 */
+const G = (S.gr = S.gr || {});
+Object.assign(G, { sec: G.sec || "overview", view: G.view === "timeline" ? "timeline" : "list", type: G.type || "all", days: G.days || 14, sort: G.sort || "new", metric: G.metric || null, span: G.span || null });
 const LIST_TYPES = new Set([...TILES.map(x => x.type), "behavior"]);
 const BEH = { icon: "🙂", label: "情绪行为" };   // 小月亮 / 冲突管理记的，不是记一笔的格子：只看，不在这里改
 const rowsIn = (a, b, type) => mineRows().filter(e => e.type === type && e.ts >= a && e.ts < b);
@@ -60,55 +62,117 @@ function periods(days){
 }
 const shownMetrics = days => { const p = periods(days); return metricOrder().filter(k => hasData(k, ...p.cur) || hasData(k, ...p.prev)); };
 
-/* ---- 记录 ---- */
-const asRec = e => ({ id: e.id, ts: +e.ts, data: e });
-function listItems(){
-  return mineRows().filter(e => LIST_TYPES.has(e.type) && (G.type === "all" || typeKey(e) === G.type)).map(e => ({ ...e, date: dayKey(e.ts), updated_at: String(e.ts).padStart(15, "0") }));
+/* ---- 页面导航：成长记录这一组页面（宽屏一排页签，手机一个下拉框） ----
+   总览、夜间干爽在本页；睡眠、睡前安然、趋势与分析是原来的页面，从这里进去时顶上同样有这一排，面包屑回到成长记录。 */
+const NAV = [["overview", "📒", "总览"], ["night", "🩲", "夜间干爽"], ["sleep", "🌙", "睡眠"], ["bedtime", "🕯", "睡前安然"], ["flow-trend", "📈", "趋势与分析"]];
+const navCur = tab => (tab === "growth" ? (G.sec === "night" ? "night" : "overview") : tab);
+function growthNavHTML(tab){
+  const cur = navCur(tab), from = S.from && S.from.growth;
+  const attrs = k => (k === "overview" || k === "night" ? `data-tab="growth" data-grview="${k}"${from ? ` data-from="${esc(from)}"` : ""}` : `data-tab="${k}" data-from="growth"`);
+  return `<nav class="gnav" aria-label="${esc(t("成长记录"))}">
+    <div class="gnav-tabs">${NAV.map(([k, ic, l]) => `<button type="button" class="gnav-tab" ${attrs(k)} ${k === cur ? 'aria-current="page"' : ""}><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>
+    <label class="gnav-pick"><span class="gnav-lbl">${t("成长记录")}</span><select data-grnav aria-label="${esc(t("成长记录：选一页"))}">${NAV.map(([k, ic, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${ic} ${esc(t(l))}</option>`).join("")}</select></label>
+  </nav>`;
 }
+/** 哪些页面顶上放这一排：成长记录本身、睡眠，以及从成长记录点进去的睡前安然 / 趋势与分析 */
+const showGrowthNav = (tab, parent) => tab === "growth" || tab === "sleep" || ((tab === "bedtime" || tab === "flow-trend") && parent === "growth");
+function goNav(k){
+  if (k === "overview" || k === "night") { G.sec = k; S.tab = "growth"; }
+  else { (S.from ||= {})[k] = "growth"; S.tab = k; }
+  render(); window.scrollTo(0, 0);
+}
+
+/* ---- 筛选器：时间范围、类型、排序（总览里趋势和记录共用同一套） ---- */
+const DAYS = [7, 14, 30];
+const TYPE_OF = { potty: "potty", accident: "potty", dry: "night", meals: "meal", mealMin: "meal", outdoor: "outdoor", read: "read", screen: "screen", tantrum: "behavior", mood: "mood", words: "speech", companion: "companion", social: "social" };
+const daysNow = () => (DAYS.includes(G.days) ? G.days : 14);
+const typeName = k => { if (k === "behavior") return `${BEH.icon} ${t(BEH.label)}`; const x = TILES.find(y => y.id === k); return x ? `${x.icon} ${t(x.label)}` : k; };
+function typeOptions(){
+  const present = new Set(mineRows().filter(e => LIST_TYPES.has(e.type)).map(typeKey));
+  const ids = [...TILES.map(x => x.id).filter(k => present.has(k)), ...(present.has("behavior") ? ["behavior"] : [])];
+  if (G.type !== "all" && !ids.includes(G.type)) ids.push(G.type);   // 刚从趋势点过来、这段时间没有记录：选项里也留着
+  return ids;
+}
+const sel = (name, label, opts, cur) => `<label class="gr-f"><span>${label}</span><select data-grf="${name}">${opts.map(([v, l]) => `<option value="${v}" ${String(v) === String(cur) ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+function filterHTML({ timeOnly = false } = {}){
+  const days = daysNow(), time = sel("days", t("时间"), DAYS.map(d => [d, t("近 {n} 天", { n: d })]), days);
+  if (timeOnly) return `<div class="gr-filter is-time">${time}</div>`;
+  const type = sel("type", t("类型"), [["all", t("全部")], ...typeOptions().map(k => [k, typeName(k)])], G.type);
+  const sort = sel("sort", t("排序"), [["new", t("最新在前")], ["old", t("最早在前")]], G.sort === "old" ? "old" : "new");
+  const on = [G.type !== "all" && `<button type="button" class="gr-tag" data-act="gr-clear" data-v="type" aria-label="${esc(t("去掉这个筛选：{s}", { s: typeName(G.type) }))}">${esc(typeName(G.type))} <span aria-hidden="true">✕</span></button>`,
+    G.span && `<button type="button" class="gr-tag" data-act="gr-clear" data-v="span" aria-label="${esc(t("去掉这个筛选：{s}", { s: spanText() }))}">📅 ${esc(spanText())} <span aria-hidden="true">✕</span></button>`].filter(Boolean);
+  return `<div class="gr-filter" role="group" aria-label="${esc(t("筛选与排序"))}">${time}${type}${sort}</div>
+    ${on.length ? `<div class="gr-tags">${on.join("")}${on.length > 1 ? `<button type="button" class="linkbtn small" data-act="gr-clear" data-v="all">${t("全部清除")}</button>` : ""}</div>` : ""}`;
+}
+const spanText = () => (!G.span ? "" : G.span.from === G.span.to ? G.span.from.slice(5) : `${G.span.from.slice(5)} – ${G.span.to.slice(5)}`);
+
+/* ---- 记录（列表 | 时间线），按筛选器 ---- */
+const asRec = e => ({ id: e.id, ts: +e.ts, data: e });
 /** 筛选用的类型：活动按 kind 分成户外 / 阅读 / 音乐 / 屏幕（和记一笔的格子一致） */
 const typeKey = e => { const tl = e.type === "behavior" ? null : tileOf(asRec(e)); return tl ? tl.id : e.type; };
 const metaOf = e => (e.type === "behavior" ? BEH : tileOf(asRec(e)) || { icon: "📝", label: e.type });
-function rowHTML(e){
+function listItems(){
+  const from = periods(daysNow()).cur[0];
+  const rows = mineRows().filter(e => LIST_TYPES.has(e.type) && +e.ts >= from && (G.type === "all" || typeKey(e) === G.type))
+    .map(e => ({ ...e, date: dayKey(e.ts) })).filter(e => !G.span || (e.date >= G.span.from && e.date <= G.span.to));
+  return rows.sort((a, b) => (G.sort === "old" ? a.ts - b.ts : b.ts - a.ts));
+}
+function rowHTML(e, { time = false } = {}){
   const m = metaOf(e), sum = e.type === "behavior" ? [e.kind, e.trigger && t("起因：{s}", { s: e.trigger }), e.how && t("处理：{s}", { s: e.how })].filter(Boolean).map(x => t(x)).join(" · ") : summary(asRec(e));
-  const inner = `<span class="title">${m.icon} <b>${esc(t(m.label))}</b> <span class="small muted num">${esc(e.date.slice(5))} ${hm(e.ts)}</span></span><span class="meta">${esc(sum || "")}${e.note ? ` · ${esc(e.note)}` : ""}</span>`;
+  const when = time ? hm(e.ts) : `${e.date.slice(5)} ${hm(e.ts)}`;
+  const inner = `<span class="title">${m.icon} <b>${esc(t(m.label))}</b> <span class="small muted num">${esc(when)}</span></span><span class="meta">${esc(sum || "")}${e.note ? ` · ${esc(e.note)}` : ""}</span>`;
   return `<div class="task"><span class="bar" style="background:${e.type === "behavior" ? "var(--rose)" : "var(--slate)"}"></span>
     ${e.type === "behavior" ? `<div class="main" style="cursor:default">${inner}</div>` : `<button type="button" class="main" data-act="ql-edit" data-id="${esc(e.id)}" aria-label="${esc(t("修改这一条"))}">${inner}</button>`}<span class="acts"></span></div>`;
 }
-function listView(){
-  const present = new Set(mineRows().filter(e => LIST_TYPES.has(e.type)).map(typeKey));
-  const opts = [...TILES.filter(x => present.has(x.id)).map(x => [x.id, `${x.icon} ${t(x.label)}`]), ...(present.has("behavior") ? [["behavior", `${BEH.icon} ${t(BEH.label)}`]] : [])];
-  if (G.type !== "all" && !present.has(G.type)) G.type = "all";
-  return `<div class="chips gr-types" role="group" aria-label="${t("按类型筛选")}"><button type="button" class="chip" data-act="gr-type" data-v="all" aria-pressed="${G.type === "all"}">${t("全部")}</button>${opts.map(([k, l]) => `<button type="button" class="chip" data-act="gr-type" data-v="${k}" aria-pressed="${G.type === k}">${esc(l)}</button>`).join("")}</div>
-  ${recordsHTML("gr", listItems(), rowHTML, null, t("这段时间没有记录。在今天页「记一笔」点一格就能记。"))}
-  <p class="small muted" style="margin-top:8px">${t("点一条可以修改或删除（情绪行为在冲突管理 / 小月亮里改）。这里显示最近 2 个月；和小月亮是同一份记录。")}</p>`;
+function recordsSection(){
+  const all = listItems(), pg = paged("gr-rec", all), view = G.view === "timeline" ? "timeline" : "list";
+  let body;
+  if (!all.length) body = `<div class="empty">${G.type !== "all" || G.span ? t("这些筛选条件下没有记录。") : t("这段时间没有记录。在今天页「记一笔」点一格就能记。")}</div>`;
+  else if (view === "timeline") {
+    const groups = []; pg.rows.forEach(x => { const g = groups[groups.length - 1]; if (g && g.date === x.date) g.items.push(x); else groups.push({ date: x.date, items: [x] }); });
+    body = `<div class="tl">${groups.map(g => `<div class="tl-day"><div class="tl-head"><b>${esc(dayLabel(g.date))}</b> <span class="small muted">${g.date}</span></div>${g.items.map(x => `<div class="tl-item">${rowHTML(x, { time: true })}</div>`).join("")}</div>`).join("")}</div>`;
+  } else body = `<div class="tasks">${pg.rows.map(x => rowHTML(x)).join("")}</div>`;
+  return `<section class="gr-sec" id="grRec" aria-labelledby="grRecH">
+    <div class="gr-sh"><h2 id="grRecH">${t("记录")} <span class="small muted gr-n">${t("{n} 条", { n: all.length })}</span></h2>
+      <div class="seg gr-seg" role="group" aria-label="${t("视图")}"><button type="button" data-act="gr-view" data-v="list" aria-pressed="${view === "list"}">${t("列表")}</button><button type="button" data-act="gr-view" data-v="timeline" aria-pressed="${view === "timeline"}">${t("时间线")}</button></div></div>
+    <div class="panel">${body}${pg.more}</div>
+    <p class="small muted gr-foot">${t("点一条可以修改或删除（情绪行为在冲突管理 / 小月亮里改）。最多看最近 2 个月；和小月亮是同一份记录。")}</p>
+  </section>`;
 }
 
-/* ---- 趋势 ---- */
-const DAYS = [7, 14, 30];
-function trendView(){
-  const days = DAYS.includes(G.days) ? G.days : 14, p = periods(days), keys = shownMetrics(days);
+/* ---- 趋势：每个指标一块（这段时间 vs 前一段同样长），点一块看柱状图；柱子和「看记录」都能把下面的记录筛到那一类 / 那几天 ---- */
+const BAD_UP = new Set(["accident", "screen", "tantrum"]);   // 这几项变多不是好事
+function tileHTML(k, p, days){
+  const M = METRICS[k], c = M.v(...p.cur), q = M.v(...p.prev), d = c == null || q == null ? null : c - q;
+  const dir = d == null || Math.abs(d) < 1e-9 ? "" : (d > 0) !== BAD_UP.has(k) ? "good" : "bad";
+  return `<button type="button" class="gr-tile" data-act="gr-metric" data-v="${k}" aria-pressed="${G.metric === k}" style="--c:${M.color}">
+    <span class="gr-tl">${esc(t(M.label))}${M.kind === "avg" ? ` <span class="gr-avg">${t("平均")}</span>` : ""}</span>
+    <span class="gr-tv num">${fmt(k, c)}<small>${esc(t(M.unit))}</small></span>
+    <span class="gr-td"><span class="small muted">${t("前 {n} 天", { n: days })} ${fmt(k, q)}</span>${d == null ? "" : `<span class="gr-dl ${dir}">${d > 0 ? "↑" : d < 0 ? "↓" : "＝"}${Math.abs(d) < 1e-9 ? "" : fmt(k, Math.abs(d))}</span>`}</span>
+  </button>`;
+}
+function trendSection(){
+  const days = daysNow(), p = periods(days);
+  const keys = shownMetrics(days).filter(k => G.type === "all" || TYPE_OF[k] === G.type);
   if (!keys.includes(G.metric)) G.metric = keys[0] || null;
-  const dates = Array.from({ length: days }, (_, i) => dayKey(Date.now() - (days - 1 - i) * D)), on = new Set(nightsIn(days).map(l => l.date));
-  const per = [t("近 {n} 天", { n: days }), t("前 {n} 天", { n: days })];
-  const rows = keys.map(k => {
-    const c = METRICS[k].v(...p.cur), q = METRICS[k].v(...p.prev), d = c == null || q == null ? null : c - q;
-    return `<tr><td><button type="button" class="linkbtn" data-act="gr-metric" data-v="${k}" aria-pressed="${G.metric === k}">${esc(t(METRICS[k].label))}</button> <span class="small muted">${esc(t(METRICS[k].unit))}${METRICS[k].kind === "avg" ? ` · ${t("平均")}` : ""}</span></td>
-      <td class="num">${fmt(k, c)}</td><td class="num">${fmt(k, q)}</td><td class="num ${d == null || Math.abs(d) < 1e-9 ? "" : d > 0 ? "up" : "down"}">${d == null ? "–" : (d > 0 ? "↑" : d < 0 ? "↓" : "") + fmt(k, Math.abs(d))}</td></tr>`;
-  }).join("");
+  const head = `<div class="gr-sh"><h2>${t("趋势")} <span class="small muted gr-n">${t("近 {n} 天 vs 前 {n} 天", { n: days })}</span></h2>
+    <button class="btn sm gr-ask" data-act="gr-ask">${aiIcon(16)} ${t("让咩咩咩分析")}</button></div>`;
+  if (!keys.length) return `<section class="gr-sec">${head}<div class="panel"><p class="small muted" style="margin:0">${G.type !== "all" ? t("这一类没有趋势指标，下面是它的记录。") : t("这段时间还没有记录。在今天页「记一笔」记几天，这里就能看到变化。")}</p></div></section>`;
   let chart = "";
   if (G.metric) {
-    const M = METRICS[G.metric], bk = buckets(days);
-    const items = bk.map(b => { const v = M.v(dkTs(b.from), dkTs(b.to) + D); return { label: b.label, value: v == null ? 0 : +fmt(G.metric, v), color: M.color }; });
-    chart = `<h2>${esc(t(M.label))} <span class="small muted">${esc(t(M.unit))} · ${days <= 14 ? t("每天一格") : t("每周一格（按周起始日标日期）")}${M.kind === "avg" ? ` · ${t("平均")}` : ""}</span></h2>
-      <div class="panel"><label class="gr-msel"><span class="small muted">${t("指标")}</span> <select data-grmetric>${keys.map(k => `<option value="${k}" ${k === G.metric ? "selected" : ""}>${esc(t(METRICS[k].label))}</option>`).join("")}</select></label>${bars(items, { title: t(M.label) })}</div>`;
+    const k = G.metric, M = METRICS[k], bk = buckets(days), ty = TYPE_OF[k];
+    const items = bk.map(b => { const v = M.v(dkTs(b.from), dkTs(b.to) + D); return { label: b.label, value: v == null ? 0 : +fmt(k, v), color: M.color, drill: ty ? `gr:${k}|${b.from}|${b.to}` : "" }; });
+    const see = ty ? `<button type="button" class="linkbtn small" data-act="gr-see" data-v="${k}">${t("看{s}的记录", { s: t(M.label) })} ↓</button>`
+      : k === "sleep" ? `<button type="button" class="linkbtn small" data-tab="sleep" data-from="growth">${t("看睡眠记录")} ›</button>` : "";
+    chart = `<div class="panel gr-chart"><div class="gr-ch-h"><b>${esc(t(M.label))}</b> <span class="small muted">${esc(t(M.unit))} · ${days <= 14 ? t("每天一格") : t("每周一格（按周起始日标日期）")}${M.kind === "avg" ? ` · ${t("平均")}` : ""}</span></div>
+      ${bars(items, { title: t(M.label) })}
+      <div class="gr-ch-f">${ty ? `<span class="small muted">${t("点柱子：下面只看那一天 / 那一周的记录")}</span>` : "<span></span>"}${see}</div></div>`;
   }
-  return `<div class="chips" role="group" aria-label="${t("时间范围")}">${DAYS.map(d => `<button type="button" class="chip" data-act="gr-days" data-v="${d}" aria-pressed="${days === d}">${t("近 {n} 天", { n: d })}</button>`).join("")}</div>
-  <div class="panel">${keys.length ? `<div class="scroll-x"><table class="gr-cmp"><thead><tr><th>${t("指标")}</th><th class="num">${per[0]}</th><th class="num">${per[1]}</th><th class="num">${t("变化")}</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <p class="small muted" style="margin:6px 0 0">${t("次数、分钟是这段时间的合计；心情、用餐时长、夜间睡眠是平均。点指标名看柱状图。记得越全越准，样本少时只作参考。")}</p>`
-    : `<p class="small muted" style="margin:0">${t("这段时间还没有记录。在今天页「记一笔」记几天，这里就能看到变化。")}</p>`}
-    <div class="btns" style="margin-top:10px"><button class="btn primary sm" data-act="gr-ask">${aiIcon(16)} ${t("让咩咩咩分析最近的记录")}</button></div></div>
-  ${chart}
-  ${nightDryHTML(dates, sleepNights(days), on)}`;
+  return `<section class="gr-sec">${head}
+    <div class="gr-tiles">${keys.map(k => tileHTML(k, p, days)).join("")}</div>
+    ${chart}
+    <p class="small muted gr-foot">${t("次数、分钟是合计；心情、用餐时长、夜间睡眠是平均。记得越全越准，样本少时只作参考。")}</p>
+  </section>`;
 }
 
 /** 交给咩咩咩：各指标近 N 天 vs 前 N 天 + 趋势与分析的摘要（睡眠、睡前流程、冲突、夜间干爽） */
@@ -121,27 +185,41 @@ function growthContext(days){
 }
 
 function viewGrowth(){
-  const view = G.view === "trend" ? "trend" : "list";
+  const sec = G.sec === "night" ? "night" : "overview";
   const status = B.loading && !B.loaded ? `<p class="small muted" role="status">${t("正在读取记录…")}</p>` : B.err && !B.loaded ? `<p class="small muted" role="status">${t("读取小月亮失败：")}${esc(String(B.err).slice(0, 80))}</p>` : "";
-  return `<h2>${esc(t("{n}的成长记录", { n: childName() }))} <span class="small muted" style="font-family:var(--f-body);font-weight:400">${esc(ageText())}</span></h2>
-  <div class="gr-links small"><button type="button" class="bt-more" data-tab="sleep" data-from="growth">🌙 ${t("睡眠")} ›</button><button type="button" class="bt-more" data-tab="bedtime" data-from="growth">🕯 ${t("睡前安然")} ›</button><button type="button" class="bt-more" data-tab="flow-trend" data-from="growth">📈 ${t("趋势与分析（睡前流程、冲突）")} ›</button></div>
-  <div class="seg gr-view" role="group" aria-label="${t("视图")}"><button type="button" data-act="gr-view" data-v="list" aria-pressed="${view === "list"}">${t("记录")}</button><button type="button" data-act="gr-view" data-v="trend" aria-pressed="${view === "trend"}">${t("趋势")}</button></div>
-  ${status}
-  ${B.loaded ? (view === "trend" ? trendView() : listView()) : ""}
-  <p class="small muted" style="margin-top:10px">${pullButtonHTML()}</p>`;
+  const title = `<h2 class="gr-title">${esc(t("{n}的成长记录", { n: childName() }))} <span class="small muted">${esc(ageText())}</span></h2>`;
+  let body = "";
+  if (B.loaded) {
+    if (sec === "night") { const days = daysNow(), dates = Array.from({ length: days }, (_, i) => dayKey(Date.now() - (days - 1 - i) * D)); body = `${filterHTML({ timeOnly: true })}${nightDryHTML(dates, sleepNights(days), new Set(nightsIn(days).map(l => l.date)))}`; }
+    else body = `${filterHTML()}${trendSection()}${recordsSection()}`;
+  }
+  return `${title}${status}${body}<p class="small muted" style="margin-top:12px">${pullButtonHTML()}</p>`;
 }
 
+const toRec = () => setTimeout(() => document.getElementById("grRec")?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
 async function growthAct(act, btn){
   const d = btn.dataset;
   switch (act) {
     case "gr-view": G.view = d.v; render(); break;
-    case "gr-type": G.type = d.v; render(); break;
-    case "gr-days": G.days = +d.v; render(); break;
     case "gr-metric": G.metric = d.v; render(); break;
-    case "gr-ask": { const days = DAYS.includes(G.days) ? G.days : 14; askAbout({ q: t("分析这个孩子最近的日常记录（如厕、夜间干爽、吃饭、睡眠作息、户外 / 阅读 / 屏幕、情绪）：有什么规律？哪些地方进步了、哪些需要调整？下一步具体怎么做？"), extra: growthContext(days), name: t("日常记录摘要（近 {n} 天）", { n: days }), from: "growth" }); break; }
+    case "gr-see": { const ty = TYPE_OF[d.v]; if (ty) { G.type = ty; G.metric = d.v; G.span = null; resetPage("gr-rec"); render(); toRec(); } break; }
+    case "gr-clear": { if (d.v === "type" || d.v === "all") G.type = "all"; if (d.v === "span" || d.v === "all") G.span = null; resetPage("gr-rec"); render(); break; }
+    case "gr-ask": { const days = daysNow(); askAbout({ q: t("分析这个孩子最近的日常记录（如厕、夜间干爽、吃饭、睡眠作息、户外 / 阅读 / 屏幕、情绪）：有什么规律？哪些地方进步了、哪些需要调整？下一步具体怎么做？"), extra: growthContext(days), name: t("日常记录摘要（近 {n} 天）", { n: days }), from: "growth" }); break; }
   }
 }
-/** 指标下拉（change 事件） */
-function growthChange(el){ if (el.dataset.grmetric === undefined) return false; G.metric = el.value; render(); return true; }
+/** 柱状图点了一根（charts.js 的 data-libf="gr:指标|起|止"）：下面的记录只看那一类、那几天 */
+function growthDrill(v){
+  const [k, from, to] = String(v).split("|"), ty = TYPE_OF[k]; if (!ty || !from) return;
+  G.type = ty; G.metric = k; G.span = { from, to: to || from }; resetPage("gr-rec"); render(); toRec();
+}
+/** 下拉：页面导航、筛选器（change 事件） */
+function growthChange(el){
+  if (el.dataset.grnav !== undefined) { goNav(el.value); return true; }
+  const f = el.dataset.grf; if (f === undefined) return false;
+  if (f === "days") { G.days = +el.value; G.span = null; }
+  else if (f === "type") { G.type = el.value; G.span = null; }
+  else if (f === "sort") G.sort = el.value;
+  resetPage("gr-rec"); render(); return true;
+}
 
-export { viewGrowth, growthAct, growthChange, growthContext };
+export { viewGrowth, growthAct, growthChange, growthContext, growthDrill, growthNavHTML, showGrowthNav };

@@ -25,7 +25,7 @@ import { isQuickAct, quickAct } from "./quicklog.js";
 import { musicAct, routineOpts, routinePickOf, setRoutineList } from "./music.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
 import { sleepAct } from "./sleep.js";
-import { growthAct, growthChange } from "./growth.js";
+import { growthAct, growthChange, growthDrill } from "./growth.js";
 import { cfAct } from "./flows.js";
 import { trAct } from "./flows-trend.js";
 import { setFilter } from "./recfilter.js";
@@ -37,13 +37,14 @@ const close = () => closeSheet();
 const back = (fn) => { close(); fn && fn(); };
 
 // 经文卡库：图表 / 图例点一下 = 套用“类型|状态”筛选并切到列表
-const libDrill = v => { const [kind, st] = String(v).split("|"); Object.assign(S.scrFilter, { kind: kind || "all", st: st || "active", view: "list" }); resetPage("lib"); openScriptures(); };
+const libDrill = v => { if (String(v).startsWith("gr:")) return growthDrill(String(v).slice(3));   // 成长记录的柱子：筛下面的记录
+  const [kind, st] = String(v).split("|"); Object.assign(S.scrFilter, { kind: kind || "all", st: st || "active", view: "list" }); resetPage("lib"); openScriptures(); };
 document.addEventListener("keydown", ev => { if ((ev.key === "Enter" || ev.key === " ") && ev.target.closest && ev.target.closest("svg [data-libf]")) { ev.preventDefault(); libDrill(ev.target.closest("[data-libf]").dataset.libf); } });
 // 卡库的下拉 / 搜索：类型和每批设置整页重画（图表跟着变），状态 / 排序 / 搜索只刷新列表
 document.addEventListener("change", async ev => {
   if (await bkChange(ev)) return;   // 备份设置 / 选了备份文件
   if (btChange(ev)) return;         // 睡前安然：选了音频文件、播放页的音量 / 备注
-  if (ev.target && growthChange(ev.target)) return;   // 成长记录：趋势的指标下拉
+  if (ev.target && growthChange(ev.target)) return;   // 成长记录：页面导航、筛选器的下拉
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
   if (id === "libKind") { S.scrFilter.kind = v; resetPage("lib"); openScriptures(); }
   else if (id === "libSt") { S.scrFilter.st = v; resetPage("lib"); renderLibList(); }
@@ -63,7 +64,7 @@ document.addEventListener("click", async ev => {
   if (d.tab) { close(); stopPreview(); const wasPrint = !!S.printView; S.printView = null; if (wasPrint && history.state && history.state.print) { try { history.back(); } catch (e) {} }
     // data-from：子页记住从哪个页签进来的（面包屑）；没带 data-from 的入口（比如资源页的行）清掉旧记忆，路径回到默认层级。面包屑和迷你栏里的返回不清
     if (d.from) (S.from ||= {})[d.tab] = d.from; else if (S.from && !btn.classList.contains("crumb-link") && !btn.closest(".minibar")) delete S.from[d.tab];
-    if (d.grview) (S.gr ||= {}).view = d.grview;   // 夜间干爽的「趋势 ›」：直接打开成长记录的趋势
+    if (d.grview) (S.gr ||= {}).sec = d.grview;   // 成长记录里的哪一页：总览 / 夜间干爽（今天页夜间干爽那行的「趋势 ›」直接打开夜间干爽）
     S.tab = d.tab; render(); window.scrollTo(0, 0); return; }   // data-from：子页记住从哪个页签进来的（面包屑）
   if (d.pgMore) { morePage(d.pgMore); if (d.pgMore === "lib") renderLibList(); else render(); return; }   // 长列表的「继续加载」（js/pager.js）；卡库只刷新列表块
   if (d.pageSize) { setPageSize(d.pageSize); openSettings(); return; }

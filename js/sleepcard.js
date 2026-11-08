@@ -68,8 +68,9 @@ const cardSecs = () => { try { const v = localStorage.getItem(SECS_KEY); if (v =
 function dashesHTML(names, cur){
   const secs = cardSecs();
   const opt = v => `<button type="button" class="hd-opt" data-act="hero-secs" data-v="${v}" aria-pressed="${secs === v}">${v ? t("{s} 秒", { s: v }) : t("关闭自动切换")}${secs === v ? " ✓" : ""}</button>`;
+  const nav = (d, label, ch) => `<button type="button" class="hero-nav" data-act="hero-step" data-d="${d}" aria-label="${esc(label)}">${ch}</button>`;
   return `<div class="hero-ctrl">
-    <div class="hero-dashes ${secs ? "" : "is-off"}" role="group" aria-label="${esc(t("切换卡片"))}">${names.map((n, i) => `<button class="hero-dash ${cur === i ? "is-run" : ""}" data-act="hero-go" data-i="${i}" aria-label="${esc(n)}" aria-current="${cur === i}"><i style="animation-duration:${secs || 10}s"></i></button>`).join("")}</div>
+    ${nav(-1, t("上一张"), "‹")}<div class="hero-dashes ${secs ? "" : "is-off"}" role="group" aria-label="${esc(t("切换卡片"))}">${names.map((n, i) => `<button class="hero-dash ${cur === i ? "is-run" : ""}" data-act="hero-go" data-i="${i}" aria-label="${esc(n)}" aria-current="${cur === i}"><i style="animation-duration:${secs || 10}s"></i></button>`).join("")}</div>${nav(1, t("下一张"), "›")}
     <details class="hero-gear"><summary aria-label="${esc(t("自动切换的时间"))}" title="${esc(t("自动切换的时间"))}">⚙</summary><div class="hd-menu">${[...SECS, 0].map(opt).join("")}</div></details>
   </div>`;
 }
@@ -108,6 +109,7 @@ document.addEventListener("scroll", e => {
 const isCardAct = act => act.startsWith("hero-") || act.startsWith("wx-");
 async function cardAct(act, btn){
   switch (act) {
+    case "hero-step": { const el = document.getElementById("heroSlider"), n = el ? el.children.length : 3; sliderGo(((S.heroSlide || 0) + +btn.dataset.d + n) % n); btn.blur(); break; }   // ‹ ›：循环
     case "hero-go": { if (+btn.dataset.i === (S.heroSlide || 0)) markDash(S.heroSlide || 0); else sliderGo(+btn.dataset.i); btn.blur(); break; }
     case "hero-secs": {   // ⚙ 选了秒数：存下来，当前那条按新时间从头走
       try { localStorage.setItem(SECS_KEY, btn.dataset.v); } catch (e) { /* 忽略 */ }

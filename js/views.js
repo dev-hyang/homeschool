@@ -21,7 +21,7 @@ import { viewAsk } from "./ask.js";
 import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewReadings, viewSongs, viewTexts } from "./bedtime.js";
 import { viewMusic } from "./music.js";
 import { viewSleep } from "./sleep.js";
-import { viewGrowth } from "./growth.js";
+import { growthNavHTML, showGrowthNav, viewGrowth } from "./growth.js";
 
 /* ============ 渲染 ============ */
 const TAB_LABELS = { today: "今天", course: "课程", resources: "资源", calendar: "日历", me: "我的" };
@@ -109,7 +109,7 @@ function render(){
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   trackNav(S.tab);
-  const back = crumbHTML(S.tab);
+  const back = crumbHTML(S.tab) + (showGrowthNav(S.tab, parent) ? growthNavHTML(S.tab) : "");   // 成长记录这一组页面：顶上一排导航（js/growth.js）
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";

@@ -90,7 +90,7 @@ function nightLine(){
   const adv = nightAdvice(nightList(myNightRows()));
   if (!adv) return `<p class="ql-night small muted">🩲 ${t("夜间干爽：早上点上面的格子记一下昨晚，连续干爽 5 晚会提示可以试试晚上穿内裤。")}</p>`;
   const head = `${t("连续干爽 {n} 晚", { n: adv.streak })} · ${t("近 14 晚干爽 {a}/{b}", { a: adv.dry14, b: adv.n14 })}${adv.stale ? ` · ${t("最近一次记在 {d}", { d: adv.last.date.slice(5) })}` : ""}`;
-  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-from="today" data-grview="trend">${t("趋势")} ›</button></div>`;
+  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-from="today" data-grview="night">${t("趋势")} ›</button></div>`;
 }
 
 /** 一条记录的一行小字 */
