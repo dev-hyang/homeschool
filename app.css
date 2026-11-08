@@ -950,3 +950,43 @@ p.ql-night{display:block}
 /* 音乐页 / 弹层：浅底深字 */
 .pl-page,.pl-sheet{color:var(--ink)}
 .pl-sheet{margin:4px 0}
+/* ── 11-07 播放器重排：SVG 图标；颜色明确（卡片：深色渐变 + 白；页面 / 弹层：跟随浅色 / 深色主题） ── */
+.pl{gap:12px}
+.pl .pl-btn{width:42px;height:42px;border-radius:50%;border:0;padding:0;display:grid;place-items:center;cursor:pointer;flex:none;background:var(--pl-soft);color:var(--pl-fg);transition:background .15s}
+.pl .pl-btn:hover{background:var(--pl-soft-h)}
+.pl .pl-btn svg{display:block}
+.pl .pl-main{width:56px;height:56px;background:var(--pl-accent);color:var(--pl-on-accent);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.pl .pl-main:hover{background:var(--pl-accent);filter:brightness(1.06)}
+.pl .pl-main svg{width:24px;height:24px}
+.pl .pl-loop{color:var(--pl-dim)}
+.pl .pl-loop.is-on{color:var(--pl-fg)}
+.pl-ctrl{display:grid;grid-template-columns:42px 42px 56px 42px 42px;justify-content:center;align-items:center;gap:10px}
+.pl-vol{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 0;color:var(--pl-dim)}
+.pl-vol input{-webkit-appearance:none;appearance:none;width:min(220px,70%);height:20px;background:transparent;--p:80%}
+.pl-vol input::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--pl-fg) var(--p),var(--pl-track) var(--p))}
+.pl-vol input::-moz-range-track{height:4px;border-radius:2px;background:var(--pl-track)}
+.pl-vol input::-moz-range-progress{height:4px;border-radius:2px;background:var(--pl-fg)}
+.pl-vol input::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-4px;border-radius:50%;background:var(--pl-fg);border:0}
+.pl-vol input::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--pl-fg);border:0}
+.pl .pl-bar{color:var(--pl-fg)}
+.pl .pl-bar::-webkit-slider-runnable-track{background:linear-gradient(90deg,var(--pl-fg) var(--p),var(--pl-track) var(--p))}
+.pl .pl-bar::-moz-range-track{background:var(--pl-track)}
+.pl .pl-bar::-moz-range-progress,.pl .pl-bar::-webkit-slider-thumb{background:var(--pl-fg)}
+.pl .pl-bar::-moz-range-thumb{background:var(--pl-fg)}
+.pl-prog{color:var(--pl-dim);opacity:1}
+.pl-sub{color:var(--pl-dim);opacity:1}
+/* 颜色：页面 / 弹层跟主题；卡片固定深色渐变 + 白字 */
+.pl{--pl-fg:var(--ink);--pl-dim:var(--muted);--pl-soft:color-mix(in srgb,var(--ink) 8%,transparent);--pl-soft-h:color-mix(in srgb,var(--ink) 15%,transparent);--pl-track:color-mix(in srgb,var(--ink) 18%,transparent);--pl-accent:var(--slate);--pl-on-accent:#fff}
+:root[data-theme="dark"] .pl,.pl-dark .pl{--pl-on-accent:#0E1826}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pl{--pl-on-accent:#0E1826}}
+.musiccard .pl{--pl-fg:#fff;--pl-dim:rgba(255,255,255,.72);--pl-soft:rgba(255,255,255,.12);--pl-soft-h:rgba(255,255,255,.22);--pl-track:rgba(255,255,255,.28);--pl-accent:#fff;--pl-on-accent:#2e2a66}
+.musiccard .pl-title{color:#fff}
+/* 音乐卡：歌单 / 歌曲两个选择框一行（窄了两行） */
+.mc-pick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mc-sel{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:12px;color:rgba(255,255,255,.72)}
+.mc-sel select{width:100%;min-height:36px;padding:6px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);color:#fff;font:inherit;font-size:14px;text-overflow:ellipsis}
+.mc-sel select option{color:#1d2733;background:#fff}
+.musiccard .pl-main{--pl-accent:#fff}
+.mc-idle .pl-main{width:52px;height:52px;border:0;border-radius:50%;display:grid;place-items:center;background:#fff;color:#2e2a66;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.mc-idle .pl-main svg{width:22px;height:22px}
+@media (max-width:420px){.mc-pick{grid-template-columns:1fr}.pl-ctrl{gap:8px;grid-template-columns:40px 40px 52px 40px 40px}.pl .pl-btn{width:40px;height:40px}.pl .pl-main{width:52px;height:52px}}

@@ -116,18 +116,36 @@ function openPlayer(listId, i = 0, tid = "", { sheet = true } = {}){
   PLY.playQueue(q, start, { listId, listName: listName(l), tid });
   if (sheet) drawPlayer();
 }
-/** 今天页滑动卡片里的「🎵 音乐卡」：在放就是完整的播放控件（进度、循环、上下首、音量）；没在放就是给这个孩子选好的歌单 + 开始 */
+/** 今天页滑动卡片里的「🎵 音乐卡」：顶上选歌单、选歌（选了就从那首开始放）；下面是播放控件（进度、循环、上下首、音量）。
+ *  没在放时：歌单默认是给这个孩子选好的（今天页「音乐」格那个），▶ 从头放 */
+let cardList = "";
 function musicCardHTML(){
-  const all = lists(), id = L.tilePickOf(music(), S.childId, all), l = L.findList(all, id), n = l ? L.playable(l.songs).length : 0;
+  const all = lists(), P = PLY.player(), playing = PLY.hasTrack();
+  const listId = playing && P.listId ? P.listId : (cardList && L.findList(all, cardList) ? cardList : L.tilePickOf(music(), S.childId, all));
+  const l = L.findList(all, listId), q = L.playable(l ? l.songs : []);
   const head = `<div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span><b>${t("音乐")}</b><button class="mc-link" data-tab="res-music" data-from="today">${t("歌单")} ›</button></div>`;
-  if (PLY.hasTrack()) return `<section class="musiccard" aria-label="${esc(t("音乐卡"))}">${head}${PLY.playerControlsHTML("card")}<div class="mc-foot"><button class="mc-link" data-act="mu-show-player">${t("歌词")}</button><button class="mc-link" data-act="pl-stop">${t("停止")}</button></div></section>`;
-  return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}
-    ${songs().length ? `<div class="mc-idle"><div><div class="pl-title">${esc(l ? listName(l) : t("全部歌曲"))}</div><div class="pl-sub">${t("{n} 首", { n })} · ${esc(t("给 {n} 选好的歌单", { n: childName() }))}</div></div>
-      ${n ? `<button class="pl-btn pl-main" data-act="mu-card-play" data-id="${esc(id)}" aria-label="${esc(t("开始播放"))}">▶</button>` : ""}</div>
-      <p class="small muted mc-tip">${t("开始后可以在这里拖动进度、单曲循环、调音量；换页也不停")}</p>`
-      : `<div class="mc-idle"><div class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</div><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div>`}
+  if (!songs().length) return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}<div class="mc-idle"><div class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</div><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div></section>`;
+  const curSong = playing ? PLY.current() : null;
+  const pickers = `<div class="mc-pick">
+      <label class="mc-sel"><span>${t("歌单")}</span><select data-mcpl aria-label="${esc(t("选歌单"))}">${all.map((x) => `<option value="${esc(x.id)}" ${x.id === listId ? "selected" : ""}>${esc(listName(x))}（${L.playable(x.songs).length}）</option>`).join("")}</select></label>
+      <label class="mc-sel"><span>${t("歌曲")}</span><select data-mcsong aria-label="${esc(t("选歌"))}" ${q.length ? "" : "disabled"}>${playing ? "" : `<option value="">${t("从第一首开始")}</option>`}${q.map((x, i) => `<option value="${i}" ${curSong && curSong.id === x.id ? "selected" : ""}>${i + 1}. ${esc(x.title)}</option>`).join("")}</select></label>
+    </div>`;
+  if (playing) return `<section class="musiccard" aria-label="${esc(t("音乐卡"))}">${head}${pickers}${PLY.playerControlsHTML("card")}<div class="mc-foot"><button class="mc-link" data-act="mu-show-player">${t("歌词")}</button><button class="mc-link" data-act="pl-stop">${t("停止")}</button></div></section>`;
+  return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}">${head}${pickers}
+    <div class="mc-idle"><div><div class="pl-title">${esc(l ? listName(l) : "")}</div><div class="pl-sub">${t("{n} 首", { n: q.length })}</div></div>
+      ${q.length ? `<button class="pl-btn pl-main" data-act="mu-card-play" data-id="${esc(listId)}" aria-label="${esc(t("开始播放"))}">${PLY.ICON.play}</button>` : ""}</div>
   </section>`;
 }
+/* 音乐卡上换歌单 / 选歌 */
+document.addEventListener("change", (e) => {
+  const el = e.target;
+  if (el.dataset?.mcpl !== undefined) { cardList = el.value; if (PLY.hasTrack()) openPlayer(el.value, 0, "", { sheet: false }); else render(); }
+  else if (el.dataset?.mcsong !== undefined && el.value !== "") {
+    const P = PLY.player(), id = el.closest(".musiccard")?.querySelector("[data-mcpl]")?.value || cardList;
+    if (PLY.hasTrack() && P.listId === id) PLY.jump(+el.value);
+    else { const l = L.findList(lists(), id), q = L.playable(l ? l.songs : []); PLY.playQueue(q, +el.value, { listId: id, listName: l ? listName(l) : "" }); }
+  }
+});
 function drawPlayer(){
   if (!SH.open) return;
   const P = PLY.player(), s = PLY.current(), lines = String(s?.lyrics || "").split(/\r?\n/);

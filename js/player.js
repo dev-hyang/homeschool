@@ -67,8 +67,23 @@ export function cycleLoop(){ PL.loop = PL.loop === "list" ? "one" : PL.loop === 
 export function stop(){ release(); PL.queue = []; PL.i = 0; PL.tid = ""; syncUI(); onChange(); }
 window.addEventListener("hs-music-stop", () => { if (PL.audio) PL.audio.pause(); });   // 睡前安然开播
 
+/* 图标（SVG，跟随 currentColor） */
+const sv = (body, stroke = false) => `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"${stroke ? ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"' : ' fill="currentColor"'}>${body}</svg>`;
+export const ICON = {
+  play: sv('<path d="M8 5.2v13.6L19 12z"/>'),
+  pause: sv('<path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.4z"/>'),
+  prev: sv('<path d="M6 5h2.2v14H6zM19.5 5.4v13.2L9.6 12z"/>'),
+  next: sv('<path d="M15.8 5H18v14h-2.2zM4.5 5.4v13.2L14.4 12z"/>'),
+  list: sv('<path d="M17 2.5l3 3-3 3M4 11V9.5a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 13v1.5a4 4 0 0 1-4 4H4"/>', true),
+  one: sv('<path d="M17 2.5l3 3-3 3M4 11V9.5a4 4 0 0 1 4-4h12M7 21.5l-3-3 3-3M20 13v1.5a4 4 0 0 1-4 4H4M11.2 10.6l1.6-1.1v5"/>', true),
+  off: sv('<path d="M4 12h12.5M12.5 7l5 5-5 5M20.5 6v12"/>', true),
+  vol: sv('<path d="M4 9.2v5.6h3.6L12.5 19V5L7.6 9.2z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'),
+  load: sv('<circle cx="12" cy="12" r="7.5" stroke-dasharray="30 18"/>', true),
+};
+const mainIcon = () => (PL.loading ? ICON.load : PL.playing ? ICON.pause : ICON.play);
+
 /* ---- 界面：一块播放器控件（size = "card" 今天页 / "page" 音乐页 / "sheet" 弹层）---- */
-export const LOOPS = { list: ["🔁", "歌单循环"], one: ["🔂", "单曲循环"], off: ["➡️", "播完就停"] };
+export const LOOPS = { list: ["list", "歌单循环"], one: ["one", "单曲循环"], off: ["off", "播完就停"] };
 const mmss = (s) => (Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00");
 export function playerControlsHTML(size = "card"){
   const s = current(), a = PL.audio, pos = a && a.duration ? (a.currentTime / a.duration) * 100 : 0;
@@ -77,11 +92,11 @@ export function playerControlsHTML(size = "card"){
     <div class="pl-now"><div class="pl-title">${s ? esc(s.title) : esc(t("还没有在播放"))}</div><div class="pl-sub">${s ? `${s.artist ? `${esc(s.artist)} · ` : ""}${esc(PL.listName || "")} · ${PL.i + 1}/${PL.queue.length}` : esc(t("选一个歌单开始"))}</div></div>
     <div class="pl-prog"><span class="pl-cur">${mmss(a?.currentTime || 0)}</span><input class="pl-bar" type="range" min="0" max="100" step="0.1" value="${pos}" aria-label="${esc(t("播放进度"))}" ${s ? "" : "disabled"} style="--p:${pos}%"><span class="pl-dur">${mmss(a?.duration || s?.duration || 0)}</span></div>
     <div class="pl-ctrl">
-      ${btn("pl-loop", t(LOOPS[PL.loop][1]), LOOPS[PL.loop][0], "pl-loop")}
-      ${btn("pl-prev", t("上一首"), "⏮")}
-      ${btn("pl-toggle", PL.playing ? t("暂停") : t("播放"), PL.loading ? "…" : PL.playing ? "❚❚" : "▶", "pl-main")}
-      ${btn("pl-next", t("下一首"), "⏭")}
-      <label class="pl-vol" title="${esc(t("音量"))}"><span aria-hidden="true">🔈</span><input type="range" min="0" max="1" step="0.05" value="${PL.vol}" data-plvol aria-label="${esc(t("音量"))}"></label>
+      ${btn("pl-loop", t(LOOPS[PL.loop][1]), ICON[LOOPS[PL.loop][0]], `pl-loop ${PL.loop === "off" ? "" : "is-on"}`)}
+      ${btn("pl-prev", t("上一首"), ICON.prev)}
+      ${btn("pl-toggle", PL.playing ? t("暂停") : t("播放"), mainIcon(), "pl-main")}
+      ${btn("pl-next", t("下一首"), ICON.next)}
+      <label class="pl-vol" title="${esc(t("音量"))}">${ICON.vol}<input type="range" min="0" max="1" step="0.05" value="${PL.vol}" data-plvol aria-label="${esc(t("音量"))}" style="--p:${PL.vol * 100}%"></label>
     </div>
   </div>`;
 }
@@ -99,8 +114,8 @@ function tickUI(){
 /** 播放 / 暂停、循环方式变了：改按钮 */
 function syncUI(){
   document.querySelectorAll("[data-pl]").forEach((el) => {
-    const m = el.querySelector(".pl-main"); if (m) { m.textContent = PL.loading ? "…" : PL.playing ? "❚❚" : "▶"; m.setAttribute("aria-label", PL.playing ? t("暂停") : t("播放")); }
-    const lp = el.querySelector(".pl-loop"); if (lp) { lp.textContent = LOOPS[PL.loop][0]; lp.setAttribute("aria-label", t(LOOPS[PL.loop][1])); lp.title = t(LOOPS[PL.loop][1]); }
+    const m = el.querySelector(".pl-main"); if (m) { m.innerHTML = mainIcon(); m.setAttribute("aria-label", PL.playing ? t("暂停") : t("播放")); }
+    const lp = el.querySelector(".pl-loop"); if (lp) { lp.innerHTML = ICON[LOOPS[PL.loop][0]]; lp.classList.toggle("is-on", PL.loop !== "off"); lp.setAttribute("aria-label", t(LOOPS[PL.loop][1])); lp.title = t(LOOPS[PL.loop][1]); }
   });
   tickUI();
 }
@@ -120,7 +135,7 @@ function mediaMeta(){
 document.addEventListener("input", (e) => {
   const el = e.target;
   if (el.classList?.contains("pl-bar") && el.closest("[data-pl]")) { el._drag = true; el.style.setProperty("--p", `${el.value}%`); const a = PL.audio; const c = el.closest("[data-pl]").querySelector(".pl-cur"); if (c && a?.duration) c.textContent = mmss(el.value / 100 * a.duration); }
-  else if (el.dataset?.plvol !== undefined) { setVol(+el.value); document.querySelectorAll("[data-plvol]").forEach((x) => { if (x !== el) x.value = el.value; }); }
+  else if (el.dataset?.plvol !== undefined) { setVol(+el.value); document.querySelectorAll("[data-plvol]").forEach((x) => { x.value = el.value; x.style.setProperty("--p", `${el.value * 100}%`); }); }
 });
 document.addEventListener("change", (e) => { const el = e.target; if (el.classList?.contains("pl-bar") && el.closest("[data-pl]")) { el._drag = false; seekFrac(+el.value / 100); } });
 
