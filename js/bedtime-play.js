@@ -1,6 +1,6 @@
 import { t, tc, tb } from "./core/i18n.js";
 import { S } from "./core/state.js";
-import { $, dayKey, esc, toast } from "./core/util.js";
+import { $, dayKey, esc, keepFields, toast } from "./core/util.js";
 import { ANCHOR_REF } from "./data/bedtime.js";
 import { SIDES } from "./data/flows.js";
 import { ANGER, V } from "./data/principle.js";
@@ -151,7 +151,9 @@ function textHTML(st){
   else if (k === "close") out.push(`<div class="btp-pre">${esc(tc(T.close))}</div>`);
   return out.join("");
 }
-function draw(){
+/* 播放页会被后台重画（经文抓到了、音频开始 / 停止 / 放完、倒数到了自动下一步）：保住备注框里刚打的字和光标 */
+function draw(){ const host = $("#btplay"); if (host && P) keepFields(host, paint); }
+function paint(){
   const host = $("#btplay"); if (!host || !P) return;
   if (P.done) { host.classList.remove("has-dock"); host.innerHTML = finishHTML(); return; }
   const st = step(), el = secs(), planned = plannedSecs(st), s = P.song, playing = P.audio && !P.audio.paused && !P.audio.ended;

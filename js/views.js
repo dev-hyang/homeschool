@@ -4,7 +4,7 @@ import { viewMe, viewPrintHub, viewReleases } from "./me.js";
 import { printViewHTML } from "./print.js";
 import { LOCALES, locale, t } from "./core/i18n.js";
 import { S, ageText, child, monthsOf } from "./core/state.js";
-import { $, esc } from "./core/util.js";
+import { $, esc, keepFields } from "./core/util.js";
 import { viewCourse, viewGoals, viewScope, viewUnits } from "./course.js";
 import { viewLaw } from "./law.js";
 import { viewReports } from "./reports.js";
@@ -98,11 +98,12 @@ function toggleKids(open = $("#kids").hidden){
   $("#bname").setAttribute("aria-expanded", String(open));
   if (open) { const cur = $("#kids [aria-checked='true']"); cur && cur.focus(); }
 }
+let drawnView = "";   // 上一次画的是哪一页（换页就不保留旧页的输入）
 function render(){
   renderStatus();
   // 打印视图：整页就是那张纸（头部、底栏由 body.printview 收起）
   document.body.classList.toggle("printview", !!S.printView);
-  if (S.printView) { $("#main").innerHTML = printViewHTML(); return; }
+  if (S.printView) { $("#main").innerHTML = printViewHTML(); drawnView = ""; return; }
   beforeRender(S.tab);   // 刚进冲突 / 情绪 / 趋势页：先在后台从小月亮拉一次，按钮此时就是灰的
   let cur = S.tab; for (let p = parentOf(cur); p; p = parentOf(p)) cur = p;   // 一路找到所属的底部页签
   const parent = parentOf(S.tab);
@@ -114,11 +115,16 @@ function render(){
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
-  $("#main").innerHTML = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
+  const html = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
+  // 还是同一页、同一个孩子（多半是后台同步 / 定时刷新引起的重画）：保住页面里正在填、还没保存的内容和光标（js/core/util.js keepFields）
+  const view = `${S.tab}|${S.childId || ""}`, paint = () => { $("#main").innerHTML = html; };
+  if (view === drawnView) keepFields($("#main"), paint); else paint();
+  drawnView = view;
   if (S.tab === "today") restoreHero();
   updateMiniBar($("#bname").textContent, parent ? `<button class="chip" data-act="nav-back" data-parent="${parent}">‹ ${esc(t("返回"))}</button>` : "", t("回到顶部"));
 }
-function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) openSettings(); }
+// 设置页开着时后台（实时同步、登录状态变化）重画它：保住登录 / 建家庭里填了一半的字、焦点和滚动位置
+function refreshSettingsIfOpen(){ if ($("#sheet").open && $("#sheetTitle") && $("#sheetTitle").textContent === t("设置")) keepFields($("#sheetIn"), openSettings, { scroll: true }); }
 
 /* 没登录 / 没家庭 / 没孩子 / 表没建时，每个页面都先把路指清楚 */
 function gateHTML(){

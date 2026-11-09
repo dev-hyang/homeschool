@@ -7,7 +7,7 @@
    四个应用各有一份这个模块，CFG 不同（表、过滤列、云端前缀）。 */
 import { SB } from "./core/auth.js";
 import { S } from "./core/state.js";
-import { $, esc, toast, loadJSON, saveJSON } from "./core/util.js";
+import { $, esc, keepFields, toast, loadJSON, saveJSON } from "./core/util.js";
 import { t } from "./core/i18n.js";
 import { APP_VERSION, DROPBOX_APP_KEY, GOOGLE_API_KEY, GOOGLE_CLIENT_ID } from "./core/config.js";
 import { createDrives } from "./cloud-drives.js";
@@ -269,7 +269,7 @@ function bkBody(cloudOn, syncLine) {
 }
 function openBackup() {
   if (!CFG.ready()) { toast(t("先登录并进入家庭")); return; }
-  loadUi(() => { if ($("#backupForm")) openBackup(); });
+  loadUi(() => { if ($("#backupForm")) keepFields($("#sheetIn"), openBackup, { scroll: true }); });   // 备份列表读完后在后台重画：保住正在填的云盘路径
   $("#sheetIn").innerHTML = `${head(esc(t("备份与恢复")))}${bkBody(true, `<span>${t("已连接云端")} · ${esc(CFG.scopeName())}</span>`)}`;
   showSheet();
 }
