@@ -62,7 +62,7 @@ function drawForm(){
     if (f.type === "area") return `<div class="field"><label for="${id}">${label}</label><textarea id="${id}" data-f="${f.k}" placeholder="${ph}" ${f.rows ? `style="min-height:${f.rows * 24}px"` : ""}>${esc(v || "")}</textarea></div>`;
     if (f.type === "num") return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="number" inputmode="numeric" min="0" data-f="${f.k}" value="${v ?? ""}" placeholder="${ph}"></div>`;
     if (f.type === "time") return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="time" data-f="${f.k}" value="${esc(v || "")}"></div>`;
-    if (f.type === "date") return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="date" data-f="${f.k}" value="${esc(v || "")}"></div>`;
+    if (f.type === "date") return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="date" data-f="${f.k}"${f.past ? ` max="${dayKey(Date.now())}"` : ""} value="${esc(v || "")}"></div>`; // past：记录性质，不能选未来
     if (f.type === "check") return `<div class="field"><label class="check"><input type="checkbox" data-f="${f.k}" ${v ? "checked" : ""}>${label}</label></div>`;
     if (f.type === "html") return `<div class="field">${typeof f.html === "function" ? f.html() : f.html}</div>`; // 只读说明块，不参与读取
     const list = f.list ? `<datalist id="${id}_list">${f.list.map(o => `<option value="${esc(o)}">`).join("")}</datalist>` : "";

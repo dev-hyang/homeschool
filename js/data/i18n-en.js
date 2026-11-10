@@ -510,7 +510,7 @@ const EN = {
   "复制下面的提示词": "Copy the prompt below",
   "已复制": "Copied",
   "请填 API key": "Enter an API key",
-  "已保存": "Saved",
+  "已保存": "Saved", "日期不能晚于今天": "The date can't be later than today", "时间不能晚于现在": "The time can't be later than now",
   "连接成功 ✓": "Connected ✓",
   "已清除": "Removed",
   "（沿用爱家小助手的 key，留空即可）": "(using Home Helper's key; leave blank)",

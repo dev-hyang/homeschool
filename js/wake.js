@@ -140,6 +140,7 @@ function readWake(){
 }
 function drawWake(){
   const d = W.d, name = esc(kidName(W.child)), big = ageMonths(W.child) >= 24;
+  const nowMax = (n => `${n.getFullYear()}-${pad(n.getMonth() + 1)}-${pad(n.getDate())}T${pad(n.getHours())}:${pad(n.getMinutes())}`)(new Date());   // 睡眠是已经发生的事：晚于现在的时间灰掉
   const seg = (k, opts) => `<div class="seg">${opts.map(o => `<button type="button" data-act="wk-seg" data-k="${k}" data-v="${esc(o)}" aria-pressed="${d[k] === o}">${t(o)}</button>`).join("")}</div>`;
   const wakeSongs = songs().filter(s => (s.tags || []).includes("wake") && s.path);
   const ideas = `<details class="wk-ideas"><summary class="small">${t("可以去找的唤醒歌")}</summary><p class="small muted" style="margin:6px 0">${t("原则：中速偏慢、大调、原声乐器（吉他、钢琴、竖琴），没有突然的鼓点和高音；不要比催眠曲更慢，也不要像闹钟。音量从很小慢慢升上来，同时拉开窗帘、轻声叫名字。")}</p>${WAKE_IDEAS.map(([n, a, why]) => `<div class="small"><b>${esc(tc(n))}</b> <span class="muted">${esc(tc(a))} · ${esc(tc(why))}</span></div>`).join("")}</details>`;
@@ -149,8 +150,8 @@ function drawWake(){
   $("#sheetIn").innerHTML = `${head(esc(W.wake ? t("唤醒 · {n}", { n: name }) : W.isNew ? t("补记睡眠 · {n}", { n: name }) : t("睡眠记录 · {n}", { n: name })))}
   ${W.wake ? musicHTML : ""}
   ${W.wake ? "" : `<div class="field"><div class="lab">${t("这一段是")}</div><div class="seg">${KIND.map(k => `<button type="button" data-act="wk-seg" data-k="kind" data-v="${k}" aria-pressed="${d.kind === k}">${t(KIND_NAME[k])}</button>`).join("")}</div></div>`}
-  <div class="field"><label for="wkStart">${t("入睡时间")}</label><input id="wkStart" type="datetime-local" value="${esc(d.start)}"></div>
-  <div class="field"><label for="wkEnd">${t("醒来时间（还在睡就留空）")}</label><input id="wkEnd" type="datetime-local" value="${esc(d.end)}"></div>
+  <div class="field"><label for="wkStart">${t("入睡时间")}</label><input id="wkStart" type="datetime-local" max="${nowMax}" value="${esc(d.start)}"></div>
+  <div class="field"><label for="wkEnd">${t("醒来时间（还在睡就留空）")}</label><input id="wkEnd" type="datetime-local" max="${nowMax}" value="${esc(d.end)}"></div>
   <div class="field"><div class="lab">${t("怎么醒的")}</div>${seg("wakeHow", WAKEHOW)}</div>
   <div class="field"><div class="lab">${t("怎么入睡")}</div>${seg("how", optsFor(big ? HOW_BIG : HOW, d.how))}</div>
   <div class="field"><div class="lab">${t("在哪儿睡")}</div>${seg("where", optsFor(big ? WHERE_BIG : WHERE, d.where))}</div>
@@ -162,6 +163,7 @@ function drawWake(){
 async function saveWake(btn){
   readWake(); const d = W.d, start = fromInput(d.start), end = fromInput(d.end);
   if (!start) { toast(t("请填入睡时间")); return; }
+  if (start > Date.now() + 60e3 || (end && end > Date.now() + 60e3)) { toast(t("时间不能晚于现在")); return; }   // 留一分钟余量：表单开着的时候钟还在走
   if (end && end < start) { toast(t("醒来时间要晚于入睡时间")); return; }
   btn.disabled = true;
   try {

@@ -640,7 +640,7 @@ const sitFields = [
   { k: "avoid", label: "不要（可空）", type: "area", rows: 3 }, { k: "verse", label: "经文提醒（可空）", type: "text", ph: "诗篇 4:8" }];
 const evFields = c => [
   { k: "situation", label: "什么情况", type: "seg", raw: true, opts: [...allSituations(c).map(s => [s.id, s.when]), ["custom", t("其他")]] },
-  { k: "title", label: "「其他」时写一下是什么情况", type: "text" }, { k: "date", label: "哪一晚", type: "date" },
+  { k: "title", label: "「其他」时写一下是什么情况", type: "text" }, { k: "date", label: "哪一晚", type: "date", past: true },
   { k: "children", label: "谁", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "approach", label: "怎么处理的", type: "area", rows: 4, ph: "温柔坚定说了一次，陪回床上三次，没有谈判" }, { k: "minutes", label: "花了几分钟", type: "num" },
   { k: "outcome", label: "结果", type: "seg", opts: OUTCOMES }, { k: "keep", label: "这个做法值得继续用（会列在状况卡上）", type: "check" },
@@ -691,7 +691,7 @@ function viewLogs(){
   ${S.bt.pending.length ? `<p class="small muted" style="margin-top:8px">${t("还有 {n} 条离线记录等着联网补传。", { n: S.bt.pending.length })}</p>` : ""}`;
 }
 const logFields = () => [
-  { k: "date", label: "哪一晚", type: "date" }, { k: "actual_min", label: "实际几分钟", type: "num" },
+  { k: "date", label: "哪一晚", type: "date", past: true }, { k: "actual_min", label: "实际几分钟", type: "num" },
   { k: "children", label: "谁参加了", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "led_by", label: "谁带的", type: "seg", raw: true, opts: [...new Set([...members(), "爸爸", "妈妈"])].map(m => [m, m]) },
   { k: "passage", label: "读了哪段（可空）", type: "text" },

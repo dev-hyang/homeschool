@@ -214,7 +214,7 @@ document.addEventListener("click", async ev => {
       case "goal-template": { const n = await hs.applyGoalTemplate(d.tpl, S.childId); render(); toast(n ? t("已添加 {n} 个目标", { n }) : t("这些目标都已经在了")); break; }
       case "goal-add": openForm("新目标", goalFields(), { area: "bible", title: "", target_on: "", evidence: "" }, async f => { if (!f.title) { toast(t("请填目标")); return; } await hs.upsertGoal(f); back(); }); break;
       case "goal-edit": { const g = S.hs.goals.find(x => x.id === d.gid); if (!g) break;
-        openForm("编辑目标", [...goalFields(), { k: "achieved_on", label: "达成日期（空 = 未达成）", type: "date" }], g, async f => { await hs.upsertGoal({ ...g, ...f }); back(); }, async () => { await hs.deleteGoal(g.id); back(); }); break; }
+        openForm("编辑目标", [...goalFields(), { k: "achieved_on", label: "达成日期（空 = 未达成）", type: "date", past: true }], g, async f => { await hs.upsertGoal({ ...g, ...f }); back(); }, async () => { await hs.deleteGoal(g.id); back(); }); break; }
       case "goal-toggle": await hs.toggleGoal(d.gid); render(); break;
 
       /* 日常点子 */
@@ -257,7 +257,11 @@ document.addEventListener("click", async ev => {
       case "scope-add": { const u = await hs.addScopeUnit(d.ss, d.title, +d.weeks, +d.term, S.childId); render(); toast(u ? t("已加为单元，去填课时") : t("已经有这个单元了")); break; }
 
       /* 表单 */
-      case "form-save": { readForm(); const f = getForm(); await f.onSave(f.draft); break; }
+      case "form-save": { readForm();
+        // 记录性质的日期（字段带 past）不能晚于今天：选择器里已经灰掉，手动输入的在这里拦住
+        const late = [...document.querySelectorAll('#sheetIn input[type="date"][max]')].find(el => el.validity.rangeOverflow);
+        if (late) { toast(t("日期不能晚于今天")); late.focus(); return; }
+        const f = getForm(); await f.onSave(f.draft); break; }
       case "form-delete": { const f = getForm(); if (f.onDelete) await f.onDelete(); break; }
     }
   } catch (e) { /* run() already toasted; keep the page usable */ }

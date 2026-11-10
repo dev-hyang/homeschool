@@ -175,7 +175,7 @@ function viewEmotion(){
 
 const evFields = kind => [
   { k: "situation", label: "什么情况", type: "seg", raw: true, opts: (kind === "em" ? EMOTIONS : allConflicts()).map(s => [s.id, tc(s.when)]) },
-  { k: "date", label: "哪一天（过去的也能补）", type: "date" },
+  { k: "date", label: "哪一天（过去的也能补）", type: "date", past: true },
   { k: "children", label: "谁", type: "multi", raw: true, opts: kids().map(k => [k.id, k.name || t("宝宝")]) },
   { k: "title", label: "起因（可空）", type: "text", ph: "玩具被抢、饿了、换环境…" },
   { k: "approach", label: "怎么处理的 / 怎么陪伴的", type: "area", rows: 4, ph: "先把孩子分开，说了一次「不可以打人」，陪他冷静…" }, { k: "minutes", label: "持续几分钟", type: "num" },

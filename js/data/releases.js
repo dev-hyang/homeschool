@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-09.2", title: { zh: "补记的日期和时间不能选到未来", en: "Logged dates and times can no longer be in the future" }, items: [
+    { k: "better", zh: "睡眠记录、睡前流程记录、情绪和冲突记录、目标的达成日期：晚于现在的变灰、不能选", en: "Sleep records, bedtime logs, emotion and conflict records and a goal's achieved date: anything later than now is greyed out" },
+    { k: "better", zh: "排课、计划、假期这些安排性质的日期不受影响，照样能选未来", en: "Scheduling dates such as tasks, plans and breaks are unchanged and can still be in the future" }
+  ] },
   { v: "2026-11-09.1", title: { zh: "填写的内容不会再被自动刷新冲掉", en: "What you type is no longer wiped by auto-refresh" }, items: [{ k: "fix", zh: "填表时没保存的内容不会再被自动刷新冲掉（咩咩咩的提问、睡前播放页的备注、备份路径、登录框等），光标也留在原处", en: "Unsaved text is no longer wiped when the app refreshes in the background (Ask questions, bedtime player notes, backup paths, sign-in), and the cursor stays put" }] },
   { v: "2026-11-08.6", title: { zh: "修好了打不开的问题", en: "Fixed the app not opening" }, items: [{ k: "fix", zh: "上一版更新后应用可能一直空白、打不开，已修好", en: "After the last update the app could stay blank and not open; this is fixed" }] },
   { v: "2026-11-08.5", title: { zh: "发布日志可以按天或按版本分组，补上了早期的更新记录", en: "Release notes can be grouped by day or version; early history added" }, items: [
