@@ -1206,3 +1206,30 @@ p.ql-night{display:block}
 .sheet-head .iconbtn{white-space:nowrap;flex:none}
 .ix-who{margin:-4px 0 10px}
 .gr-rv-modes{max-width:520px}
+/* ---- 成长第二版（分层）：首页三块卡片入口 · 主题页同一个版式 ---- */
+.gr-hub-sec{margin:0 0 16px}
+.gr-hub-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 8px}
+.gr-hub-h h2{margin:0;font-size:18px}
+.gr-hub-sec .mlist .mrow .mt small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
+.gr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 12px}
+.gr-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:0 1 330px}
+.gr-days button{min-height:38px;padding:6px 8px;font-size:14px;border-radius:999px;white-space:nowrap}
+.gr-adds{display:flex;flex-wrap:wrap;gap:8px}
+.gr-adds .btn{flex:none;min-height:40px;padding:8px 16px;font-size:14.5px;text-decoration:none;display:inline-flex;align-items:center}
+@media (max-width:640px){.gr-top{flex-direction:column;align-items:stretch}.gr-days{flex:none}.gr-adds{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.gr-adds .btn{justify-content:center}}
+.gr-tiles{margin:0 0 10px}
+.gr-tile.static{cursor:default}
+.gr-tile.static:hover{border-color:var(--line)}
+.gr-chart{margin:0 0 4px}
+.gr-ch-f{margin:2px 0 0}
+.gr-empty{margin:0 0 12px}
+.gr-sh2{font-size:17px;margin:22px 0 10px}
+.gr-note{white-space:pre-line}
+.gr-due{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.gr-kvs{display:flex;flex-direction:column;gap:8px}
+.gr-kv{display:grid;grid-template-columns:6em minmax(0,1fr);gap:10px;overflow-wrap:anywhere}
+.mrow.gr-static{cursor:default}
+.gr-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:22px 0 4px;padding-top:12px;border-top:1px solid var(--line)}
+.gr-pager .btn{flex:0 1 auto;min-width:0;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gr-pager-hint{display:none}
+@media (max-width:640px){.gr-pager-hint{display:inline;text-align:center;flex:1}.gr-pager .btn{max-width:36%;padding:6px 10px;font-size:13.5px}}

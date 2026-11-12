@@ -21,7 +21,8 @@ import { viewAsk } from "./ask.js";
 import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewReadings, viewSongs, viewTexts } from "./bedtime.js";
 import { viewMusic } from "./music.js";
 import { viewSleep } from "./sleep.js";
-import { growthNavHTML, showGrowthNav, viewGrowth } from "./growth.js";
+import { topicView, viewGrowth } from "./growth.js";
+import { TOPICS, TOPIC_IDS } from "./data/growth-topics.js";
 
 /* ============ 渲染 ============ */
 const TAB_LABELS = { today: "今天", course: "课程", growth: "成长", resources: "资源", me: "我的" };
@@ -32,6 +33,8 @@ const PARENT = { "course-units": "course", "course-scope": "course", "course-goa
 const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度范围", "course-goals": "学习目标", "res-ideas": "日常点子", "res-library": "资源库", calendar: "日历", "cal-routines": "周例行", reports: "报告", law: "法规", ask: "咩咩咩",
   "res-scriptures": "经文卡库", "res-sources": "参考来源", flows: "定制流程", "flow-conflict": "冲突管理", "flow-emotion": "情绪管理", "flow-trend": "趋势与分析", "me-print": "打印", "me-releases": "发布日志",
   bedtime: "睡前安然", sleep: "睡眠", "bt-flow": "流程", "bt-songs": "全部歌曲", "res-music": "音乐", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
+// 成长的第 2 层：每个主题一页（js/data/growth-topics.js），面包屑回到成长
+for (const id of TOPIC_IDS) { PARENT[id] = "growth"; PAGE_LABELS[id] = TOPICS[id].label; }
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
 
@@ -50,7 +53,7 @@ function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印�
 const CORE_TABS = new Set(["course", "growth", "resources", "calendar", "me", "flows", "bedtime", "flow-conflict", "flow-emotion", "flow-trend", "ask"]);
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
   "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub, "me-releases": viewReleases,
-  bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
+  bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, ...Object.fromEntries(TOPIC_IDS.map(id => [id, () => topicView(id)()])), "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], pending: ["", t("等家主批准")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
@@ -111,10 +114,9 @@ function render(){
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   trackNav(S.tab);
-  const gnav = showGrowthNav(S.tab, parent) ? growthNavHTML(S.tab) : "";   // 成长这一组页面：标题 + 顶上两排导航（js/growth.js），放在大原则那一行下面
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
-  const core = CORE_TABS.has(S.tab) || gnav ? principleHTML("mini") : "", back = crumbHTML(S.tab) + core + gnav;
+  const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "", back = crumbHTML(S.tab) + core;
   const html = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + v() : back + (gateHTML() || v());
   // 还是同一页、同一个孩子（多半是后台同步 / 定时刷新引起的重画）：保住页面里正在填、还没保存的内容和光标（js/core/util.js keepFields）
   const view = `${S.tab}|${S.childId || ""}`, paint = () => { $("#main").innerHTML = html; };

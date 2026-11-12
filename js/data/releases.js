@@ -2,6 +2,12 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.7", title: { zh: "成长页重新设计：一层一层点进去", en: "Growth redesigned: tap through layer by layer" }, items: [
+    { k: "better", zh: "首页三张卡：身体与健康、习惯与情绪、学习与培训，每行一句最新情况", en: "The Growth home has three cards (Body & health, Habits & emotions, Learning & training), each row with a one-line update" },
+    { k: "better", zh: "每个主题一页，同一个样子：时间范围、记一笔、指标、走势图、记录", en: "Every topic page looks the same: time range, log, indicators, trend chart, records" },
+    { k: "new", zh: "手机上左右滑动换到同一块的上一个 / 下一个主题", en: "On phones, swipe left / right to the previous / next topic" },
+    { k: "better", zh: "睡前安然、趋势与分析留在 资源 → 定制流程", en: "Bedtime and Trends stay under Resources → Custom flows" }
+  ] },
   { v: "2026-11-11.6", title: { zh: "成长页细节：录入表标题、睡眠平均更准", en: "Growth details: form title, more accurate sleep average" }, items: [
     { k: "better", zh: "一次录入表的标题缩短，手机上「关闭」不再挤成两行", en: "Shorter title on the logging form, so Close no longer wraps on phones" },
     { k: "fix", zh: "忘了点「醒了」的超长睡眠（超过 16 小时）不再拉高夜间睡眠平均", en: "Very long sleeps (over 16 hours, usually a missed wake-up) no longer inflate the night-sleep average" }

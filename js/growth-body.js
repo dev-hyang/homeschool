@@ -7,6 +7,7 @@ import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { INTAKE_SYSTEM, VAX_NAMES, parseIntake } from "./intake-lib.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
+import { bars } from "./charts.js";
 import { render } from "./views.js";
 
 /* ============ 成长 · 🩺 身体与健康（2026-11-11） ============
@@ -55,60 +56,85 @@ const show = (k, v) => (v == null ? "–" : `${Math.round(toDisp(k, v) * 10) / 1
 const monthsAgo = ts => Math.floor((Date.now() - ts) / (30.44 * D));
 const day = ts => dayKey(ts).replace(/-/g, "/");
 
-/* ---- 页面 ---- */
-function bodyHTML(){
-  if (!fid()) return "";
-  if (!H.loaded) { loadBody(); return `<p class="small muted" role="status">${H.err ? t("读取失败：{m}", { m: esc(H.err.slice(0, 80)) }) : t("正在读取…")}</p>`; }
-  const acts = `<div class="btns gb-acts"><button class="btn primary" data-ix="open" data-src="儿科体检">✦ ${t("AI 一次录入体检 / 就诊")}</button>
-    <button class="btn" data-ix="open" data-src="自己记录" data-manual="1">📏 ${t("量一次身高体重")}</button><button class="btn" data-act="gr-profile">✎ ${t("病史 / 过敏 / 用药")}</button></div>`;
-  return `${acts}<div class="gr-cards">${[growthCard(), visitCard(), vaxCard(), labCard(), historyCard()].join("")}</div>
-    <p class="small muted">${t("和小月亮、牧羊人是同一份记录：体征、就诊、疫苗、用药在小月亮里也能看到和修改；化验在牧羊人里录入（可拍化验单）。生长百分位以儿科医生的生长曲线为准。")}</p>`;
+/* ---- 页面：成长首页每一行的一句话 + 每个主题一页（和习惯、学习那些主题页同一个版式：动作按钮 → 指标卡 → 走势图 → 记录） ---- */
+const ensure = () => { if (!H.loaded) loadBody(); return H.loaded; };
+function bodyRowDesc(id){
+  if (!ensure()) return t("正在读取…");
+  if (id === "gr-size") { const w = mine("baby").find(e => e.weight), l = mine("baby").find(e => e.length);
+    return w || l ? [w && `${t("体重")} ${show("weight", w.weight)}`, l && `${t("身高")} ${show("length", l.length)}`, day((w || l).ts)].filter(Boolean).join(" · ") : t("还没有记录，点进去量一次"); }
+  if (id === "gr-visits") { const a = visitsAll().find(v => v.annual), m = ageMonths(), gap = a ? monthsAgo(a.ts) : null;
+    return a ? t("上次体检 {d}，{n} 个月前", { d: day(a.ts), n: gap }) + (m >= 36 && gap >= 12 ? ` · ${t("该做年度体检了")}` : "") : t("还没有体检记录"); }
+  if (id === "gr-vax") { const v = mine("vax"); return v.length ? t("共 {n} 次 · 最近 {d}", { n: v.length, d: day(v[0].ts) }) : t("还没有接种记录"); }
+  if (id === "gr-labs") { if (!H.hlOk) return t("在牧羊人里记化验"); const r = labLatest(), bad = r.filter(labFlag).length; return r.length ? t("{n} 项", { n: r.length }) + (bad ? ` · ${t("{n} 项超出范围", { n: bad })}` : ` · ${t("都在范围内")}`) : t("还没有化验"); }
+  if (id === "gr-history") { const p = (profileRow() || {}).data || {}; return [p.allergies && `${t("过敏")}：${p.allergies}`, p.conditions && `${t("病史")}：${p.conditions}`].filter(Boolean).join(" · ").slice(0, 80) || t("还没有记过"); }
+  return "";
 }
-const card = (title, right, body) => `<div class="panel gr-card"><div class="gr-card-h"><b>${title}</b>${right || ""}</div>${body}</div>`;
-function growthCard(){
-  const rows = mine("baby").filter(e => e.weight || e.length);
-  if (!rows.length) return card(`📏 ${t("身高体重")}`, "", `<p class="small muted" style="margin:0">${t("还没有记录。点上面的「量一次身高体重」，或者录入一次体检。")}</p>`);
-  const lw = rows.find(e => e.weight), ll = rows.find(e => e.length);
-  const big = (k, e) => (e ? `<span class="gb-big"><b class="num">${esc(show(k, e[k]))}</b><small class="muted">${t(k === "weight" ? "体重" : "身高")} · ${day(e.ts)}</small></span>` : "");
-  const tbl = rows.slice(0, 6).map(e => `<tr><td class="num">${day(e.ts)}</td><td class="num">${e.weight ? esc(show("weight", e.weight)) : ""}</td><td class="num">${e.length ? esc(show("length", e.length)) : ""}</td></tr>`).join("");
-  return card(`📏 ${t("身高体重")}`, "", `<div class="gb-bigs">${big("weight", lw)}${big("length", ll)}</div>
-    <div class="scroll-x"><table class="gb-tbl"><thead><tr><th>${t("日期")}</th><th>${t("体重")}</th><th>${t("身高")}</th></tr></thead><tbody>${tbl}</tbody></table></div>`);
+const labFlag = x => (x.ref_high != null && +x.value > +x.ref_high ? "high" : x.ref_low != null && +x.value < +x.ref_low ? "low" : null);
+function labLatest(){ const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort((a, b) => String(a.day).localeCompare(String(b.day)))) by.set(x.code || x.name, x); return [...by.values()]; }
+/** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
+const top = btns => `<div class="gr-top"><div class="gr-adds">${btns}</div></div>`;
+const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检 / 就诊")}</button>`;
+const rec = (icon, title, when, meta, note) => `<div class="task"><span class="bar" style="background:var(--slate)"></span><div class="main" style="cursor:default"><span class="title">${icon} <b>${esc(title)}</b> <span class="small muted num">${esc(when)}</span></span>${meta ? `<span class="meta">${esc(meta)}</span>` : ""}${note ? `<span class="meta gr-note">${esc(note)}</span>` : ""}</div><span class="acts"></span></div>`;
+const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
+  <div class="panel">${rows.length ? `<div class="tasks">${rows.join("")}</div>` : `<div class="empty">${t("还没有记录。")}</div>`}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
+const EDIT_IN_BL = () => t("这些记录和小月亮是同一份，要改或删请在小月亮里操作。");
+function statTile(label, value, sub, color, attrs = "", on = false){
+  const tag = attrs ? "button" : "div";
+  return `<${tag} ${attrs ? 'type="button"' : ""} class="gr-tile ${attrs ? "" : "static"}" ${attrs} ${attrs ? `aria-pressed="${on}"` : ""} style="--c:${color}"><span class="gr-tl">${esc(label)}</span><span class="gr-tv num">${value}</span><span class="gr-td"><span class="small muted">${esc(sub)}</span></span></${tag}>`;
+}
+
+function bodyTopicHTML(id){
+  if (!fid()) return "";
+  if (!ensure()) return `<p class="small muted" role="status">${H.err ? t("读取失败：{m}", { m: esc(H.err.slice(0, 80)) }) : t("正在读取…")}</p>`;
+  return ({ "gr-size": sizePage, "gr-visits": visitsPage, "gr-vax": vaxPage, "gr-labs": labsPage, "gr-history": historyPage }[id] || (() => ""))();
+}
+let sizeMetric = "weight";
+function sizePage(){
+  const rows = mine("baby").filter(e => e.weight || e.length), w = rows.filter(e => e.weight), l = rows.filter(e => e.length);
+  const delta = (list, k) => (list.length > 1 ? `${t("上次")} ${show(k, list[1][k])}` : list.length ? day(list[0].ts) : t("还没有"));
+  const tiles = `<div class="gr-tiles">${statTile(t("体重"), w.length ? esc(show("weight", w[0].weight)) : "–", delta(w, "weight"), "var(--sky)", 'data-act="gr-size-m" data-v="weight"', sizeMetric === "weight")}
+    ${statTile(t("身高"), l.length ? esc(show("length", l[0].length)) : "–", delta(l, "length"), "var(--sage)", 'data-act="gr-size-m" data-v="length"', sizeMetric === "length")}</div>`;
+  const series = (sizeMetric === "weight" ? w : l).slice(0, 12).reverse();
+  const chart = series.length > 1 ? `<div class="panel gr-chart"><div class="gr-ch-h"><b>${t(sizeMetric === "weight" ? "体重" : "身高")}</b> <span class="small muted">${unit(sizeMetric)} · ${t("最近 {n} 次", { n: series.length })}</span></div>
+    ${bars(series.map(e => ({ label: dayKey(e.ts).slice(5).replace("-", "/"), value: Math.round(toDisp(sizeMetric, e[sizeMetric]) * 10) / 10, color: sizeMetric === "weight" ? "var(--sky)" : "var(--sage)" })), { title: t("走势") })}</div>` : "";
+  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量一次身高体重")}</button>${aiBtn(false)}`)}${tiles}${chart}
+    ${recs("记录", rows.map(e => rec("📏", [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · "), day(e.ts), t(e.src && e.src !== "自己记录" ? e.src : "在家量"), e.note)), `${EDIT_IN_BL()} ${t("生长百分位以儿科医生的生长曲线为准。")}`)}`;
 }
 /** 就诊：小月亮里来源是体检 / 看病的「宝宝健康」+ 牧羊人里给孩子记的就诊 */
 function visitsAll(){
-  const a = mine("baby").filter(e => e.src && e.src !== "自己记录").map(e => ({ ts: e.ts, annual: e.src === "儿科体检", kind: t(e.src), where: e.clinic || "", text: e.note || "" }));
-  const b = H.visits.filter(v => v.subject === subj()).map(v => ({ ts: new Date(v.day + "T12:00:00").getTime(), annual: v.kind === "annual", kind: t(v.kind === "annual" ? "年度体检" : "就诊"), where: v.provider || "", text: [v.diagnosis, v.advice].filter(Boolean).join(" · ") }));
+  const a = mine("baby").filter(e => e.src && e.src !== "自己记录").map(e => ({ ts: e.ts, annual: e.src === "儿科体检", kind: t(e.src), where: e.clinic || "", text: e.note || "", m: [e.weight && show("weight", e.weight), e.length && show("length", e.length), e.temp && show("temp", e.temp)].filter(Boolean).join(" · ") }));
+  const b = H.visits.filter(v => v.subject === subj()).map(v => ({ ts: new Date(v.day + "T12:00:00").getTime(), annual: v.kind === "annual", kind: t(v.kind === "annual" ? "年度体检" : "就诊"), where: v.provider || "", text: [v.diagnosis, v.advice].filter(Boolean).join(" · "), m: "" }));
   return [...a, ...b].sort((x, y) => y.ts - x.ts);
 }
-function visitCard(){
-  const list = visitsAll(), annual = list.find(v => v.annual), m = ageMonths();
-  const gap = annual ? monthsAgo(annual.ts) : null, due = m != null && m >= 36 && (gap == null || gap >= 12);
-  const line = annual ? t("上次体检 {d}，{n} 个月前", { d: day(annual.ts), n: gap }) : t("还没有体检记录");
-  return card(`🩺 ${t("体检与就诊")}`, due ? `<span class="pill warn">${t("该做年度体检了")}</span>` : "", `<p class="small" style="margin:0 0 6px">${esc(line)}</p>
-    ${list.length ? `<ul class="gb-list">${list.slice(0, 5).map(v => `<li><b class="num">${day(v.ts)}</b> ${esc(v.kind)}${v.where ? ` <span class="small muted">· ${esc(v.where)}</span>` : ""}${v.text ? `<br><span class="small muted">${esc(v.text.slice(0, 140))}${v.text.length > 140 ? "…" : ""}</span>` : ""}</li>`).join("")}</ul>` : ""}`);
+function visitsPage(){
+  const list = visitsAll(), a = list.find(v => v.annual), m = ageMonths(), gap = a ? monthsAgo(a.ts) : null, due = m != null && m >= 36 && (gap == null || gap >= 12);
+  const tiles = `<div class="gr-tiles">${statTile(t("上次体检"), a ? esc(day(a.ts)) : "–", a ? t("{n} 个月前", { n: gap }) : t("还没有体检记录"), due ? "var(--honey)" : "var(--sage)")}
+    ${statTile(t("就诊次数"), String(list.length), t("全部记录"), "var(--slate)")}</div>`;
+  return `${top(aiBtn())}${due ? `<p class="gr-due"><span class="pill warn">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
+    ${recs("记录", list.map(v => rec(v.annual ? "🩺" : "🤒", v.kind, day(v.ts), [v.where, v.m].filter(Boolean).join(" · "), v.text)), EDIT_IN_BL())}`;
 }
-function vaxCard(){
+function vaxPage(){
   const list = mine("vax");
-  return card(`💉 ${t("疫苗")}`, list.length ? `<span class="small muted">${t("共 {n} 次", { n: list.length })}</span>` : "", list.length
-    ? `<ul class="gb-list">${list.slice(0, 6).map(e => `<li><b class="num">${day(e.ts)}</b> ${esc(t(e.name || "疫苗"))}${e.dose ? ` <span class="small muted">· ${esc(t(e.dose))}</span>` : ""}</li>`).join("")}</ul>`
-    : `<p class="small muted" style="margin:0">${t("还没有接种记录。录入体检时打的针会一起记下。")}</p>`);
+  return `${top(aiBtn())}<div class="gr-tiles">${statTile(t("接种"), String(list.length), list.length ? t("最近 {d}", { d: day(list[0].ts) }) : t("还没有接种记录"), "#3F8F8B")}</div>
+    ${recs("记录", list.map(e => rec("💉", t(e.name || "疫苗"), day(e.ts), [e.dose && t(e.dose), e.site && t(e.site), e.reaction && e.reaction !== "无" && t("反应：{r}", { r: t(e.reaction) })].filter(Boolean).join(" · "), e.note)), `${EDIT_IN_BL()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}`)}`;
 }
-function labCard(){
-  if (!H.hlOk) return card(`🧪 ${t("化验")}`, "", `<p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p>`);
-  const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort((a, b) => String(a.day).localeCompare(String(b.day)))) by.set(x.code || x.name, x);
-  const flag = x => (x.ref_high != null && +x.value > +x.ref_high ? "high" : x.ref_low != null && +x.value < +x.ref_low ? "low" : null);
-  const rows = [...by.values()];
-  return card(`🧪 ${t("化验")}`, `<a class="chip" href="https://dev-hyang.github.io/shepherd/" target="_blank" rel="noopener">${t("牧羊人")} ↗</a>`, rows.length
-    ? `<ul class="gb-list">${rows.slice(0, 8).map(x => { const f = flag(x); return `<li>${esc(x.name || x.code)} <b class="num">${esc(+(+x.value).toFixed(2))}</b> <span class="small muted">${esc(x.unit || "")} · ${esc(String(x.day).replace(/-/g, "/"))}</span>${f ? ` <span class="pill warn">${t(f === "high" ? "偏高" : "偏低")}</span>` : ""}</li>`; }).join("")}</ul>`
-    : `<p class="small muted" style="margin:0">${t("还没有化验。血常规、铅、维生素 D 这类结果在牧羊人里拍化验单录入，这里会自动出现。")}</p>`);
+function labsPage(){
+  const btn = `<a class="btn primary sm" href="https://dev-hyang.github.io/shepherd/" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;
+  if (!H.hlOk) return `${top(btn)}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
+  const latest = labLatest(), bad = latest.filter(labFlag).length, all = H.labs.filter(x => x.subject === subj());
+  const hist = x => all.filter(y => (y.code || y.name) === (x.code || x.name)).sort((a, b) => String(b.day).localeCompare(String(a.day))).slice(1, 4).map(y => `${+(+y.value).toFixed(2)}（${String(y.day).slice(5).replace("-", "/")}）`).join("、");
+  const range = x => (x.ref_low != null || x.ref_high != null ? t("参考 {r}", { r: [x.ref_low, x.ref_high].map(v => (v == null ? "" : v)).join("–") }) : "");
+  return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
+    ${recs("每项最新一次", latest.map(x => { const f = labFlag(x), h = hist(x); return rec(f ? "⚠️" : "🧪", `${x.name || x.code} ${+(+x.value).toFixed(2)} ${x.unit || ""}${f ? ` · ${t(f === "high" ? "偏高" : "偏低")}` : ""}`, String(x.day).replace(/-/g, "/"), [range(x), h && t("之前：{s}", { s: h })].filter(Boolean).join(" · "), x.notes); }),
+      t("化验在牧羊人里录入和修改（可以拍化验单），这里自动显示。范围以化验单为准。"))}`;
 }
-function historyCard(){
-  const p = (profileRow() || {}).data || {}, meds = [...new Map(mine("bmed").filter(e => e.ts > Date.now() - 120 * D).map(e => [e.name || e.cat, e])).values()];
-  const row = (label, v) => (v ? `<p style="margin:0 0 4px"><span class="small muted">${t(label)}：</span>${esc(v)}</p>` : "");
-  const any = p.conditions || p.allergies || p.meds || p.notes || meds.length;
-  return card(`📋 ${t("病史 / 过敏 / 用药")}`, `<button class="chip" data-act="gr-profile">${t("编辑")}</button>`, any
-    ? `${row("病史", p.conditions)}${row("过敏", p.allergies)}${row("长期用药", p.meds)}${row("备注", p.notes)}${meds.length ? row("最近的维生素 / 用药", meds.map(e => [e.name || t(e.cat || ""), e.dose].filter(Boolean).join(" ")).join("、")) : ""}`
-    : `<p class="small muted" style="margin:0">${t("没有记过病史和过敏。有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。")}</p>`);
+function historyPage(){
+  const p = (profileRow() || {}).data || {}, meds = mine("bmed").filter(e => e.ts > Date.now() - 180 * D);
+  const row = (label, v) => `<div class="gr-kv"><span class="muted">${t(label)}</span><span>${v ? esc(v) : `<span class="muted">—</span>`}</span></div>`;
+  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 / 过敏 / 用药")}</button>`)}
+    <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
+    <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
+    ${recs("最近半年的维生素 / 用药", meds.map(e => rec("💧", [t(e.cat || ""), e.name].filter(Boolean).join(" · "), day(e.ts), e.dose, e.note)), EDIT_IN_BL())}`;
 }
 
 /* ---- 病史 / 过敏 / 用药：存在牧羊人的档案（hl_profiles.data），两边同一份 ---- */
@@ -288,11 +314,12 @@ function bodySummary(){
     history: p.conditions || "", allergies: p.allergies || "", long_term_meds: p.meds || ""
   };
 }
-function bodyAct(act){
+function bodyAct(act, btn){
   if (act === "gr-profile") { openProfile(); return true; }
+  if (act === "gr-size-m") { sizeMetric = btn.dataset.v === "length" ? "length" : "weight"; render(); return true; }
   if (act === "gr-body-reload") { loadBody(true); return true; }
   return false;
 }
 const bodyReady = () => H.loaded;
 
-export { bodyHTML, bodyAct, bodySummary, bodyReady, loadBody };
+export { bodyRowDesc, bodyTopicHTML, bodyAct, bodySummary, bodyReady, loadBody };

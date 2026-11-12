@@ -93,7 +93,7 @@ function nightLine(){
   const adv = nightAdvice(nightList(myNightRows()));
   if (!adv) return `<p class="ql-night small muted">🩲 ${t("夜间干爽：早上点上面的格子记一下昨晚，连续干爽 5 晚会提示可以试试晚上穿内裤。")}</p>`;
   const head = `${t("连续干爽 {n} 晚", { n: adv.streak })} · ${t("近 14 晚干爽 {a}/{b}", { a: adv.dry14, b: adv.n14 })}${adv.stale ? ` · ${t("最近一次记在 {d}", { d: adv.last.date.slice(5) })}` : ""}`;
-  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-grview="night">${t("趋势")} ›</button></div>`;
+  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="gr-night">${t("趋势")} ›</button></div>`;
 }
 
 /** 一条记录的一行小字 */
@@ -116,7 +116,7 @@ function quickHTML(){
   const mine = S.ql.rows.filter(r => (r.data.child || "") === S.childId);
   const list = mine.length ? `<ul class="ql-list" aria-label="${esc(t("今天记过的"))}">${mine.slice(0, 8).map(r => { const tl = tileOf(r) || {}; return `<li><button type="button" class="ql-row" data-act="ql-edit" data-id="${esc(r.id)}"><span aria-hidden="true">${tl.icon || "📝"}</span><b>${hm(r.ts)}</b><span class="ql-sum">${esc(summary(r))}</span></button></li>`; }).join("")}</ul>` : "";
   return `<h2>${t("记一笔")}</h2><div class="panel ql-card">
-    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><span class="ql-acts"><button type="button" class="chip" data-tab="growth" data-grview="overview">${t("全部记录")} ›</button><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></span></div>
+    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><span class="ql-acts"><button type="button" class="chip" data-tab="growth">${t("全部记录")} ›</button><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></span></div>
     <div class="ql-grid" role="group" aria-label="${esc(t("记一笔"))}">${tiles.map(x => `<button type="button" class="ql-tile" data-act="ql-new" data-id="${x.id}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span>${esc(t(x.label))}</span></button>`).join("")}</div>
     ${showNight ? nightLine() : ""}
     ${list}</div>`;
