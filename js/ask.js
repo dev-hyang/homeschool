@@ -11,6 +11,8 @@ import { subject } from "./data/subjects.js";
 import { devotionDraft, dueReviews, isOffDay, learnedCount, learningCards, routine, scripture, tasksFor, todayPassage, todayPlan } from "./hs.js";
 import { AI_PRINCIPLE } from "./data/principle.js";
 import { render } from "./views.js";
+import { attachHTML, attachPayload } from "./attach.js";
+const ATT_ASK = "ask";
 
 /** 咩咩图标：一只白绒绒的小羊咩咩，额头上一枚珊瑚红的字母 Y（四个应用同一只；颜色固定，深浅色主题下都一样），随文字大小缩放 */
 const aiIcon = (size = 22) => `<svg class="ai-ico" width="${size}" height="${size}" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
@@ -160,6 +162,7 @@ function viewAsk(){
   ${a.extra ? `<div class="alert info ask-extra"><span>${t("已附带：{n}（点下面「会发送什么」看原文）", { n: esc(a.extraName || t("定制流程的记录摘要")) })}</span> <button type="button" class="chip" data-act="ask-extra-clear">${t("不带这个")}</button></div>` : ""}
   <form id="askForm" class="panel ask" onsubmit="return false">
     <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
+    <div class="ask-att">${attachHTML(ATT_ASK, { t, esc, noText: true, hint: t("可以拍几张照片或选文件一起问（体检单、作业、孩子的画、药盒说明、冰箱里的菜…），也能选 PDF。照片不保存。") })}</div>
     <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${a.extra ? t("附带孩子最近的情况和上面的记录摘要（含你写的处理办法，不含姓名和备注）") : t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
     <div class="btns">${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
       <button type="button" class="btn ${ready ? "" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
@@ -186,9 +189,11 @@ async function askAct(act, el){
     case "ask-topic": { const tp = TOPICS.find(x => x.id === el.dataset.topic); if (tp) { a.q = t(tp.q); a.answer = null; a.error = null; a.extra = ""; a.extraName = ""; a.mode = ""; a.ctxKeys = null; } render(); break; }
     case "ask-extra-clear": a.extra = ""; a.extraName = ""; a.mode = ""; a.ctxKeys = null; render(); break;
     case "ask-send": {
-      if (!a.q) { a.error = t("先写一句要问的"); render(); break; }
+      const att = attachPayload(ATT_ASK);   // 照片 / PDF / 文字文件（js/attach.js）
+      if (!a.q && !att.images.length && !att.text) { a.error = t("先写一句要问的"); render(); break; }
+      if (!a.q) a.q = t("看看这些照片 / 文件，告诉我要注意什么、可以怎么做。");
       a.busy = true; a.error = null; render();
-      try { a.answer = await askText(systemPrompt(), userPrompt(a.q, a.withContext), { maxTokens: 1500, temperature: 0.4 }); }
+      try { a.answer = await askText(systemPrompt(), userPrompt(a.q, a.withContext) + (att.text ? `\n\n${t("附件里的文字")}：\n${att.text.slice(0, 12000)}` : "") + (att.images.length ? `\n\n${t("（附了 {n} 张照片 / 文件，请一起看）", { n: att.images.length })}` : ""), { maxTokens: 1500, temperature: 0.4, images: att.images }); }
       catch (e) { a.error = e.message; }
       finally { a.busy = false; render(); }
       break; }

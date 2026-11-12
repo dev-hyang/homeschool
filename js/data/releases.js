@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-12.2", title: { zh: "问咩咩咩可以带照片和文件", en: "Ask with photos and files" }, items: [
+    { k: "new", zh: "提问框下面可以拍照、选多张图片或 PDF 一起问，每张都能删", en: "Add several photos or PDFs under the question box; remove any of them" },
+    { k: "better", zh: "体检录入：文字框和按钮之间留出距离", en: "Checkup logging: more space between the text box and the buttons" }
+  ] },
   { v: "2026-11-12.1", title: { zh: "AI 分析可以补充自己的话和照片；录入附件一格一格显示", en: "Add your own notes and photos to the AI review; attachments as thumbnails" }, items: [
     { k: "new", zh: "AI 身心灵分析下面多了「补充信息」：写几句、拍照或上传文件（成绩单、医生的单子），一起分析；默认收起", en: "AI whole-child review has an optional \"Add details\" area (notes, photos, files) that's folded by default" },
     { k: "better", zh: "体检录入的照片和文件显示成缩略图，可以拍很多次、每张都能删；文字框跟着内容长高", en: "Checkup photos and files show as removable thumbnails; text boxes grow with what you paste" },

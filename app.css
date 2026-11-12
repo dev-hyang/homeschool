@@ -1281,3 +1281,5 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .gr-days button{min-height:36px}
 /* AI 身心灵分析里的「补充信息」：和范围按钮、说明文字之间留一样的距离 */
 .gr-rv .att-opt{margin:0 0 8px}
+.ix-read .att + .btns{margin-top:14px !important}
+.ask-att{margin-top:10px}
