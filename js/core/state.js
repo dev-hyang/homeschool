@@ -50,4 +50,12 @@ function stageOf(cid = S.childId){
   return { key: "school", name: t("学龄") };
 }
 
-export { S, CHILD_KEY, monthsOf, setChildren, child, childName, setChild, birthTs, ageDays, ageMonths, ageText, stageOf };
+/** 小月亮里没写 child 的老记录属于哪个孩子：和小月亮 childOf 一样，按 families.settings.legacyChild（没有就是设置里的第一个孩子，可能是 1 岁以下、这里不显示的宝宝） */
+function legacyChild(){
+  const st = (S.family && S.family.settings) || {}, all = Array.isArray(st.children) ? st.children.filter(c => c && c.id) : [];
+  if (st.legacyChild && all.some(c => c.id === st.legacyChild)) return st.legacyChild;
+  return (all[0] && all[0].id) || (S.children[0] && S.children[0].id) || "";
+}
+/** 这条记录（摊平的 data）属于哪个孩子 */
+const ownerOf = d => d.child || legacyChild();
+export { legacyChild, ownerOf, S, CHILD_KEY, monthsOf, setChildren, child, childName, setChild, birthTs, ageDays, ageMonths, ageText, stageOf };

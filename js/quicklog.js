@@ -1,6 +1,6 @@
 import { SB } from "./core/auth.js";
 import { t } from "./core/i18n.js";
-import { S, ageMonths, childName } from "./core/state.js";
+import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, esc, hm, toast } from "./core/util.js";
 import { saveSettings } from "./hs.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
@@ -78,7 +78,7 @@ async function loadQuick(){
 }
 
 /* 夜间干爽：近 60 天的记录（每晚一条，最多两百来行），算连续干爽几晚；按家庭记着，换了家庭重新读 */
-const myNightRows = (cid = S.childId) => { const first = S.children[0] && S.children[0].id; return S.ql.nights.filter(r => (r.child || (first === cid ? cid : "")) === cid); };
+const myNightRows = (cid = S.childId) => S.ql.nights.filter(r => ownerOf(r) === cid);
 const lastWear = () => { const l = myNightRows().sort((a, b) => b.ts - a.ts)[0]; return (l && l.wear) || "拉拉裤"; };
 async function loadNights(){
   if (!ready() || S.ql.nLoading || S.ql.nKey === fid()) return;

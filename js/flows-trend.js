@@ -1,7 +1,7 @@
 import { SB } from "./core/auth.js";
 import { selectAll } from "./core/paged.js";
 import { t, tc } from "./core/i18n.js";
-import { S, ageMonths, ageText } from "./core/state.js";
+import { S, ageMonths, ageText, ownerOf } from "./core/state.js";
 import { D, dayKey, esc, toast } from "./core/util.js";
 import { CONFLICTS, SIDES, STAGE_NAME, bandOf, contentFor } from "./data/flows.js";
 import { EMOTIONS } from "./data/emotions.js";
@@ -55,7 +55,7 @@ const loadBaby = () => pull({ quiet: true });
 const hhmm = ts => { const d = new Date(ts); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); };
 /** 「从小月亮重新读取」按钮：拉的时候灰色不可点；旁边写上次同步的时间 */
 const pullButtonHTML = () => `<button type="button" class="chip pull-btn" data-act="tr-refresh" ${B.loading || !canPull() ? "disabled" : ""}>${B.loading ? t("正在同步小月亮…") : t("从小月亮重新读取")}</button> <span class="small muted">${B.loading ? "" : B.loaded ? t("上次同步 {t}", { t: hhmm(B.ts) }) : B.err ? esc(t("读取失败：") + B.err) : canPull() ? "" : t("登录并进入家庭后才能读取")}</span>`;
-const mineRows = () => { const cid = S.childId, first = S.children[0] && S.children[0].id; return B.rows.filter(e => e.child === cid || (!e.child && first === cid)); };
+const mineRows = () => { const cid = S.childId; return B.rows.filter(e => ownerOf(e) === cid); };   // 没写 child 的老记录按小月亮的 legacyChild 归属
 
 /* 内置状况 + 自家加的（cfg.situations 里 id 以 cf- 开头的）*/
 /* 孩子的性别（可选）：小月亮里没有这一项，放在家庭学堂设置里按孩子单独记；只用来决定哪些内容显示给他（比如青春期） */

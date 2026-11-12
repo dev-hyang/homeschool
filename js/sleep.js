@@ -1,7 +1,7 @@
 import { SB } from "./core/auth.js";
 import { selectAll } from "./core/paged.js";
 import { t } from "./core/i18n.js";
-import { S, ageMonths, ageText } from "./core/state.js";
+import { S, ageMonths, ageText, ownerOf } from "./core/state.js";
 import { D, H, dayKey, esc, hm, weekday } from "./core/util.js";
 import { bedClock, clockOfDay, timeDots } from "./flows-trend.js";
 import { openNewSleep } from "./wake.js";
@@ -31,7 +31,7 @@ async function load(){
 /** 记录改了（这里的表单、小月亮那边、别的家人）：睡眠页开着就重读 */
 window.addEventListener("hs-sleep-changed", () => { if (L.loaded || S.tab === "sleep") load(); });
 
-const mine = () => { const cid = S.childId, first = S.children[0] && S.children[0].id; return L.rows.filter(r => r.data.child === cid || (!r.data.child && first === cid)); };
+const mine = () => { const cid = S.childId; return L.rows.filter(r => ownerOf(r.data) === cid); };
 const endOf = r => (+r.data.end > r.ts ? +r.data.end : 0);
 function isNap(r){
   if (r.data.nap === true) return true;

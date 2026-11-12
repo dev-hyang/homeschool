@@ -1,6 +1,6 @@
 import { SB } from "./core/auth.js";
 import { t, tc } from "./core/i18n.js";
-import { S, ageMonths } from "./core/state.js";
+import { S, ageMonths, ownerOf } from "./core/state.js";
 import { $, H, esc, hm, pad, toast } from "./core/util.js";
 import { WAKE_IDEAS } from "./data/bedtime.js";
 import { cfg, kidName, kids, songBlob, songs } from "./bedtime.js";
@@ -18,7 +18,7 @@ S.wk = { rows: [], loaded: false };
 const fid = () => S.family && S.family.id;
 const ready = () => !!(SB.client && fid() && S.hs.loaded);
 const clean = s => String(s).replace(/[^a-z0-9]/gi, "");
-const childOf = r => r.data.child || (S.children[0] && S.children[0].id) || "";
+const childOf = r => ownerOf(r.data);
 const isOpen = r => !r.data.end;
 const WAKE_NOTE = /(；|^)(自然醒|被叫醒)$/;
 const SRC_NOTE = "来自家庭学堂 · 睡前安然";

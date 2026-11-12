@@ -3,7 +3,7 @@ import { SB } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
 import { t } from "./core/i18n.js";
 import { selectAll } from "./core/paged.js";
-import { S, ageMonths, childName } from "./core/state.js";
+import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { INTAKE_SYSTEM, VAX_NAMES, parseIntake } from "./intake-lib.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
@@ -36,8 +36,7 @@ async function loadBody(force = false){
   } catch (err) { H.err = String((err && err.message) || err); }
   finally { H.loading = false; if (S.tab === "growth") render(); }
 }
-const first = () => S.children[0] && S.children[0].id;
-const mine = type => H.rows.filter(e => e.type === type && (e.child === S.childId || (!e.child && first() === S.childId))).sort((a, b) => b.ts - a.ts);
+const mine = type => H.rows.filter(e => e.type === type && ownerOf(e) === S.childId).sort((a, b) => b.ts - a.ts);
 const subj = () => "c:" + S.childId;
 const profileRow = () => H.profiles.find(p => p.subject === subj()) || null;
 
