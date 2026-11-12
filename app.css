@@ -1247,3 +1247,4 @@ p.ql-night{display:block}
   .gr-tiles{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
   .gr-tile{padding:9px 10px 8px 13px}
 }
+@media (max-width:640px){.gr-adds{grid-auto-rows:40px;align-items:start;height:auto}}

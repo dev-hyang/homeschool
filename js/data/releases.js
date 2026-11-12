@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.10", title: { zh: "修好：手机上按钮下面多出一块空白", en: "Fixed: extra blank space under buttons on phones" }, items: [
+    { k: "fix", zh: "成长主题页「＋ 记一笔」那一行下面不再空出一大块", en: "No more large gap under the \"＋\" row on Growth topic pages" }
+  ] },
   { v: "2026-11-11.9", title: { zh: "手机上成长主题页的按钮更紧凑", en: "Tighter buttons on Growth topic pages on phones" }, items: [
     { k: "better", zh: "「＋ 记一笔」按钮一行排下，和时间范围按钮一样高；指标卡一行放得下三张", en: "The \"＋\" log buttons fit in one row at the same height as the time range; three indicator cards fit per row" }
   ] },
