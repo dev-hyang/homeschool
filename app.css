@@ -1240,3 +1240,10 @@ p.ql-night{display:block}
 /* 睡前流程结束页：开始睡眠时间（和备注框同一套深色样式） */
 .btp-form .btp-time{box-sizing:border-box;border:1px solid #2a3340;background:#111620;color:#dfe5ee;border-radius:10px;padding:10px 12px;font-size:16px;min-height:46px;min-width:150px;color-scheme:dark}
 .btp-form .btp-hint{color:#7f8a99;margin:6px 0 0}
+/* 成长主题页（手机）：几个「＋」按钮一行排下，和时间范围按钮一样高 */
+@media (max-width:640px){
+  .gr-adds{grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
+  .gr-adds .btn{height:40px;min-height:40px;padding:0 10px;font-size:14px;line-height:1;white-space:nowrap}
+  .gr-tiles{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+  .gr-tile{padding:9px 10px 8px 13px}
+}
