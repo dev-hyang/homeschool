@@ -6,6 +6,7 @@ import { selectAll } from "./core/paged.js";
 import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { INTAKE_SYSTEM, VAX_NAMES, parseIntake } from "./intake-lib.js";
+import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { bars } from "./charts.js";
 import { render } from "./views.js";
@@ -73,7 +74,7 @@ const labFlag = x => (x.ref_high != null && +x.value > +x.ref_high ? "high" : x.
 function labLatest(){ const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort((a, b) => String(a.day).localeCompare(String(b.day)))) by.set(x.code || x.name, x); return [...by.values()]; }
 /** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
 const top = btns => `<div class="gr-top"><div class="gr-adds">${btns}</div></div>`;
-const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检 / 就诊")}</button>`;
+const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检")}</button>`;
 const rec = (icon, title, when, meta, note) => `<div class="task"><span class="bar" style="background:var(--slate)"></span><div class="main" style="cursor:default"><span class="title">${icon} <b>${esc(title)}</b> <span class="small muted num">${esc(when)}</span></span>${meta ? `<span class="meta">${esc(meta)}</span>` : ""}${note ? `<span class="meta gr-note">${esc(note)}</span>` : ""}</div><span class="acts"></span></div>`;
 const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
   <div class="panel">${rows.length ? `<div class="tasks">${rows.join("")}</div>` : `<div class="empty">${t("还没有记录。")}</div>`}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
@@ -97,7 +98,7 @@ function sizePage(){
   const series = (sizeMetric === "weight" ? w : l).slice(0, 12).reverse();
   const chart = series.length > 1 ? `<div class="panel gr-chart"><div class="gr-ch-h"><b>${t(sizeMetric === "weight" ? "体重" : "身高")}</b> <span class="small muted">${unit(sizeMetric)} · ${t("最近 {n} 次", { n: series.length })}</span></div>
     ${bars(series.map(e => ({ label: dayKey(e.ts).slice(5).replace("-", "/"), value: Math.round(toDisp(sizeMetric, e[sizeMetric]) * 10) / 10, color: sizeMetric === "weight" ? "var(--sky)" : "var(--sage)" })), { title: t("走势") })}</div>` : "";
-  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量一次身高体重")}</button>${aiBtn(false)}`)}${tiles}${chart}
+  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量身高体重")}</button>${aiBtn(false)}`)}${tiles}${chart}
     ${recs("记录", rows.map(e => rec("📏", [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · "), day(e.ts), t(e.src && e.src !== "自己记录" ? e.src : "在家量"), e.note)), `${EDIT_IN_BL()} ${t("生长百分位以儿科医生的生长曲线为准。")}`)}`;
 }
 /** 就诊：小月亮里来源是体检 / 看病的「宝宝健康」+ 牧羊人里给孩子记的就诊 */
@@ -156,7 +157,7 @@ function openProfile(){
 }
 
 /* ============ AI 一次录入体检 / 就诊（和小月亮 js/intake.js 同一个流程，存成小月亮的记录） ============ */
-const OK_KEY = LS_PREFIX + ".intakeOk";
+const OK_KEY = LS_PREFIX + ".intakeOk", ATT = "hs-intake";
 let X = null;
 const VAX_DOSE = ["第1剂", "第2剂", "第3剂", "第4剂", "第5剂", "加强"], VAX_SITE = ["左大腿", "右大腿", "左上臂", "右上臂", "口服"];
 const MED_CAT = ["维生素D", "铁剂", "益生菌", "药物"], MS_CAT = ["大运动", "精细动作", "语言", "社交情绪", "认知", "自理"];
@@ -166,7 +167,8 @@ const fromLocal = s => { const v = new Date(s).getTime(); return isNaN(v) ? null
 
 function openIntake(src, manual){
   X = { src: src || "儿科体检", ts: Date.now(), child: S.childId, clinic: "", note: "", weight: null, length: null, head: null, temp: null,
-    vaccines: [], meds: [], milestones: [], files: [], text: "", read: !!manual, busy: false };
+    vaccines: [], meds: [], milestones: [], read: !!manual, busy: false };
+  attachReset(ATT);
   draw(); showSheet();
 }
 const sel = (k, opts, v, label) => `<select data-ixk="${k}" aria-label="${esc(t(label))}"><option value="">${esc(t(label))}</option>${opts.map(o => `<option value="${esc(o)}" ${o === v ? "selected" : ""}>${esc(t(o))}</option>`).join("")}</select>`;
@@ -178,9 +180,8 @@ function draw(){
   const meds = X.meds.map((m, i) => row(X.meds, i, `${sel("cat", MED_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("名称"))}" placeholder="${esc(t("名称"))}"><input type="text" data-ixk="dose" value="${esc(m.dose)}" aria-label="${esc(t("剂量"))}" placeholder="${esc(t("剂量"))}">`)).join("");
   const ms = X.milestones.map((m, i) => row(X.milestones, i, `${sel("cat", MS_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("做到了什么"))}" placeholder="${esc(t("做到了什么"))}">`)).join("");
   const n = count(), home = X.src === "自己记录";
-  const read = home && X.read && !X.files.length && !X.text ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t("拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
-    <div class="btns" style="margin-top:0"><button type="button" class="btn" data-ix="pick">📷 ${X.files.length ? t("已选 {n} 张，重新选", { n: X.files.length }) : t("拍照 / 选图片")}</button></div>
-    <div class="field"><label for="ix_text">${t("或者打字 / 粘贴")}</label><textarea id="ix_text" data-ixf="text" placeholder="${esc(t("例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来"))}">${esc(X.text)}</textarea></div>
+  const read = home && X.read && !attachHas(ATT) ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t("拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
+    ${attachHTML(ATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来") })}
     <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read ? "" : `<button type="button" class="btn" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
     <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>`;
   const form = !X.read ? "" : `
@@ -213,31 +214,16 @@ const keepVitals = () => VITALS.some(([k]) => X[k] != null) || X.note.trim() || 
 const listed = () => (X.src === "自己记录" ? [] : [...X.vaccines, ...X.meds, ...X.milestones].filter(x => x.on && x.name));
 const count = () => (keepVitals() ? 1 : 0) + listed().length;
 
-async function shrink(file, max = 1800){
-  const url = URL.createObjectURL(file);
-  try {
-    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error(t("这张图片打不开"))); i.src = url; });
-    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement("canvas");
-    c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
-    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-    return { mime: "image/jpeg", b64: c.toDataURL("image/jpeg", 0.85).split(",")[1] };
-  } finally { URL.revokeObjectURL(url); }
-}
-function pick(){
-  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = true;
-  inp.onchange = () => { readIx(); X.files = [...inp.files].slice(0, 6); draw(); };
-  inp.click();
-}
 async function aiRead(){
   readIx();
-  if (!X.files.length && !X.text.trim()) { toast(t("先拍照 / 选图片，或者打一段话")); return; }
+  if (!attachHas(ATT)) { toast(t("先拍照 / 选图片，或者打一段话")); return; }
   if (!aiReady()) { toast(t("还没填 API key：在 我的 → 咩咩咩 里设置")); return; }
   let ok = false; try { ok = localStorage.getItem(OK_KEY) === "1"; } catch (e) {}
   if (!ok) { if (!confirm(t("照片和文字会发给你自己设置的 AI 服务商来读取（提示里要求它不要读姓名、生日、地址）；不保存照片。继续吗？"))) return; try { localStorage.setItem(OK_KEY, "1"); } catch (e) {} }
   X.busy = true; draw();
   try {
-    const images = []; for (const f of X.files) images.push(await shrink(f));
-    const r = parseIntake(await askText(INTAKE_SYSTEM, `Read this pediatric visit.${X.text.trim() ? "\nParent's notes:\n" + X.text.trim().slice(0, 8000) : ""}`, { json: true, images, maxTokens: 3000 }));
+    const { images, text } = attachPayload(ATT);   // 照片 / PDF + 文字（js/attach.js）
+    const r = parseIntake(await askText(INTAKE_SYSTEM, `Read this pediatric visit.${text ? "\nParent's notes:\n" + text.slice(0, 12000) : ""}`, { json: true, images, maxTokens: 3000 }));
     if (!r) throw new Error(t("没读出内容，换一张清楚点的照片或多写几句试试"));
     if (!X) return;
     readIx();
@@ -283,7 +269,6 @@ document.addEventListener("click", async ev => {
   readIx();
   switch (act) {
     case "close": X = null; closeSheet(); return;
-    case "pick": pick(); return;
     case "read": await aiRead(); return;
     case "manual": X.read = true; break;
     case "src": X.src = b.dataset.v; break;

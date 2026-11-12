@@ -66,6 +66,7 @@ ${SCOPE[mode] || SCOPE.whole}
 The goal is NOT to alarm parents; it is to give concrete next steps: what to keep, what to strengthen, how to adjust routines, sleep, food, play, screen time, connection and discipline, and when to talk to the pediatrician.
 Use age-appropriate norms (AAP / CDC milestones, AASM sleep hours for the age). Parenting advice should be grace-based: connection before correction, calm, consistent, never shaming.${spirit ? " Spiritual suggestions should be gentle and practical (short family worship, praying together, a verse to memorize), never guilt-driven." : ""}
 Input: de-identified JSON. "now" vs "before" compare two equal windows. Labs use the lab's own reference ranges.
+The parent may add "parent_notes" and attached photos or files (report cards, doctor notes, drawings, schedules): treat them as part of the picture, and say when a point comes from them.
 Reply ONLY with JSON:
 {"summary":"3-4 warm sentences: what is going well first, then the main thing to work on",
 "priorities":[{"area":"${AREAS.filter(a => spirit || a !== "spirit").join("|")}","title":"short","why":"the data behind it","action":"one concrete thing this week"}],

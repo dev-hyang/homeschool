@@ -6,6 +6,7 @@ import { D, dayKey, esc, toast } from "./core/util.js";
 import { B, flowContext, genderOf, mineRows } from "./flows-trend.js";
 import { bodyReady, bodySummary, loadBody } from "./growth-body.js";
 import { REVIEW_SYSTEM, hasInput, parseReview, reviewInput } from "./growth-review-lib.js";
+import { attachHTML, attachPayload } from "./attach.js";
 import { metricsList } from "./growth.js";
 import { ensureMonth, learnedCount, monthData, saveSettings, unitProgress } from "./hs.js";
 import { render } from "./views.js";
@@ -76,6 +77,7 @@ function reviewHTML(){
   const btn = `<button type="button" class="btn ${a ? "" : "primary"}" data-act="gr-rv-run" ${busy || !aiReady() ? "disabled" : ""}>${busy ? t("分析中…") : a ? t("重新分析") : t("开始分析")}</button>`;
   return `<details class="panel gr-rv" ${open ? "open" : ""}><summary><b>✦ ${t("AI 身心灵分析")}</b>${a ? ` <small class="muted">${t("{d} 分析", { d: String(a.at).slice(0, 10).replace(/-/g, "/") })}</small>` : ` <small class="muted">${t("身体、情绪、属灵、学习一起看，给下一步建议")}</small>`}</summary>
     ${seg}<p class="small muted gr-rv-scope">${esc(scope)}</p>
+    ${attachHTML("hs-review", { t, esc, collapsible: true, summary: t("补充信息（可选）：自己写几句、拍照或上传文件"), textLabel: t("补充说明"), ph: t("例：最近晚上总说怕黑；老师说上课坐不住；医生建议多吃含铁的食物…"), hint: t("会和记录一起发给 AI 参考，比如成绩单、医生的单子、孩子的画、你观察到的变化。照片不保存。") })}
     ${a ? resultHTML(a) : ""}
     <div class="btns" style="margin-top:6px">${btn}</div>
     <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("发给你自己设置的 AI：年龄、性别和上面说的记录摘要，不发名字。只是建议，不是诊断；身体的问题以儿科医生为准。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></details>`;
@@ -99,8 +101,10 @@ async function run(){
   R.busy = m + "|" + cid; R.open = true; render();
   try {
     const { input, spirit } = await gather(m);
-    if (!hasInput(m, input)) throw new Error(t("这个范围还没有记录可以分析"));
-    const o = parseReview(await askText(REVIEW_SYSTEM(lang(), m, { spirit }), JSON.stringify(input), { json: true, maxTokens: 3500 }), { spirit });
+    const extra = attachPayload("hs-review");   // 补充信息：手动写的话、照片、PDF、文字文件（js/attach.js）
+    if (extra.text) input.parent_notes = extra.text.slice(0, 6000);
+    if (!hasInput(m, input) && !extra.text && !extra.images.length) throw new Error(t("这个范围还没有记录可以分析"));
+    const o = parseReview(await askText(REVIEW_SYSTEM(lang(), m, { spirit }), JSON.stringify(input), { json: true, maxTokens: 3500, images: extra.images }), { spirit });
     if (!o) throw new Error(t("AI 返回的格式不对，再试一次"));
     const all = { ...((S.hs.settings || {}).aiReview || {}) };
     all[cid] = { ...(all[cid] || {}), [m]: { ...o, at: new Date().toISOString(), watch: m === "watch" ? input.items.length : undefined } };

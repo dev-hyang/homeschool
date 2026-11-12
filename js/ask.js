@@ -159,7 +159,7 @@ function viewAsk(){
   <div class="chips" role="group" aria-label="${t("常见场景")}">${topics}</div>
   ${a.extra ? `<div class="alert info ask-extra"><span>${t("已附带：{n}（点下面「会发送什么」看原文）", { n: esc(a.extraName || t("定制流程的记录摘要")) })}</span> <button type="button" class="chip" data-act="ask-extra-clear">${t("不带这个")}</button></div>` : ""}
   <form id="askForm" class="panel ask" onsubmit="return false">
-    <textarea name="q" rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
+    <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
     <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${a.extra ? t("附带孩子最近的情况和上面的记录摘要（含你写的处理办法，不含姓名和备注）") : t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
     <div class="btns">${ready ? `<button type="submit" class="btn primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
       <button type="button" class="btn ${ready ? "" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
