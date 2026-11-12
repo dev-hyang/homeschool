@@ -37,6 +37,9 @@ const TILES = [
   { id: "outdoor", type: "activity", kind: "户外", icon: "🌳", label: "户外", desc: "公园、骑车、运动，记个时长", age: [12, 1200], preset: () => ({ kind: "户外" }), fields: ACT_FIELDS("内容", "公园、骑车、和谁一起…") },
   { id: "read", type: "activity", kind: "阅读", icon: "📚", label: "阅读", desc: "读了什么书、读了多久", age: [24, 1200], preset: () => ({ kind: "阅读" }), fields: ACT_FIELDS("书名 / 内容", "书名、和谁一起读…") },
   { id: "music", type: "activity", kind: "音乐", icon: "🎵", label: "音乐", desc: "听歌、学歌、唱诗，记个时长；点开直接是选好的歌单", age: [12, 1200], opt: 1, preset: () => ({ kind: "音乐" }), fields: ACT_FIELDS("歌名 / 歌单", "学了哪首、听了什么…") },
+  { id: "class", type: "activity", kind: "课外班", icon: "🎹", label: "课外班", desc: "钢琴、游泳、球队、美术…上了什么、多久、进度", age: [36, 1200], opt: 1, preset: () => ({ kind: "课外班" }), fields: () => [
+    { k: "what", label: "哪门课", type: "text", ph: "钢琴、游泳、足球、美术…" }, { k: "minutes", label: "时长（分钟）", type: "num" },
+    { k: "progress", label: "进度 / 考级", type: "text", ph: "学到第 3 首、过了 2 级、会换气了…" }, { k: "note", label: "备注", type: "area", ph: "表现、老师说的…" }] },
   { id: "screen", type: "activity", kind: "屏幕", icon: "📱", label: "屏幕", desc: "看了多久、看的什么，帮你心里有数", age: [48, 1200], preset: () => ({ kind: "屏幕" }), fields: ACT_FIELDS("内容", "视频、游戏、作业…") },
   { id: "speech", type: "speech", icon: "💬", label: "语言", desc: "新词、短句、会问问题", age: [12, 48], opt: 1, preset: () => ({ kind: "新词" }), fields: () => [
     seg("kind", "类型", ["新词", "短句", "会指认", "听懂指令", "会问问题"]), { k: "words", label: "说了什么", type: "text", ph: "妈妈 / 要抱抱 / 这是什么…" },
@@ -90,7 +93,7 @@ function nightLine(){
   const adv = nightAdvice(nightList(myNightRows()));
   if (!adv) return `<p class="ql-night small muted">🩲 ${t("夜间干爽：早上点上面的格子记一下昨晚，连续干爽 5 晚会提示可以试试晚上穿内裤。")}</p>`;
   const head = `${t("连续干爽 {n} 晚", { n: adv.streak })} · ${t("近 14 晚干爽 {a}/{b}", { a: adv.dry14, b: adv.n14 })}${adv.stale ? ` · ${t("最近一次记在 {d}", { d: adv.last.date.slice(5) })}` : ""}`;
-  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-from="today" data-grview="night">${t("趋势")} ›</button></div>`;
+  return `<div class="ql-night ${adv.tone}"><span>🩲 <b>${esc(head)}</b>${adv.tip ? `<br><span class="small">${esc(adv.tip)}</span>` : ""}</span><button type="button" class="chip" data-tab="growth" data-grview="night">${t("趋势")} ›</button></div>`;
 }
 
 /** 一条记录的一行小字 */
@@ -101,7 +104,7 @@ function summary(r){
     case "potty": return [v(d.what), v(d.where), d.self ? t("自己提出要去") : ""].filter(Boolean).join(" · ");
     case "food": return [v(d.meal), d.foods, v(d.amount), v(d.focus)].filter(Boolean).join(" · ");
     case "night": return [v(d.result), v(d.wear), d.woke ? t("夜里自己醒来去尿") : "", d.drink ? t("睡前喝水：{s}", { s: t(d.drink) }) : ""].filter(Boolean).join(" · ");
-    default: return [v(d.kind), d.minutes ? t("{n} 分钟", { n: d.minutes }) : "", d.what].filter(Boolean).join(" · ");
+    default: return [v(d.kind), d.minutes ? t("{n} 分钟", { n: d.minutes }) : "", d.what, d.progress].filter(Boolean).join(" · ");
   }
 }
 
@@ -113,7 +116,7 @@ function quickHTML(){
   const mine = S.ql.rows.filter(r => (r.data.child || "") === S.childId);
   const list = mine.length ? `<ul class="ql-list" aria-label="${esc(t("今天记过的"))}">${mine.slice(0, 8).map(r => { const tl = tileOf(r) || {}; return `<li><button type="button" class="ql-row" data-act="ql-edit" data-id="${esc(r.id)}"><span aria-hidden="true">${tl.icon || "📝"}</span><b>${hm(r.ts)}</b><span class="ql-sum">${esc(summary(r))}</span></button></li>`; }).join("")}</ul>` : "";
   return `<h2>${t("记一笔")}</h2><div class="panel ql-card">
-    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><span class="ql-acts"><button type="button" class="chip" data-tab="growth" data-from="today">${t("全部记录")} ›</button><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></span></div>
+    <div class="ql-top"><span class="small muted">${t("给 {n} 记一笔：点一格，填几项就行。", { n: esc(childName()) })}</span><span class="ql-acts"><button type="button" class="chip" data-tab="growth" data-grview="overview">${t("全部记录")} ›</button><button type="button" class="chip" data-act="ql-cfg">⚙ ${t("自定义")}</button></span></div>
     <div class="ql-grid" role="group" aria-label="${esc(t("记一笔"))}">${tiles.map(x => `<button type="button" class="ql-tile" data-act="ql-new" data-id="${x.id}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span>${esc(t(x.label))}</span></button>`).join("")}</div>
     ${showNight ? nightLine() : ""}
     ${list}</div>`;

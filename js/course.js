@@ -57,6 +57,7 @@ function viewCourse(){
   <div class="panel mlist">
     ${mrow('data-tab="course-units"', t("单元与课时"), mine.length ? t("{a} 个领域 · 进行中 {b} 个单元 · 共 {c} 个", { a: subjects, b: going, c: mine.length }) + (nextUndone ? ` · ${t("下一课")}：${esc(tb(nextUndone.title))}` : "") : t("还没有单元"), "▤")}
     ${mrow('data-tab="course-scope"', t("年度范围（Pre-K 建议）"), t("36 周的单元地图 · 已加 {a}/{b}", { a: scopeHave, b: scopeAll.length }), "▦")}
+    ${mrow('data-tab="calendar"', t("日历与周例行"), t("月历上看每天完成了什么；周例行每天自动生成任务"), "▦")}
     ${mrow('data-tab="course-goals"', t("学习目标"), goals.length ? t("达成 {a}/{b}", { a: goals.filter(g => g.achieved_on).length, b: goals.length }) : t("还没有目标"), "✓")}
   </div>
   ${mine.length ? "" : `<div class="btns"><button class="btn primary" data-act="gen-round">${t("生成本阶段第一轮（七个领域各一个单元）")}</button></div>`}`;

@@ -1108,3 +1108,14 @@ p.ql-night{display:block}
 .gr-ch-f{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:4px}
 .gr-foot{margin:8px 0 0}
 #grRec{scroll-margin-top:72px}
+/* 成长页签（js/growth.js）：顶上一排大块（习惯与情绪 / 学习与培训…），等宽，手机也一行；学习与培训的几张汇总卡（宽屏三列，手机一列） */
+.gr-blocks{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin:2px 0 8px}
+.gr-blocks button{padding:10px 8px;font-weight:600;min-height:46px;line-height:1.25}
+.gr-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:0 0 14px}
+.gr-card{margin:0;min-width:0}
+.gr-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.gr-card-big{font-size:26px;font-weight:700;margin:2px 0 4px;line-height:1.2}
+.gr-card-big small{font-size:14px;font-weight:400;color:var(--muted)}
+.gr-card-big .small{font-weight:400;font-size:13px}
+.gr-cls{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.gr-cls li{overflow-wrap:anywhere}

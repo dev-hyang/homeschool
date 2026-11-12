@@ -19,7 +19,6 @@ function viewMe(){
   <h2>${t("我的")}${who ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${who}</span>` : ""}</h2>
   <div class="panel mlist">
     ${row('data-tab="ask" data-from="me"', t("咩咩咩"), t("问今天的课怎么调、经文怎么背、孩子不配合怎么办…"), aiIcon(22))}
-    ${row('data-tab="growth" data-from="me"', t("成长记录"), t("如厕、夜间干爽、吃饭、户外 / 阅读 / 屏幕、情绪：全部记录和趋势"), "📒")}
     ${row('data-tab="reports"', t("报告"), t("按月出勤、每科时长、敬拜、经文、课时、目标，CSV 导出"), "↗")}
     ${row('data-tab="law"', t("法规"), t("各州在家教育法规摘要"), "§")}
     ${row('data-act="settings"', t("设置"), t("家庭与成员、读经计划、译本、学年与假期、语言、显示"), "⚙")}

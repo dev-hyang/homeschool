@@ -2,6 +2,12 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.1", title: { zh: "新的「成长」页签：习惯与情绪、学习与培训", en: "New Growth tab: habits & emotions, learning & training" }, items: [
+    { k: "new", zh: "底部多了「成长」：原来的成长记录分成「习惯与情绪」和「学习与培训」两大块", en: "Growth is now a bottom tab, split into Habits & emotions and Learning & training" },
+    { k: "new", zh: "学习与培训：如厕训练、夜间干爽、阅读、语言，加上课程进度、经文背诵和课外班汇总", en: "Learning & training: potty training, dry nights, reading and words, plus course progress, memory verses and classes" },
+    { k: "new", zh: "记一笔新增「课外班」：钢琴、游泳、球队…记时长和进度", en: "New \"Classes\" tile in Quick log: piano, swimming, teams… with time and progress" },
+    { k: "better", zh: "日历搬进了「课程」页", en: "The calendar now lives under Course" }
+  ] },
   { v: "2026-11-09.2", title: { zh: "补记的日期和时间不能选到未来", en: "Logged dates and times can no longer be in the future" }, items: [
     { k: "better", zh: "睡眠记录、睡前流程记录、情绪和冲突记录、目标的达成日期：晚于现在的变灰、不能选", en: "Sleep records, bedtime logs, emotion and conflict records and a goal's achieved date: anything later than now is greyed out" },
     { k: "better", zh: "排课、计划、假期这些安排性质的日期不受影响，照样能选未来", en: "Scheduling dates such as tasks, plans and breaks are unchanged and can still be in the future" }
