@@ -1248,3 +1248,4 @@ p.ql-night{display:block}
   .gr-tile{padding:9px 10px 8px 13px}
 }
 @media (max-width:640px){.gr-adds{grid-auto-rows:40px;align-items:start;height:auto}}
+@media (max-width:640px){.gr-top{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.gr-adds{width:100%}}
