@@ -83,7 +83,7 @@ function sleepNights(days){
   const from = Date.now() - days * D, by = {};
   for (const e of mineRows()) {
     if (e.type !== "sleep" || !e.end || e.end <= e.ts || e.ts < from - D || e.nap === true) continue;   // 标了午睡的不算（睡眠页 / 睡眠表单写的 nap）
-    const d = new Date(e.ts), h = d.getHours(), dur = e.end - e.ts; if (!(h >= 18 || h < 4) || dur < 3 * 3600e3) continue;
+    const d = new Date(e.ts), h = d.getHours(), dur = e.end - e.ts; if (!(h >= 18 || h < 4) || dur < 3 * 3600e3 || dur > 16 * 3600e3) continue;   // 超过 16 小时多半是忘了点「醒了」，不算进平均
     const date = h >= 18 ? dayKey(e.ts) : dayKey(e.ts - D), w = new Date(e.end);
     if (!by[date] || dur > by[date].dur) by[date] = { date, bed: (h >= 18 ? h - 18 : h + 6) * 60 + d.getMinutes(), wake: w.getHours() * 60 + w.getMinutes(), dur };
   }

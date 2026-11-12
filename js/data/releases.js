@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.6", title: { zh: "成长页细节：录入表标题、睡眠平均更准", en: "Growth details: form title, more accurate sleep average" }, items: [
+    { k: "better", zh: "一次录入表的标题缩短，手机上「关闭」不再挤成两行", en: "Shorter title on the logging form, so Close no longer wraps on phones" },
+    { k: "fix", zh: "忘了点「醒了」的超长睡眠（超过 16 小时）不再拉高夜间睡眠平均", en: "Very long sleeps (over 16 hours, usually a missed wake-up) no longer inflate the night-sleep average" }
+  ] },
   { v: "2026-11-11.5", title: { zh: "成长页排版整理：手机和电脑都更整齐", en: "Tidier Growth layout on phone and laptop" }, items: [
     { k: "better", zh: "三大块按钮、AI 分析的范围按钮大小统一，不再折行忽大忽小", en: "Block buttons and AI review range buttons are the same size and no longer wrap unevenly" },
     { k: "better", zh: "卡片、筛选器、按钮之间的间距统一", en: "Even spacing between cards, filters and buttons" },

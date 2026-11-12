@@ -950,5 +950,6 @@ const EN = {
   "身体": "Body",
   "心理情绪": "Mind & emotions",
   "属灵": "Faith",
+  "记录给": "For",
 };
 export { EN };

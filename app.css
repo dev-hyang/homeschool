@@ -1203,3 +1203,6 @@ p.ql-night{display:block}
 /* 一次录入表：两列字段、行内的选择框和输入框一样高 */
 .ix-two .field,.ix-vitals .field{margin:8px 0}
 .ix-h{font-size:16px;margin:18px 0 8px}
+.sheet-head .iconbtn{white-space:nowrap;flex:none}
+.ix-who{margin:-4px 0 10px}
+.gr-rv-modes{max-width:520px}
