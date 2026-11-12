@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.2", title: { zh: "成长页新增「身体与健康」，体检可以让 AI 一次录入", en: "Growth adds Body & health, with AI checkup logging" }, items: [
+    { k: "new", zh: "身高体重、体检与就诊、疫苗、化验、病史 / 过敏 / 用药放在一页", en: "Height & weight, checkups & visits, vaccines, labs, history / allergies / medicine on one page" },
+    { k: "new", zh: "拍体检小结或打一段话，AI 读出体征、疫苗、医生建议、维生素，核对后一次保存", en: "Snap the checkup summary or type a few lines; AI picks out measurements, shots, advice and vitamins to check and save at once" },
+    { k: "better", zh: "和小月亮、牧羊人是同一份记录，三边都能看到", en: "Same records as Little Moon and Shepherd, visible in all three" }
+  ] },
   { v: "2026-11-11.1", title: { zh: "新的「成长」页签：习惯与情绪、学习与培训", en: "New Growth tab: habits & emotions, learning & training" }, items: [
     { k: "new", zh: "底部多了「成长」：原来的成长记录分成「习惯与情绪」和「学习与培训」两大块", en: "Growth is now a bottom tab, split into Habits & emotions and Learning & training" },
     { k: "new", zh: "学习与培训：如厕训练、夜间干爽、阅读、语言，加上课程进度、经文背诵和课外班汇总", en: "Learning & training: potty training, dry nights, reading and words, plus course progress, memory verses and classes" },

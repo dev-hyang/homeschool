@@ -9,10 +9,11 @@ import { TILES, summary, tileOf } from "./quicklog.js";
 import { nightList } from "./nightdry.js";
 import { B, buckets, flowContext, inB, mineRows, nightDryHTML, nightsIn, pullButtonHTML, sleepNights } from "./flows-trend.js";
 import { learnedCount, unitProgress } from "./hs.js";
+import { bodyAct, bodyHTML } from "./growth-body.js";
 import { render } from "./views.js";
 
 /* ============ 成长（底部页签，2026-11-11 重排）：2 岁以上孩子的记录与趋势（小月亮不再显示 2 岁以上，这里是找它们的地方） ============
-   分几大块（顶上一排大按钮）：🌱 习惯与情绪（下面这些原来的成长记录页面）· 📚 学习与培训（如厕训练、夜间干爽、阅读、语言、课外班、课程和经文进度）。
+   分几大块（顶上一排大按钮）：🩺 身体与健康（js/growth-body.js）· 🌱 习惯与情绪（下面这些原来的成长记录页面）· 📚 学习与培训（如厕训练、夜间干爽、阅读、语言、课外班、课程和经文进度）。
    哪一块由 G.sec 决定：overview / learn / night …（blockOf），今天页、记一笔的链接用 data-grview 直接打开某一页。
    入口：今天页「记一笔」卡片的「全部记录 ›」、我的页的「成长记录」、夜间干爽那行的「趋势 ›」。
    数据：和趋势与分析同一份（flows-trend.js 的 S.cf：小月亮 entries 近 61 天，按 1000 行一页读，最多 4000 行），不另外读。
@@ -52,10 +53,10 @@ const METRICS = {
 };
 /* 两大块各看哪些：学习与培训 = 如厕训练、夜间干爽、阅读、语言、课外班；其余是习惯与情绪 */
 const LEARN_M = new Set(["potty", "accident", "dry", "read", "words", "class"]), LEARN_T = new Set(["potty", "night", "read", "speech", "class"]);
-const blockOf = sec => (sec === "learn" || sec === "night" ? "learn" : "heart");
+const blockOf = sec => (sec === "body" ? "body" : sec === "learn" || sec === "night" ? "learn" : "heart");
 const curBlock = () => blockOf(G.sec);
-const inBlockT = (k, blk = curBlock()) => LEARN_T.has(k) === (blk === "learn");
-const inBlockM = (k, blk = curBlock()) => LEARN_M.has(k) === (blk === "learn");
+const inBlockT = (k, blk = curBlock()) => blk !== "body" && LEARN_T.has(k) === (blk === "learn");
+const inBlockM = (k, blk = curBlock()) => blk !== "body" && LEARN_M.has(k) === (blk === "learn");
 /** 按年龄排：小的先看如厕、夜间干爽、睡眠、吃饭；大的先看情绪、陪伴、阅读、屏幕 */
 function metricOrder(){
   const m = ageMonths();
@@ -75,19 +76,19 @@ const shownMetrics = days => { const p = periods(days); return metricOrder().fil
 /* ---- 页面导航：顶上一排大块（习惯与情绪 / 学习与培训…），下面是这一块里的几页（宽屏页签，手机下拉框） ----
    习惯与情绪：总览在本页；睡眠、睡前安然、趋势与分析是原来的页面，从这里进去时顶上同样有这两排，面包屑回到成长。
    学习与培训：总览、夜间干爽都在本页。 */
-const BLOCKS = [["heart", "🌱", "习惯与情绪", "overview"], ["learn", "📚", "学习与培训", "learn"]];
-const SUBNAV = { heart: [["overview", "📒", "总览"], ["sleep", "🌙", "睡眠"], ["bedtime", "🕯", "睡前安然"], ["flow-trend", "📈", "趋势与分析"]],
+const BLOCKS = [["body", "🩺", "身体与健康", "body"], ["heart", "🌱", "习惯与情绪", "overview"], ["learn", "📚", "学习与培训", "learn"]];
+const SUBNAV = { body: [], heart: [["overview", "📒", "总览"], ["sleep", "🌙", "睡眠"], ["bedtime", "🕯", "睡前安然"], ["flow-trend", "📈", "趋势与分析"]],
   learn: [["learn", "📚", "总览"], ["night", "🩲", "夜间干爽"]] };
-const HERE = new Set(["overview", "learn", "night"]);   // 这些是成长页本身（G.sec），其余是别的页面
+const HERE = new Set(["body", "overview", "learn", "night"]);   // 这些是成长页本身（G.sec），其余是别的页面
 const navCur = tab => (tab === "growth" ? (HERE.has(G.sec) ? G.sec : "overview") : tab);
 function growthNavHTML(tab){
   const cur = navCur(tab), blk = tab === "growth" ? curBlock() : "heart", nav = SUBNAV[blk];
   const attrs = k => (HERE.has(k) ? `data-tab="growth" data-grview="${k}"` : `data-tab="${k}" data-from="growth"`);
   return `<div class="gr-blocks seg" role="group" aria-label="${esc(t("成长"))}">${BLOCKS.map(([k, ic, l, sec]) => `<button type="button" data-tab="growth" data-grview="${sec}" aria-pressed="${k === blk}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>
-  <nav class="gnav" aria-label="${esc(t(BLOCKS.find(x => x[0] === blk)[2]))}">
+  ${!nav.length ? "" : `<nav class="gnav" aria-label="${esc(t(BLOCKS.find(x => x[0] === blk)[2]))}">
     <div class="gnav-tabs">${nav.map(([k, ic, l]) => `<button type="button" class="gnav-tab" ${attrs(k)} ${k === cur ? 'aria-current="page"' : ""}><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>
     <label class="gnav-pick"><span class="gnav-lbl">${t(BLOCKS.find(x => x[0] === blk)[2])}</span><select data-grnav aria-label="${esc(t("选一页"))}">${nav.map(([k, ic, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${ic} ${esc(t(l))}</option>`).join("")}</select></label>
-  </nav>`;
+  </nav>`}`;
 }
 /** 哪些页面顶上放这两排：成长本身、睡眠，以及从成长点进去的睡前安然 / 趋势与分析 */
 const showGrowthNav = (tab, parent) => tab === "growth" || tab === "sleep" || ((tab === "bedtime" || tab === "flow-trend") && parent === "growth");
@@ -230,15 +231,18 @@ function viewGrowth(){
   const title = `<h2 class="gr-title">${esc(t("{n}的成长", { n: childName() }))} <span class="small muted">${esc(ageText())}</span></h2>`;
   let body = "";
   if (B.loaded) {
-    if (sec === "night") { const days = daysNow(), dates = Array.from({ length: days }, (_, i) => dayKey(Date.now() - (days - 1 - i) * D)); body = `${filterHTML({ timeOnly: true })}${nightDryHTML(dates, sleepNights(days), new Set(nightsIn(days).map(l => l.date)))}`; }
+    if (sec === "body") body = "";
+    else if (sec === "night") { const days = daysNow(), dates = Array.from({ length: days }, (_, i) => dayKey(Date.now() - (days - 1 - i) * D)); body = `${filterHTML({ timeOnly: true })}${nightDryHTML(dates, sleepNights(days), new Set(nightsIn(days).map(l => l.date)))}`; }
     else if (blk === "learn") body = `${filterHTML()}${learnCards(daysNow())}${trendSection()}${recordsSection()}`;
     else body = `${filterHTML()}${trendSection()}${recordsSection()}`;
   }
+  if (sec === "body") return `${title}${bodyHTML()}`;   // 身体与健康自己读数据（js/growth-body.js），不用上面那份近 2 个月的记录
   return `${title}${status}${body}<p class="small muted" style="margin-top:12px">${pullButtonHTML()}</p>`;
 }
 
 const toRec = () => setTimeout(() => document.getElementById("grRec")?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
 async function growthAct(act, btn){
+  if (bodyAct(act)) return;   // 身体与健康（js/growth-body.js）
   const d = btn.dataset;
   switch (act) {
     case "gr-view": G.view = d.v; render(); break;
