@@ -1008,5 +1008,11 @@ const EN = {
   "睡眠、吃饭、户外与屏幕、情绪、陪伴": "Sleep, meals, outdoors & screens, emotions, time together",
   "如厕和夜间训练、阅读与语言、课外班、课程和经文": "Potty & night training, reading & words, classes, lessons and verses",
   "课程进度": "Course progress",
+  "开始睡眠时间": "Fell asleep at",
+  "开始睡的时间": "Fell asleep at",
+  "记进小月亮的睡眠记录；默认是流程结束的时间，孩子实际睡着晚一些可以改。": "Goes into Little Moon's sleep record. Defaults to when the routine ended; change it if the child fell asleep later.",
+  "一起唤醒": "Wake together",
+  "选中的孩子用同一个醒来时间和「怎么醒的」，各自的入睡时间不变。": "Selected children get the same wake-up time and how they woke; each keeps their own bedtime.",
+  "记下了 {n} 个孩子醒来，早安": "Logged {n} children awake. Good morning",
 };
 export { EN };

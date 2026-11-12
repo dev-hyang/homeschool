@@ -1,6 +1,6 @@
 import { t, tc, tb } from "./core/i18n.js";
 import { S } from "./core/state.js";
-import { $, dayKey, esc, keepFields, toast } from "./core/util.js";
+import { $, dayKey, esc, hm, keepFields, toast } from "./core/util.js";
 import { ANCHOR_REF } from "./data/bedtime.js";
 import { SIDES } from "./data/flows.js";
 import { ANGER, V } from "./data/principle.js";
@@ -198,6 +198,7 @@ function finishHTML(){
   <div class="btp-sum"><table><thead><tr><th>${t("步骤")}</th><th class="num">${t("计划")}</th><th class="num">${t("实际")}</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th>${t("合计（分钟）")}</th><th class="num">${planned}</th><th class="num">${total}</th></tr></tfoot></table></div>
   <div class="btp-form">
     <div class="lab">${t("谁参加了")}</div><div class="seg">${P.api.kids.map(k => `<button data-act="btp-kid" data-id="${esc(k.id)}" aria-pressed="${P.kids.has(k.id)}">${esc(k.name || t("宝宝"))}</button>`).join("")}</div>
+    <div class="lab"><label for="btpSleepAt">${nap() ? t("开始睡的时间") : t("开始睡眠时间")}</label></div><input id="btpSleepAt" class="btp-time" type="time" value="${esc(P.sleepAt || hm(P.endedAt))}"><p class="small muted btp-hint">${t("记进小月亮的睡眠记录；默认是流程结束的时间，孩子实际睡着晚一些可以改。")}</p>
     <div class="lab">${t("谁带的")}</div><div class="seg">${leds.map(m => `<button data-act="btp-led" data-v="${esc(m)}" aria-pressed="${P.led === m}">${esc(m)}</button>`).join("")}</div>
     <div class="lab">${nap() ? t("孩子这次的状态") : t("孩子今晚的状态")}</div><div class="seg">${(nap() ? SIDES.nap : SIDES.night).child.map(x => `<button data-act="btp-cs" data-v="${esc(x)}" aria-pressed="${P.childSt === x}">${t(x)}</button>`).join("")}</div>
     <div class="lab">${nap() ? t("大人这次的状态") : t("大人今晚的状态")}</div><div class="seg">${(nap() ? SIDES.nap : SIDES.night).parent.map(x => `<button data-act="btp-ps" data-v="${esc(x)}" aria-pressed="${P.parentSt === x}">${t(x)}</button>`).join("")}</div>
@@ -242,17 +243,25 @@ async function playAct(act, btn){
       const r = P.api.readings[P.readIdx] || {}, log = { date: dayKey(P.startedAt), started_at: new Date(P.startedAt).toISOString(), ended_at: new Date(P.endedAt).toISOString(),
         planned_min: P.steps.reduce((a, s) => a + (+s.minutes || 0), 0), actual_min: Math.max(1, Math.round((P.endedAt - P.startedAt) / 60000)), children: [...P.kids], led_by: P.led || "",
         version: P.text.name, passage: r.ref || "", child_state: P.childSt, parent_state: P.parentSt, songs: [...P.played], steps: P.steps.map((s, i) => ({ name: s.name, planned: +s.minutes || 0, actual: P.actual[i] == null ? null : Math.round(P.actual[i]), flow: P.flow.name, kind: P.flow.kind })), note: P.note };
-      try { await P.api.saveLog(log); closePlayer(); toast(nap() ? t("记下了。午安。") : t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
+      try { await P.api.saveLog(log, { sleepAt: sleepAtTs() }); closePlayer(); toast(nap() ? t("记下了。午安。") : t("记下了。晚安。")); render(); } catch (e) { P.saving = false; draw(); }
       break; }
     case "btp-close": if (P.done && !confirm(nap() ? t("这次还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？") : t("今晚还没记录。不记录就关闭，刚才的过程会全部丢失。确定吗？"))) break; closePlayer(); render(); break;
   }
 }
-function readNote(){ const el = $("#btpNote"); if (el) P.note = el.value.trim(); }
+function readNote(){ const el = $("#btpNote"); if (el) P.note = el.value.trim(); const s = $("#btpSleepAt"); if (s && s.value) P.sleepAt = s.value; }
+/** 「开始睡眠时间」只填了几点几分：放到流程结束那一天；隔了 12 小时以上就是跨过了午夜；不晚于现在 */
+function sleepAtTs(){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(P.sleepAt || ""); if (!m) return null;
+  const d = new Date(P.endedAt); d.setHours(+m[1], +m[2], 0, 0); let ts = d.getTime();
+  if (ts - P.endedAt > 12 * 3600e3) ts -= 864e5; else if (P.endedAt - ts > 12 * 3600e3) ts += 864e5;
+  return Math.min(ts, Date.now());
+}
 function readEv(){ const el = $("#btpEvNote"); if (el && P.ev) P.ev.note = el.value.trim(); }
 function playChange(ev){
   if (!P) return false;
   if (ev.target && ev.target.id === "btpVol") { P.volume = +ev.target.value; if (P.audio) P.audio.volume = P.volume; return true; }
   if (ev.target && ev.target.id === "btpNote") { P.note = ev.target.value.trim(); return true; }
+  if (ev.target && ev.target.id === "btpSleepAt") { P.sleepAt = ev.target.value; return true; }
   if (ev.target && ev.target.id === "btpEvNote") { if (P.ev) P.ev.note = ev.target.value.trim(); return true; }
   return false;
 }

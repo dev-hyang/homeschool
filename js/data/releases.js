@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.8", title: { zh: "多个孩子可以一起唤醒；睡前流程结束可以填开始睡眠时间", en: "Wake several children at once; set the fall-asleep time after the bedtime routine" }, items: [
+    { k: "new", zh: "唤醒时，其他也在睡的孩子默认一起选上，一次记下醒来", en: "When waking one child, the others still asleep are selected too and logged together" },
+    { k: "new", zh: "睡前流程结束页新增「开始睡眠时间」，孩子晚一些睡着可以改", en: "The bedtime routine's finish page has a \"Fell asleep at\" time you can adjust" },
+    { k: "better", zh: "成长主题页的走势图在电脑上不再撑得很高，指标卡铺满一行", en: "On laptops, Growth trend charts no longer stretch tall, and indicator cards fill the row" }
+  ] },
   { v: "2026-11-11.7", title: { zh: "成长页重新设计：一层一层点进去", en: "Growth redesigned: tap through layer by layer" }, items: [
     { k: "better", zh: "首页三张卡：身体与健康、习惯与情绪、学习与培训，每行一句最新情况", en: "The Growth home has three cards (Body & health, Habits & emotions, Learning & training), each row with a one-line update" },
     { k: "better", zh: "每个主题一页，同一个样子：时间范围、记一笔、指标、走势图、记录", en: "Every topic page looks the same: time range, log, indicators, trend chart, records" },

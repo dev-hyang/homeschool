@@ -301,14 +301,14 @@ function withSides(row){
 }
 const sidesLine = x => [x.child_state && `${t("孩子")}：${t(x.child_state)}`, x.parent_state && `${t("大人")}：${t(x.parent_state)}`].filter(Boolean).map(s => " · " + s).join("");
 const sidesHint = () => S.bt.sideCols === false ? `<div class="alert info">${t("还没有「孩子 / 大人状态」两列（数据库迁移 020）：现在这两项先折进备注里，不丢；执行迁移后才能在趋势图里统计。")}</div>` : "";
-async function saveLog(log){
+async function saveLog(log, { sleepAt = null } = {}){
   const row = withSides({ id: log.id || newId(), ...log });
   if (!online()) { S.bt.pending.push(row); saveJSON(PEND_KEY, S.bt.pending); toast(t("没连上云端：记录先存在这台设备，联网后自动补传")); return row; }
   const saved = await run(SB.client.from("hs_bedtime_logs").upsert({ ...row, family_id: fid() }).select().single());
   put(S.bt.logs, saved); sortLogs();
   const c = cfg(); if (!c.firstOn) await saveCfg({ firstOn: saved.date }).catch(() => {});
   await mirrorLog(saved);
-  if (!log.id) await sleepFromLog(saved).catch(e => console.error(e));   // 新完成的一晚 / 一次午睡：在小月亮记下「开始睡」
+  if (!log.id) await sleepFromLog(saved, sleepAt).catch(e => console.error(e));   // sleepAt：流程结束页填的「开始睡眠时间」   // 新完成的一晚 / 一次午睡：在小月亮记下「开始睡」
   return saved;
 }
 async function deleteLog(id){

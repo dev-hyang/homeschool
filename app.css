@@ -1233,3 +1233,10 @@ p.ql-night{display:block}
 .gr-pager .btn{flex:0 1 auto;min-width:0;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gr-pager-hint{display:none}
 @media (max-width:640px){.gr-pager-hint{display:inline;text-align:center;flex:1}.gr-pager .btn{max-width:36%;padding:6px 10px;font-size:13.5px}}
+/* 成长主题页：走势图在宽屏上不放大到很高（数字跟着变大）；指标卡铺满一行 */
+.gr-chart .lib-chart svg{display:block;width:100%;max-height:200px}
+.gr-tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.gr-title{margin-top:16px}
+/* 睡前流程结束页：开始睡眠时间（和备注框同一套深色样式） */
+.btp-form .btp-time{box-sizing:border-box;border:1px solid #2a3340;background:#111620;color:#dfe5ee;border-radius:10px;padding:10px 12px;font-size:16px;min-height:46px;min-width:150px;color-scheme:dark}
+.btp-form .btp-hint{color:#7f8a99;margin:6px 0 0}
