@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.5", title: { zh: "成长页排版整理：手机和电脑都更整齐", en: "Tidier Growth layout on phone and laptop" }, items: [
+    { k: "better", zh: "三大块按钮、AI 分析的范围按钮大小统一，不再折行忽大忽小", en: "Block buttons and AI review range buttons are the same size and no longer wrap unevenly" },
+    { k: "better", zh: "卡片、筛选器、按钮之间的间距统一", en: "Even spacing between cards, filters and buttons" },
+    { k: "fix", zh: "打开再关掉表单后，顶上的窄条不再盖住顶栏", en: "Closing a form no longer leaves the slim bar covering the header" }
+  ] },
   { v: "2026-11-11.4", title: { zh: "成长页新增「AI 身心灵分析」", en: "New AI whole-child review on Growth" }, items: [
     { k: "new", zh: "把身体、习惯情绪、属灵、学习放在一起看：先说做得好的，再给最值得加强的几件事", en: "Looks at body, habits & emotions, faith and learning together: what's going well first, then the few things most worth working on" },
     { k: "new", zh: "三种看法：全盘、最近两周、需要留意", en: "Three views: everything, the last two weeks, and what needs attention" },

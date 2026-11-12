@@ -111,11 +111,11 @@ function render(){
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   trackNav(S.tab);
-  const back = crumbHTML(S.tab) + (showGrowthNav(S.tab, parent) ? growthNavHTML(S.tab) : "");   // 成长记录这一组页面：顶上一排导航（js/growth.js）
+  const gnav = showGrowthNav(S.tab, parent) ? growthNavHTML(S.tab) : "";   // 成长这一组页面：标题 + 顶上两排导航（js/growth.js），放在大原则那一行下面
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
-  const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "";
-  const html = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + core + v() : back + core + (gateHTML() || v());
+  const core = CORE_TABS.has(S.tab) || gnav ? principleHTML("mini") : "", back = crumbHTML(S.tab) + core + gnav;
+  const html = (S.tab === "law" || S.tab === "me" || S.tab === "me-releases" || S.tab === "ask" || (BT_TABS.has(S.tab) && cacheReady())) ? back + v() : back + (gateHTML() || v());
   // 还是同一页、同一个孩子（多半是后台同步 / 定时刷新引起的重画）：保住页面里正在填、还没保存的内容和光标（js/core/util.js keepFields）
   const view = `${S.tab}|${S.childId || ""}`, paint = () => { $("#main").innerHTML = html; };
   if (view === drawnView) keepFields($("#main"), paint); else paint();

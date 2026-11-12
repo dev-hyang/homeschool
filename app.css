@@ -1163,3 +1163,43 @@ p.ql-night{display:block}
 .gr-rv-box{border-radius:var(--radius-sm);background:var(--slate-soft);padding:8px 10px;min-width:0;overflow-wrap:anywhere}
 .gr-rv-ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14.5px}
 .gr-rv-ul.do{font-weight:600}
+/* ---- 成长页排版统一（2026-11-11 第二轮）：手机和电脑同一套尺寸 ----
+   大块按钮：图标在上、名字一行不折；范围切换：三格等宽小按钮；主按钮不再撑满整行；卡片标题行同高；块与块之间统一 12px。 */
+.gr-title{margin:6px 0 10px}
+.gr-blocks{gap:8px;margin:0 0 10px}
+.gr-blocks button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 6px;min-height:58px;font-size:15px;font-weight:600;line-height:1.2}
+.gr-bi{font-size:18px;line-height:1}
+.gr-bl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+@media (min-width:641px){.gr-blocks button{flex-direction:row;gap:8px;min-height:46px;font-size:15.5px}}
+.gnav-pick{margin-bottom:2px}
+.gr-filter{margin:0 0 12px}
+.gr-cards{margin:0 0 16px;gap:12px}
+.gr-card{display:flex;flex-direction:column;gap:6px;padding:14px 16px}
+.gr-card-h{min-height:36px;margin:0}
+.gr-card-h > b{font-size:16px}
+.gr-card-big{margin:0;font-size:24px}
+.gr-card p{margin:0}
+.gb-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
+.gb-acts .btn{flex:none;min-height:44px;padding:8px 12px;font-size:15px;line-height:1.25;white-space:normal}
+.gb-acts .btn.primary{grid-column:1 / -1}
+@media (min-width:720px){.gb-acts{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}.gb-acts .btn.primary{grid-column:auto}}
+/* AI 身心灵分析：标题一行，范围三格等宽，按钮正常大小靠左 */
+.gr-rv{padding:12px 16px}
+.gr-rv > summary{min-height:44px;font-size:16px}
+.gr-rv > summary small{font-size:13px;font-weight:400}
+.gr-rv-modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 8px}
+.gr-rv-modes button{min-height:38px;padding:6px 6px;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:999px}
+.gr-rv-scope{font-size:13.5px}
+.gr-rv .btns{margin-top:8px}
+.gr-rv .btns .btn{flex:none;min-height:40px;padding:8px 22px;font-size:15px}
+.gr-rv > p.small:last-child{font-size:12.5px;line-height:1.5}
+.gr-rv-sum{font-size:15.5px}
+.gr-rv-pri li{padding:10px 12px}
+.gr-rv-pri b{font-size:15px}
+.gr-rv-ul{font-size:14px;line-height:1.5}
+.gr-rv-box{padding:10px 12px}
+.gr-rv-box > b{font-size:15px}
+.gr-rv-grid{gap:10px}
+/* 一次录入表：两列字段、行内的选择框和输入框一样高 */
+.ix-two .field,.ix-vitals .field{margin:8px 0}
+.ix-h{font-size:16px;margin:18px 0 8px}

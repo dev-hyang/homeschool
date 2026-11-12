@@ -86,10 +86,11 @@ const navCur = tab => (tab === "growth" ? (HERE.has(G.sec) ? G.sec : "overview")
 function growthNavHTML(tab){
   const cur = navCur(tab), blk = tab === "growth" ? curBlock() : "heart", nav = SUBNAV[blk];
   const attrs = k => (HERE.has(k) ? `data-tab="growth" data-grview="${k}"` : `data-tab="${k}" data-from="growth"`);
-  return `<div class="gr-blocks seg" role="group" aria-label="${esc(t("成长"))}">${BLOCKS.map(([k, ic, l, sec]) => `<button type="button" data-tab="growth" data-grview="${sec}" aria-pressed="${k === blk}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>
+  const title = tab === "growth" ? `<h2 class="gr-title">${esc(t("{n}的成长", { n: childName() }))} <span class="small muted">${esc(ageText())}</span></h2>` : "";
+  return `${title}<div class="gr-blocks seg" role="group" aria-label="${esc(t("成长"))}">${BLOCKS.map(([k, ic, l, sec]) => `<button type="button" data-tab="growth" data-grview="${sec}" aria-pressed="${k === blk}"><span class="gr-bi" aria-hidden="true">${ic}</span><span class="gr-bl">${t(l)}</span></button>`).join("")}</div>
   ${!nav.length ? "" : `<nav class="gnav" aria-label="${esc(t(BLOCKS.find(x => x[0] === blk)[2]))}">
     <div class="gnav-tabs">${nav.map(([k, ic, l]) => `<button type="button" class="gnav-tab" ${attrs(k)} ${k === cur ? 'aria-current="page"' : ""}><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>
-    <label class="gnav-pick"><span class="gnav-lbl">${t(BLOCKS.find(x => x[0] === blk)[2])}</span><select data-grnav aria-label="${esc(t("选一页"))}">${nav.map(([k, ic, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${ic} ${esc(t(l))}</option>`).join("")}</select></label>
+    <label class="gnav-pick"><select data-grnav aria-label="${esc(t("选一页"))}">${nav.map(([k, ic, l]) => `<option value="${k}" ${k === cur ? "selected" : ""}>${ic} ${esc(t(l))}</option>`).join("")}</select></label>
   </nav>`}`;
 }
 /** 哪些页面顶上放这两排：成长本身、睡眠，以及从成长点进去的睡前安然 / 趋势与分析 */
@@ -235,7 +236,7 @@ function viewGrowth(){
   const sec = G.sec, blk = curBlock();
   if (G.type !== "all" && !inBlockT(G.type)) { G.type = "all"; G.span = null; }   // 换了一块：上一块的类型筛选不带过来
   const status = B.loading && !B.loaded ? `<p class="small muted" role="status">${t("正在读取记录…")}</p>` : B.err && !B.loaded ? `<p class="small muted" role="status">${t("读取小月亮失败：")}${esc(String(B.err).slice(0, 80))}</p>` : "";
-  const title = `<h2 class="gr-title">${esc(t("{n}的成长", { n: childName() }))} <span class="small muted">${esc(ageText())}</span></h2>`;
+  const title = "";   // 标题在顶上的导航里（growthNavHTML），这样大原则那一行在最上面、标题和三大块挨在一起
   let body = "";
   if (B.loaded) {
     if (sec === "body") body = "";
