@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-11.4", title: { zh: "成长页新增「AI 身心灵分析」", en: "New AI whole-child review on Growth" }, items: [
+    { k: "new", zh: "把身体、习惯情绪、属灵、学习放在一起看：先说做得好的，再给最值得加强的几件事", en: "Looks at body, habits & emotions, faith and learning together: what's going well first, then the few things most worth working on" },
+    { k: "new", zh: "三种看法：全盘、最近两周、需要留意", en: "Three views: everything, the last two weeks, and what needs attention" },
+    { k: "new", zh: "每一块都有这周可以做的事，还有问儿科医生的问题、家长怎么配合", en: "Each area comes with things to try this week, questions for the pediatrician and tips for parents" }
+  ] },
   { v: "2026-11-11.3", title: { zh: "修好：小宝宝的旧记录算到了大孩子名下", en: "Fixed: the baby's older records showed under an older child" }, items: [
     { k: "fix", zh: "小月亮里没标孩子的旧记录，现在和小月亮一样归到对应的孩子（成长、睡眠、夜间干爽都受影响）", en: "Older Little Moon records without a child now go to the same child as in Little Moon (Growth, sleep and dry nights)" }
   ] },

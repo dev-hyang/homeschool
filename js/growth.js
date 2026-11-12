@@ -10,10 +10,12 @@ import { nightList } from "./nightdry.js";
 import { B, buckets, flowContext, inB, mineRows, nightDryHTML, nightsIn, pullButtonHTML, sleepNights } from "./flows-trend.js";
 import { learnedCount, unitProgress } from "./hs.js";
 import { bodyAct, bodyHTML } from "./growth-body.js";
+import { reviewAct, reviewHTML } from "./growth-review.js";
 import { render } from "./views.js";
 
 /* ============ 成长（底部页签，2026-11-11 重排）：2 岁以上孩子的记录与趋势（小月亮不再显示 2 岁以上，这里是找它们的地方） ============
    分几大块（顶上一排大按钮）：🩺 身体与健康（js/growth-body.js）· 🌱 习惯与情绪（下面这些原来的成长记录页面）· 📚 学习与培训（如厕训练、夜间干爽、阅读、语言、课外班、课程和经文进度）。
+   最上面是「✦ AI 身心灵分析」（js/growth-review.js），三大块都看得到。
    哪一块由 G.sec 决定：overview / learn / night …（blockOf），今天页、记一笔的链接用 data-grview 直接打开某一页。
    入口：今天页「记一笔」卡片的「全部记录 ›」、我的页的「成长记录」、夜间干爽那行的「趋势 ›」。
    数据：和趋势与分析同一份（flows-trend.js 的 S.cf：小月亮 entries 近 61 天，按 1000 行一页读，最多 4000 行），不另外读。
@@ -191,6 +193,11 @@ function trendSection(){
   </section>`;
 }
 
+/** 给 AI 身心灵分析（js/growth-review.js）：每个有数据的指标，这段时间和前一段 */
+function metricsList(days){
+  const p = periods(days);
+  return shownMetrics(days).map(k => { const M = METRICS[k]; return { key: k, label: M.label, unit: M.unit, kind: M.kind, cur: M.v(...p.cur), prev: M.v(...p.prev) }; });
+}
 /** 交给咩咩咩：各指标近 N 天 vs 前 N 天 + 趋势与分析的摘要（睡眠、睡前流程、冲突、夜间干爽） */
 function growthContext(days){
   const p = periods(days), lines = shownMetrics(days).map(k => {
@@ -236,13 +243,14 @@ function viewGrowth(){
     else if (blk === "learn") body = `${filterHTML()}${learnCards(daysNow())}${trendSection()}${recordsSection()}`;
     else body = `${filterHTML()}${trendSection()}${recordsSection()}`;
   }
-  if (sec === "body") return `${title}${bodyHTML()}`;   // 身体与健康自己读数据（js/growth-body.js），不用上面那份近 2 个月的记录
-  return `${title}${status}${body}<p class="small muted" style="margin-top:12px">${pullButtonHTML()}</p>`;
+  if (sec === "body") return `${title}${reviewHTML()}${bodyHTML()}`;   // 身体与健康自己读数据（js/growth-body.js），不用上面那份近 2 个月的记录
+  return `${title}${reviewHTML()}${status}${body}<p class="small muted" style="margin-top:12px">${pullButtonHTML()}</p>`;
 }
 
 const toRec = () => setTimeout(() => document.getElementById("grRec")?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
 async function growthAct(act, btn){
   if (bodyAct(act)) return;   // 身体与健康（js/growth-body.js）
+  if (await reviewAct(act, btn)) return;   // AI 身心灵分析（js/growth-review.js）
   const d = btn.dataset;
   switch (act) {
     case "gr-view": G.view = d.v; render(); break;
@@ -267,4 +275,4 @@ function growthChange(el){
   resetPage("gr-rec"); render(); return true;
 }
 
-export { viewGrowth, growthAct, growthChange, growthContext, growthDrill, growthNavHTML, showGrowthNav };
+export { metricsList, viewGrowth, growthAct, growthChange, growthContext, growthDrill, growthNavHTML, showGrowthNav };

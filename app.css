@@ -1144,3 +1144,22 @@ p.ql-night{display:block}
 .ix-cells input,.ix-cells select{box-sizing:border-box;flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--field);border-radius:var(--radius-sm);padding:9px 10px;font-size:16px;min-height:44px;color:var(--ink)}
 .ix-cells input[data-ixk="name"]{flex-basis:100%}
 .pill.warn{background:var(--honey-soft);color:var(--ink);font-weight:600}
+/* 成长 · AI 身心灵分析（js/growth-review.js）：可折叠；范围切换 → 总结 → 最值得加强的 → 身体 / 心理情绪 / 属灵 / 学习（宽时两列） */
+.gr-rv{margin:0 0 14px}
+.gr-rv > summary{cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;list-style-position:inside}
+.gr-rv[open] > summary{margin-bottom:8px}
+.gr-rv-modes{margin-bottom:6px}
+.gr-rv-modes button{flex:1 1 auto}
+.gr-rv-scope{margin:0 0 8px}
+.gr-rv-sum{margin:0 0 10px;line-height:1.6}
+.gr-rv-h{display:block;margin:4px 0 6px}
+.gr-rv-pri{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:8px}
+.gr-rv-pri li{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:var(--radius-sm);padding:8px 10px;background:var(--surface)}
+.gr-rv-pri li > div{min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.gr-rv-ft{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.gr-rv-ic{flex:none;width:32px;height:32px;border-radius:10px;background:var(--slate-soft);display:inline-flex;align-items:center;justify-content:center;font-size:16px}
+.gr-rv-do{color:var(--slate);font-weight:600;font-size:14px}
+.gr-rv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.gr-rv-box{border-radius:var(--radius-sm);background:var(--slate-soft);padding:8px 10px;min-width:0;overflow-wrap:anywhere}
+.gr-rv-ul{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;font-size:14.5px}
+.gr-rv-ul.do{font-weight:600}
