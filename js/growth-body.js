@@ -5,7 +5,7 @@ import { t } from "./core/i18n.js";
 import { selectAll } from "./core/paged.js";
 import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, toast } from "./core/util.js";
-import { INTAKE_SYSTEM, VAX_NAMES, parseIntake } from "./intake-lib.js";
+import { INTAKE_SYSTEM, VAX_NAMES, parseIntake, vaxSeen } from "./intake-lib.js";
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { bars } from "./charts.js";
@@ -176,7 +176,9 @@ function draw(){
   const vit = VITALS.map(([k, l]) => { const dv = X[k] == null ? "" : String(Math.round(toDisp(k, X[k]) * 100) / 100);
     return `<div class="field"><label for="ix_${k}">${t(l)}（${unit(k)}）</label><input id="ix_${k}" type="number" inputmode="decimal" step="any" min="0" data-ixf="${k}" data-dim="1" data-orig="${dv}" value="${dv}"></div>`; }).join("");
   const row = (list, i, inner) => `<div class="ix-row ${list[i].on ? "" : "off"}"><label class="check ix-on"><input type="checkbox" data-ixon="${i}" ${list[i].on ? "checked" : ""} aria-label="${esc(t("保存这一条"))}"></label><div class="ix-cells">${inner}</div></div>`;
-  const vax = X.vaccines.map((v, i) => row(X.vaccines, i, `<input type="text" list="ixvax" data-ixk="name" value="${esc(v.name)}" aria-label="${esc(t("疫苗名称"))}" placeholder="${esc(t("疫苗名称"))}">${sel("dose", VAX_DOSE, v.dose, "剂次")}${sel("site", VAX_SITE, v.site, "接种部位")}`)).join("");
+  const today = dayKey(Date.now());
+  const vax = X.vaccines.map((v, i) => row(X.vaccines, i, `<input type="text" list="ixvax" data-ixk="name" value="${esc(v.name)}" aria-label="${esc(t("疫苗名称"))}" placeholder="${esc(t("疫苗名称"))}">
+    <input type="date" data-ixk="day" value="${esc(v.day || "")}" max="${today}" aria-label="${esc(t("接种日期（空着就用上面的时间）"))}" title="${esc(t("接种日期（空着就用上面的时间）"))}">${sel("dose", VAX_DOSE, v.dose, "剂次")}${sel("site", VAX_SITE, v.site, "接种部位")}${v.seen ? `<span class="small muted ix-note">${t("这一针已经记过")}</span>` : ""}`)).join("");
   const meds = X.meds.map((m, i) => row(X.meds, i, `${sel("cat", MED_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("名称"))}" placeholder="${esc(t("名称"))}"><input type="text" data-ixk="dose" value="${esc(m.dose)}" aria-label="${esc(t("剂量"))}" placeholder="${esc(t("剂量"))}">`)).join("");
   const ms = X.milestones.map((m, i) => row(X.milestones, i, `${sel("cat", MS_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("做到了什么"))}" placeholder="${esc(t("做到了什么"))}">`)).join("");
   const n = count(), home = X.src === "自己记录";
@@ -223,7 +225,7 @@ async function aiRead(){
   X.busy = true; draw();
   try {
     const { images, text } = attachPayload(ATT);   // 照片 / PDF + 文字（js/attach.js）
-    const r = parseIntake(await askText(INTAKE_SYSTEM, `Read this pediatric visit.${text ? "\nParent's notes:\n" + text.slice(0, 12000) : ""}`, { json: true, images, maxTokens: 3000 }));
+    const r = parseIntake(await askText(INTAKE_SYSTEM, `Read this pediatric visit.${text ? "\nParent's notes:\n" + text.slice(0, 12000) : ""}`, { json: true, images, maxTokens: 6000 }));
     if (!r) throw new Error(t("没读出内容，换一张清楚点的照片或多写几句试试"));
     if (!X) return;
     readIx();
@@ -233,10 +235,14 @@ async function aiRead(){
     if (r.clinic) X.clinic = r.clinic;
     const next = r.next ? t("下次：{s}", { s: r.next }) : "";
     if (r.note || next) X.note = [X.note.trim(), r.note, next].filter(Boolean).join("\n");
-    X.vaccines.push(...r.vaccines.map(v => ({ on: true, name: v.name, dose: v.dose || "", site: v.site || "" })));
+    // 疫苗本：每一针带自己的日期；已经记过的（同一天同一种）和还没到日子的默认不勾，免得记重
+    const had = mine("vax").filter(e => !e.deleted), today = dayKey(Date.now());
+    X.vaccines.push(...r.vaccines.map(v => { const seen = vaxSeen(had, v.name, v.day), later = !!v.day && v.day > today;
+      return { on: !seen && !later, seen, name: v.name, day: later ? "" : v.day || "", dose: v.dose || "", site: v.site || "" }; }));
     X.meds.push(...r.meds.map(m => ({ on: true, cat: m.cat, name: m.name, dose: m.dose })));
     X.milestones.push(...r.milestones.map(m => ({ on: true, cat: m.cat, name: m.name })));
-    X.read = true; toast(t("读出来了，请核对"));
+    const skip = X.vaccines.filter(v => v.seen).length;
+    X.read = true; toast(skip ? t("读出来了，请核对（{n} 针已经记过，没勾）", { n: skip }) : t("读出来了，请核对"));
   } catch (e) { toast(t("读取失败：{msg}", { msg: String(e.message || e).slice(0, 100) })); }
   finally { if (X) { X.busy = false; draw(); } }
 }
@@ -244,11 +250,13 @@ async function aiRead(){
 async function save(){
   readIx();
   if (X.ts > Date.now() + 60000) { toast(t("时间不能晚于现在")); return; }
+  const vaxTs = v => (v.day ? new Date(v.day + "T09:00:00").getTime() : X.ts);   // 疫苗本里每针自己的日期
+  if (X.src !== "自己记录" && X.vaccines.some(v => v.on && v.name && !(vaxTs(v) <= Date.now() + 60000))) { toast(t("接种日期不能晚于今天")); return; }
   const now = Date.now(), id = i => "hsix-" + now.toString(36) + i.toString(36) + Math.random().toString(36).slice(2, 5);
   const base = { ts: X.ts, child: X.child, updated: now }, clinic = (X.clinic || "").trim(), rows = [];
   if (keepVitals()) rows.push({ type: "baby", src: X.src, clinic: X.src === "自己记录" ? "" : clinic, ...Object.fromEntries(VITALS.map(([k]) => [k, X[k]]).filter(([, v]) => v != null)), note: X.note.trim() });
   if (X.src !== "自己记录") {
-    for (const v of X.vaccines) if (v.on && v.name) rows.push({ type: "vax", name: v.name, dose: v.dose, site: v.site, clinic, reaction: "无" });
+    for (const v of X.vaccines) if (v.on && v.name) rows.push({ type: "vax", ts: vaxTs(v), name: v.name, dose: v.dose, site: v.site, clinic, reaction: "无" });
     for (const m of X.meds) if (m.on && m.name) rows.push({ type: "bmed", cat: m.cat || "药物", name: m.name, dose: m.dose, note: t("{src}时医生开的", { src: t(X.src) }) });
     for (const m of X.milestones) if (m.on && m.name) rows.push({ type: "milestone", cat: m.cat || "认知", name: m.name, note: t("{src}时医生看到的", { src: t(X.src) }) });
   }
@@ -272,7 +280,7 @@ document.addEventListener("click", async ev => {
     case "read": await aiRead(); return;
     case "manual": X.read = true; break;
     case "src": X.src = b.dataset.v; break;
-    case "add-vax": X.vaccines.push({ on: true, name: "", dose: "", site: "" }); break;
+    case "add-vax": X.vaccines.push({ on: true, name: "", day: "", dose: "", site: "" }); break;
     case "add-med": X.meds.push({ on: true, cat: "维生素D", name: "", dose: "" }); break;
     case "add-ms": X.milestones.push({ on: true, cat: "大运动", name: "" }); break;
     case "save": await save(); return;

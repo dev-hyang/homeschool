@@ -1143,6 +1143,7 @@ p.ql-night{display:block}
 .ix-cells{flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:8px}
 .ix-cells input,.ix-cells select{box-sizing:border-box;flex:1 1 140px;min-width:0;border:1px solid var(--line);background:var(--field);border-radius:var(--radius-sm);padding:9px 10px;font-size:16px;min-height:44px;color:var(--ink)}
 .ix-cells input[data-ixk="name"]{flex-basis:100%}
+.ix-cells .ix-note{flex-basis:100%;margin:0}
 .pill.warn{background:var(--honey-soft);color:var(--ink);font-weight:600}
 /* 成长 · AI 身心灵分析（js/growth-review.js）：可折叠；范围切换 → 总结 → 最值得加强的 → 身体 / 心理情绪 / 属灵 / 学习（宽时两列） */
 .gr-rv{margin:0 0 14px}

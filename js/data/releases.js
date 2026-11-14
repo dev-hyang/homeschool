@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-14.1", title: { zh: "修好：拍疫苗本可以一次录入很多针", en: "Fixed: scan a whole vaccine record at once" }, items: [
+    { k: "fix", zh: "拍疫苗本 / 接种记录表，AI 会把表里每一针都读出来，每针用自己的接种日期", en: "Scanning a vaccine record table now reads every dose, each with its own date" },
+    { k: "better", zh: "已经记过的针默认不勾，免得记重；每针的日期都可以改", en: "Shots you already logged are unchecked so nothing is doubled; each date can be edited" }
+  ] },
   { v: "2026-11-12.2", title: { zh: "问咩咩咩可以带照片和文件", en: "Ask with photos and files" }, items: [
     { k: "new", zh: "提问框下面可以拍照、选多张图片或 PDF 一起问，每张都能删", en: "Add several photos or PDFs under the question box; remove any of them" },
     { k: "better", zh: "体检录入：文字框和按钮之间留出距离", en: "Checkup logging: more space between the text box and the buttons" }
