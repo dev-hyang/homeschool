@@ -1310,3 +1310,12 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .vt-tbl th{font-weight:600;color:var(--muted)}
 /* 手机上图缩得比较小：刻度和百分位字放大，缩完还在 11px 左右 */
 @media (max-width:640px){.tline .ch-tick{font-size:11.5px}.tline .ch-val{font-size:11.5px}}
+/* 基本体征：在不在正常范围的小标签、参考范围一行、页脚 */
+.vt-flag{display:inline-block;font-size:12px;font-weight:600;line-height:1.4;padding:1px 8px;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.vt-flag.ok{background:color-mix(in srgb,var(--sage) 16%,transparent);color:var(--ink)}
+.vt-flag.bad{background:color-mix(in srgb,var(--rose) 18%,transparent);color:var(--ink)}
+.vt-ref{margin:2px 0 6px;line-height:1.5}
+.vt-foot{margin:8px 2px 0}
+/* 手机上数据表去掉「来源」一列，不出横向滚动 */
+@media (max-width:560px){.vt-src{display:none}.vt-tbl th,.vt-tbl td{padding:6px 6px}}
+.vt-grid .vt-card.panel{margin:0}

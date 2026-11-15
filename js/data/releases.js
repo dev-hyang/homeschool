@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-14.4", title: { zh: "基本体征：对照同龄正常范围，随时问 AI", en: "Vital signs: normal ranges by age, ask AI anytime" }, items: [
+    { k: "better", zh: "数据表多了「年龄」一列；手机上表格不再横向滚动", en: "Data tables show the age at each measurement; no sideways scrolling on phones" },
+    { k: "new", zh: "心率、血压图上标出这个年龄的正常范围，超出的点画成红圈；BMI 显示健康体重 / 超重等", en: "Pulse and blood pressure charts show the normal range for the child's age; points outside it are circled in red; BMI shows healthy / overweight etc." },
+    { k: "new", zh: "「问 AI 这些体征」：带上各项数和同龄参考范围，直接去咩咩咩问", en: "\"Ask AI about these\" opens the AI page with the numbers and age ranges attached" }
+  ] },
   { v: "2026-11-14.3", title: { zh: "身高体重改成「基本体征」，每项都有走势线", en: "Height & weight is now \"Vital signs\" with a trend line for each" }, items: [
     { k: "better", zh: "身高、体重的走势改成折线图，按真实日期排、标出年份和百分位（P62）", en: "Height and weight trends are line charts on real dates, with years and percentiles (P62)" },
     { k: "new", zh: "头围、BMI、血压、心率有记录就各有一张走势图", en: "Head size, BMI, blood pressure and pulse each get a trend chart once recorded" },
