@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-14.6", title: { zh: "修复：今天页打不开", en: "Fix: Today page failed to load" }, items: [
+    { k: "fix", zh: "上一版的一个小错误让页面打不开，已修好", en: "A small mistake in the last version stopped the page from loading; fixed" }
+  ] },
   { v: "2026-11-14.5", title: { zh: "睡眠卡：几点入睡、睡了多久、要不要叫醒", en: "Sleep card: when they fell asleep, how long, when to wake" }, items: [
     { k: "new", zh: "孩子在睡时，睡眠卡显示几点入睡、已经睡了多久（自己会走）", en: "While a child sleeps, the sleep card shows when they fell asleep and how long it has been (updates by itself)" },
     { k: "new", zh: "按年龄提示要不要叫醒：午睡建议几点前叫醒，睡太久或太晚了提醒；早上睡够了也会提示", en: "Age-based wake hints: when to end a nap, a nudge if it runs long or late, and in the morning once night sleep is enough" },
