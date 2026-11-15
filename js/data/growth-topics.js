@@ -3,12 +3,12 @@
    每个主题页都是同一个版式：时间范围 → 记一笔 → 指标卡 → 走势图 → 记录列表（身体与健康几页按各自的内容，但结构一样）。
    metrics = growth.js 里 METRICS 的键；types = 记一笔格子的 id（behavior = 小月亮 / 冲突管理记的情绪行为）；add = 这一页能直接记的格子。 */
 const SECTIONS = [
-  { id: "body", icon: "🩺", label: "身体与健康", desc: "身高体重、体检、疫苗、化验、病史" },
+  { id: "body", icon: "🩺", label: "身体与健康", desc: "基本体征、体检、疫苗、化验、病史" },
   { id: "mind", icon: "🌱", label: "习惯与情绪", desc: "睡眠、吃饭、户外与屏幕、情绪、陪伴" },
   { id: "learn", icon: "📚", label: "学习与培训", desc: "如厕和夜间训练、阅读与语言、课外班、课程和经文" }
 ];
 const TOPICS = {
-  "gr-size":    { sec: "body", icon: "📏", label: "身高体重" },
+  "gr-size":    { sec: "body", icon: "📏", label: "基本体征" },
   "gr-visits":  { sec: "body", icon: "🩺", label: "体检与就诊" },
   "gr-vax":     { sec: "body", icon: "💉", label: "疫苗" },
   "gr-labs":    { sec: "body", icon: "🧪", label: "化验" },

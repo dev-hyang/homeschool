@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-14.3", title: { zh: "身高体重改成「基本体征」，每项都有走势线", en: "Height & weight is now \"Vital signs\" with a trend line for each" }, items: [
+    { k: "better", zh: "身高、体重的走势改成折线图，按真实日期排、标出年份和百分位（P62）", en: "Height and weight trends are line charts on real dates, with years and percentiles (P62)" },
+    { k: "new", zh: "头围、BMI、血压、心率有记录就各有一张走势图", en: "Head size, BMI, blood pressure and pulse each get a trend chart once recorded" },
+    { k: "better", zh: "每项可以点开 / 收起；图下面有数据表，默认收起", en: "Tap to open or fold each one; a data table under each chart, folded by default" }
+  ] },
   { v: "2026-11-14.2", title: { zh: "体检单多读 BMI、血压、百分位；重扫不重复", en: "Checkups: BMI, blood pressure, percentiles; no repeats on re-scan" }, items: [
     { k: "new", zh: "两岁以后的体检单：AI 会一起读出 BMI、血压、心率和体重 / 身高 / BMI 的同龄百分位", en: "For checkups after age 2, AI also reads BMI, blood pressure, pulse and the age percentiles" },
     { k: "better", zh: "同一天的单子再扫一次，会更新原来那条记录、补上新的数，不会多记一条", en: "Re-scanning a sheet from the same day updates that record with the new numbers instead of adding another" },

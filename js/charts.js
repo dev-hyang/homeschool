@@ -60,4 +60,31 @@ function curve(curve, marks, ticks, { title = "" } = {}){
   return `<figure class="lib-chart curve"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">${grid}<path d="${path}" fill="none" stroke="var(--slate)" stroke-width="2"/>${dots}${xt}</svg></figure>`;
 }
 
-export { donut, stack, bars, curve };
+/** 时间走势折线（身高、体重、BMI、血压、心率…）：横轴按真实日期排（体检隔几个月、隔一年都看得出快慢），刻度带年份；
+ *  纵轴只取数据的范围、上下留一点白（不从 0 画起，长了 0.4 kg 也看得见）。
+ *  lines: [{ name, color, pts: [{ ts, v, tag }] }]；tag（比如百分位 P62）写在点上方，点多时只写最后一个。几条线时左上角有图例。 */
+function timeLine(lines, { title = "", dec = 1 } = {}){
+  const W = 300, H = 160, L = 34, R = 14, T = lines.length > 1 ? 24 : 16, B = 22, DAY = 864e5;
+  const all = lines.flatMap(l => l.pts); if (!all.length) return "";
+  let t0 = Math.min(...all.map(p => p.ts)), t1 = Math.max(...all.map(p => p.ts));
+  if (t1 - t0 < 20 * DAY) { t0 -= 15 * DAY; t1 += 15 * DAY; }   // 只有一两次：两边各留半个月，点不贴边
+  let lo = Math.min(...all.map(p => p.v)), hi = Math.max(...all.map(p => p.v));
+  const pad = (hi - lo) * 0.18 || Math.max(Math.abs(hi) * 0.05, 1); lo -= pad; hi += pad;
+  const X = ts => L + (ts - t0) / (t1 - t0) * (W - L - R), Y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+  const r = v => Math.round(v * 10 ** dec) / 10 ** dec;
+  const grid = [0.1, 0.5, 0.9].map(f => lo + (hi - lo) * f).map(v => `<line x1="${L}" x2="${W - R}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)"/><text x="${L - 4}" y="${(Y(v) + 3).toFixed(1)}" text-anchor="end" class="ch-tick">${r(v)}</text>`).join("");
+  const pad2 = n => String(n).padStart(2, "0"), span = t1 - t0, short = span < 100 * DAY;
+  const fmt = ts => { const d = new Date(ts); return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}${short ? "/" + pad2(d.getDate()) : ""}`; };
+  const n = short ? 3 : 4, seen = new Set();
+  const xt = Array.from({ length: n }, (_, i) => t0 + span * i / (n - 1)).map((ts, i) => { const s = fmt(ts); if (seen.has(s)) return ""; seen.add(s);
+    return `<text x="${X(ts).toFixed(1)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}" class="ch-tick">${s}</text>`; }).join("");
+  const body = lines.map(l => { const p = [...l.pts].sort((a, b) => a.ts - b.ts); if (!p.length) return "";
+    const path = p.map((q, i) => `${i ? "L" : "M"}${X(q.ts).toFixed(1)} ${Y(q.v).toFixed(1)}`).join(" ");
+    const dots = p.map((q, i) => `<circle cx="${X(q.ts).toFixed(1)}" cy="${Y(q.v).toFixed(1)}" r="3.5" fill="${l.color}" stroke="var(--surface)" stroke-width="1.2"><title>${esc(`${fmt(q.ts)}${short ? "" : "/" + pad2(new Date(q.ts).getDate())} · ${l.name ? l.name + " " : ""}${q.v}${q.tag ? " · " + q.tag : ""}`)}</title></circle>
+      ${q.tag && (p.length <= 8 || i === p.length - 1) ? `<text x="${X(q.ts).toFixed(1)}" y="${(Y(q.v) - 7).toFixed(1)}" text-anchor="middle" class="ch-val">${esc(q.tag)}</text>` : ""}`).join("");
+    return `<path d="${path}" fill="none" stroke="${l.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}`; }).join("");
+  const legend = lines.length > 1 ? lines.map((l, i) => `<line x1="${L + i * 70}" x2="${L + i * 70 + 14}" y1="8" y2="8" stroke="${l.color}" stroke-width="2.5"/><text x="${L + i * 70 + 18}" y="11" class="ch-tick">${esc(l.name)}</text>`).join("") : "";
+  return `<figure class="lib-chart tline"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}">${legend}${grid}${body}${xt}</svg></figure>`;
+}
+
+export { donut, stack, bars, curve, timeLine };

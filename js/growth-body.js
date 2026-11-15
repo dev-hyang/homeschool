@@ -8,7 +8,7 @@ import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { EXTRA, EXTRA_KEYS, INTAKE_SYSTEM, VAX_NAMES, extraParts, mergeInto, parseIntake, sameEntry, sameVisit } from "./intake-lib.js";
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
-import { bars } from "./charts.js";
+import { timeLine } from "./charts.js";
 import { render } from "./views.js";
 
 /* ============ 成长 · 🩺 身体与健康（2026-11-11） ============
@@ -91,18 +91,45 @@ function bodyTopicHTML(id){
   if (!ensure()) return `<p class="small muted" role="status">${H.err ? t("读取失败：{m}", { m: esc(H.err.slice(0, 80)) }) : t("正在读取…")}</p>`;
   return ({ "gr-size": sizePage, "gr-visits": visitsPage, "gr-vax": vaxPage, "gr-labs": labsPage, "gr-history": historyPage }[id] || (() => ""))();
 }
-let sizeMetric = "weight";
-function sizePage(){
-  const rows = mine("baby").filter(e => e.weight || e.length), w = rows.filter(e => e.weight), l = rows.filter(e => e.length);
-  const delta = (list, k) => (list.length > 1 ? `${t("上次")} ${show(k, list[1][k])}` : list.length ? day(list[0].ts) : t("还没有"));
-  const tiles = `<div class="gr-tiles">${statTile(t("体重"), w.length ? esc(show("weight", w[0].weight)) : "–", delta(w, "weight"), "var(--sky)", 'data-act="gr-size-m" data-v="weight"', sizeMetric === "weight")}
-    ${statTile(t("身高"), l.length ? esc(show("length", l[0].length)) : "–", delta(l, "length"), "var(--sage)", 'data-act="gr-size-m" data-v="length"', sizeMetric === "length")}</div>`;
-  const series = (sizeMetric === "weight" ? w : l).slice(0, 12).reverse();
-  const chart = series.length > 1 ? `<div class="panel gr-chart"><div class="gr-ch-h"><b>${t(sizeMetric === "weight" ? "体重" : "身高")}</b> <span class="small muted">${unit(sizeMetric)} · ${t("最近 {n} 次", { n: series.length })}</span></div>
-    ${bars(series.map(e => ({ label: dayKey(e.ts).slice(5).replace("-", "/"), value: Math.round(toDisp(sizeMetric, e[sizeMetric]) * 10) / 10, color: sizeMetric === "weight" ? "var(--sky)" : "var(--sage)" })), { title: t("走势") })}</div>` : "";
-  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量身高体重")}</button>${aiBtn(false)}`)}${tiles}${chart}
-    ${recs("记录", rows.map(e => rec("📏", [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · "), day(e.ts), [t(e.src && e.src !== "自己记录" ? e.src : "在家量"), ...extras(e)].join(" · "), e.note)), `${EDIT_IN_BL()} ${t("生长百分位以儿科医生的生长曲线为准。")}`)}`;
+/* ---- 基本体征：每项一张可以展开 / 收起的卡（卡头 = 最近一次的数），里面是时间走势线 + 默认收起的数据表 ----
+   身高、体重总在；头围、BMI、血压、心率有记录才出现。百分位（体检单上读到的 P62 之类）写在点上方、表里一列。
+   展开了哪几张记在这里（不存），后台刷新重画时不会被收起。 */
+const VT = [
+  { k: "weight", label: "体重", color: "var(--sky)", pct: "wpct", dim: "weight" },
+  { k: "length", label: "身高", color: "var(--sage)", pct: "lpct", dim: "length" },
+  { k: "head", label: "头围", color: "var(--honey)", pct: "headpct", dim: "head", opt: true },
+  { k: "bmi", label: "BMI", color: "var(--slate)", pct: "bmipct", opt: true },
+  { k: "bp", label: "血压", unit: "mmHg", opt: true, dec: 0, lines: [["bp_sys", "高压", "var(--rose)"], ["bp_dia", "低压", "var(--sky)"]] },
+  { k: "pulse", label: "心率", unit: "次/分", color: "var(--rose)", opt: true, dec: 0 }
+];
+const vtOpen = new Set(["weight", "length"]);
+const vtVal = (m, k, v) => (m.dim ? Math.round(toDisp(m.dim, v) * 10) / 10 : +v);
+const vtUnit = m => (m.dim ? unit(m.dim) : m.unit ? t(m.unit) : "");
+const hasV = (e, k) => e[k] != null && e[k] !== "";
+function vtCard(m, rows){
+  const keys = m.lines ? m.lines.map(x => x[0]) : [m.k];
+  const list = rows.filter(e => keys.some(k => hasV(e, k)));   // 新的在前
+  if (m.opt && !list.length) return "";
+  const u = vtUnit(m), last = list[0], prev = list[1];
+  const valTxt = e => (m.lines ? m.lines.map(([k]) => (hasV(e, k) ? vtVal(m, k, e[k]) : "–")).join("/") : String(vtVal(m, m.k, e[m.k])));
+  const pctTxt = e => (m.pct && hasV(e, m.pct) ? `P${e[m.pct]}` : "");
+  const diff = !m.lines && last && prev ? Math.round((vtVal(m, m.k, last[m.k]) - vtVal(m, m.k, prev[m.k])) * 10) / 10 : null;
+  const head = last ? `<span class="vt-v num">${esc(valTxt(last))}</span> <span class="small muted">${esc(u)}${pctTxt(last) ? " · " + pctTxt(last) : ""} · ${day(last.ts)}${diff != null ? ` · ${t("比上次")} ${diff > 0 ? "+" : ""}${diff}` : ""}</span>` : `<span class="small muted">${t("还没有记录")}</span>`;
+  const lines = (m.lines || [[m.k, "", m.color]]).map(([k, name, color]) => ({ name: t(name), color, pts: list.filter(e => hasV(e, k)).map(e => ({ ts: e.ts, v: vtVal(m, k, e[k]), tag: k === m.k ? pctTxt(e) : "" })) }));
+  const chart = list.length ? timeLine(lines, { title: t("{x} 走势", { x: t(m.label) }), dec: m.dec ?? 1 }) : `<p class="small muted">${t("还没有记录。点上面的「量一次身高体重」，或者录入一次体检。")}</p>`;
+  const anyPct = m.pct && list.some(e => hasV(e, m.pct));
+  const table = list.length ? `<details class="vt-tbl" data-vt="tbl:${m.k}" ${vtOpen.has("tbl:" + m.k) ? "open" : ""}><summary>${t("数据表")} <span class="small muted">${t("{n} 条", { n: list.length })}</span></summary>
+    <div class="scroll-x"><table><thead><tr><th>${t("日期")}</th><th>${m.lines ? `${t("高压")}/${t("低压")}` : t(m.label)}${u ? ` (${esc(u)})` : ""}</th>${anyPct ? `<th>${t("百分位")}</th>` : ""}<th>${t("来源")}</th></tr></thead>
+    <tbody>${list.map(e => `<tr><td class="num">${day(e.ts)}</td><td class="num">${esc(valTxt(e))}</td>${anyPct ? `<td class="num">${esc(pctTxt(e) || "–")}</td>` : ""}<td>${esc(t(e.src && e.src !== "自己记录" ? e.src : "在家量"))}</td></tr>`).join("")}</tbody></table></div></details>` : "";
+  return `<details class="panel vt-card" data-vt="${m.k}" style="--c:${m.color || m.lines[0][2]}" ${vtOpen.has(m.k) ? "open" : ""}><summary><b>${t(m.label)}</b> ${head}</summary><div class="vt-body">${chart}${table}</div></details>`;
 }
+function sizePage(){
+  const rows = mine("baby").filter(e => ["weight", "length", "head", ...EXTRA_KEYS].some(k => hasV(e, k)));
+  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量身高体重")}</button>${aiBtn(false)}`)}
+    <div class="vt-grid">${VT.map(m => vtCard(m, rows)).join("")}</div>
+    ${recs("记录", rows.map(e => rec("📏", [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · ") || t("体征"), day(e.ts), [t(e.src && e.src !== "自己记录" ? e.src : "在家量"), ...extras(e)].join(" · "), e.note)), `${EDIT_IN_BL()} ${t("生长百分位以儿科医生的生长曲线为准。")}`)}`;
+}
+document.addEventListener("toggle", ev => { const d = ev.target; if (d && d.matches && d.matches("details[data-vt]")) { if (d.open) vtOpen.add(d.dataset.vt); else vtOpen.delete(d.dataset.vt); } }, true);
 /** 就诊：小月亮里来源是体检 / 看病的「宝宝健康」+ 牧羊人里给孩子记的就诊 */
 function visitsAll(){
   const a = mine("baby").filter(e => e.src && e.src !== "自己记录").map(e => ({ ts: e.ts, annual: e.src === "儿科体检", kind: t(e.src), where: e.clinic || "", text: e.note || "", m: [e.weight && show("weight", e.weight), e.length && show("length", e.length), e.temp && show("temp", e.temp), ...extras(e)].filter(Boolean).join(" · ") }));
@@ -328,7 +355,6 @@ function bodySummary(){
 }
 function bodyAct(act, btn){
   if (act === "gr-profile") { openProfile(); return true; }
-  if (act === "gr-size-m") { sizeMetric = btn.dataset.v === "length" ? "length" : "weight"; render(); return true; }
   if (act === "gr-body-reload") { loadBody(true); return true; }
   return false;
 }
