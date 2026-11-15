@@ -89,7 +89,7 @@ document.addEventListener("animationend", e => {
   const n = el.children.length; sliderGo(((S.heroSlide || 0) + 1) % n);
 }, true);
 document.addEventListener("pointerdown", e => { const el = e.target.closest?.("#heroSlider"); if (el) { el._down = true; el.closest(".hero-wrap")?.classList.add("is-hold"); } }, true);
-const heroUp = () => { const el = document.getElementById("heroSlider"); if (!el || !el._down) return; el._down = false; el.closest(".hero-wrap")?.classList.remove("is-hold"); markDash(S.heroSlide || 0); if (el.contains(document.activeElement)) document.activeElement.blur(); };
+const heroUp = () => { const el = document.getElementById("heroSlider"); if (!el || !el._down) return; el._down = false; el.closest(".hero-wrap")?.classList.remove("is-hold"); markDash(S.heroSlide || 0); const a = document.activeElement; if (el.contains(a) && !a.matches("select")) a.blur();   // 下拉框（选歌单 / 选歌 / 流程）不能失焦：点开它的那一下也会走到这里，失焦会把刚弹出的选项关掉 };
 document.addEventListener("pointerup", heroUp, true); document.addEventListener("pointercancel", heroUp, true);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) markDash(S.heroSlide || 0); });
 

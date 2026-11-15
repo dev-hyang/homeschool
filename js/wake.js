@@ -7,6 +7,7 @@ import { cfg, kidName, kids, songBlob, songs } from "./bedtime.js";
 import { closeSheet, head, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { isNap, sleepRow } from "./sleep.js";
+import { wakeAdvice } from "./sleep-advice.js";
 
 /* ============ 睡前 → 小月亮睡眠记录 · 唤醒 ============
    睡前流程「记下今晚」之后，给每个参加的孩子在小月亮的 entries 里写一条「睡眠」（type = sleep，入睡 = 流程结束的时间，
@@ -101,7 +102,10 @@ function childSleepHTML(cid){
   const x = status().find(s => s.child === cid && s.open); if (!x) return "";
   const ms = music.song, many = wakeList().length > 1;
   const mus = ms ? `<div class="wk-line small wk-now"><span aria-hidden="true">♪</span> <span class="wk-title">${esc(ms.title)}</span>${many ? `<button class="chip" data-act="wk-prev" aria-label="${t("上一首")}">⏮</button><button class="chip" data-act="wk-next" aria-label="${t("下一首")}">⏭</button>` : ""}<button class="chip" data-act="wk-stop">${t("停止")}</button></div>` : "";
-  return `<div class="wk-solo"><button class="btn sm" data-act="wk-music">${ms ? "■" : "♪"} ${t("音乐")}</button><button class="btn primary sm" data-act="wk-wake" data-id="${esc(x.row.id)}">${t("唤醒")}</button><button class="btn sm" data-act="wk-edit" data-id="${esc(x.row.id)}">${t("改")}</button></div>${mus}`;
+  // 几点开始睡、已睡多久（每 30 秒原地更新），下面一行：要不要叫醒（js/sleep-advice.js，和小月亮同一份）
+  const r = x.row, a = wakeAdvice({ start: r.ts, months: ageMonths(cid, r.ts), nap: typeof r.data.nap === "boolean" ? r.data.nap : undefined }, t);
+  const info = `<div class="wk-info"><div class="wk-since"><span aria-hidden="true">😴</span> ${t("{t} 入睡", { t: hm(r.ts) })} · ${t("已睡")} <b data-wk-since="${r.ts}">${dur(Date.now() - r.ts)}</b></div><div class="wk-adv lv-${a.level}">${a.level === "ok" ? "" : `<span aria-hidden="true">⏰</span> `}${esc(a.text)}</div></div>`;
+  return `${info}<div class="wk-solo"><button class="btn sm" data-act="wk-music">${ms ? "■" : "♪"} ${t("音乐")}</button><button class="btn primary sm" data-act="wk-wake" data-id="${esc(x.row.id)}">${t("唤醒")}</button><button class="btn sm" data-act="wk-edit" data-id="${esc(x.row.id)}">${t("改")}</button></div>${mus}`;
 }
 const isAsleep = cid => sleepingKids().includes(cid);
 // 「已睡 x 分钟」每分钟原地更新（不整页重画，免得打断正在填的东西）

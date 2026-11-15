@@ -1035,7 +1035,7 @@ p.ql-night{display:block}
 .hero-dash.is-run i{width:0;animation:hdprog 10s linear forwards}
 .hero-dashes.is-off .hero-dash.is-run i{animation:none;width:100%}
 @keyframes hdprog{from{width:0}to{width:100%}}
-.hero-wrap.is-hold .hero-dash.is-run i,.hero-wrap:has(:focus-visible) .hero-dash.is-run i,.hero-wrap:has(.hero-gear[open]) .hero-dash.is-run i{animation-play-state:paused}
+.hero-wrap.is-hold .hero-dash.is-run i,.hero-wrap:has(:focus-visible) .hero-dash.is-run i,.hero-wrap:has(select:focus) .hero-dash.is-run i,.hero-wrap:has(.hero-gear[open]) .hero-dash.is-run i{animation-play-state:paused}
 @media (hover:hover) and (pointer:fine){.hero-slider:hover ~ .hero-ctrl .hero-dash.is-run i{animation-play-state:paused}}
 @media (prefers-reduced-motion:reduce){.hero-dash.is-run i{animation:none;width:100%}}
 .hero-dash:focus-visible{outline:2px solid var(--slate);outline-offset:2px;border-radius:4px}
@@ -1319,3 +1319,10 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 /* 手机上数据表去掉「来源」一列，不出横向滚动 */
 @media (max-width:560px){.vt-src{display:none}.vt-tbl th,.vt-tbl td{padding:6px 6px}}
 .vt-grid .vt-card.panel{margin:0}
+/* ── 11-14 睡眠卡：几点入睡、已睡多久、要不要叫醒（js/sleep-advice.js） ── */
+.sc-ctl .wk-info{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;margin-bottom:4px}
+.sc-ctl .wk-since{font-size:14px}
+.sc-ctl .wk-since b{font-variant-numeric:tabular-nums}
+.sc-ctl .wk-adv{font-size:12.5px;line-height:1.4;color:var(--muted)}
+.sc-ctl .wk-adv.lv-soon{color:var(--ink);padding:2px 10px;border-radius:999px;border:1px solid var(--line)}
+.sc-ctl .wk-adv.lv-wake{color:#1D2733;background:#FFE7A3;padding:3px 12px;border-radius:999px;font-weight:700}

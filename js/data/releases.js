@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-14.5", title: { zh: "睡眠卡：几点入睡、睡了多久、要不要叫醒", en: "Sleep card: when they fell asleep, how long, when to wake" }, items: [
+    { k: "new", zh: "孩子在睡时，睡眠卡显示几点入睡、已经睡了多久（自己会走）", en: "While a child sleeps, the sleep card shows when they fell asleep and how long it has been (updates by itself)" },
+    { k: "new", zh: "按年龄提示要不要叫醒：午睡建议几点前叫醒，睡太久或太晚了提醒；早上睡够了也会提示", en: "Age-based wake hints: when to end a nap, a nudge if it runs long or late, and in the morning once night sleep is enough" },
+    { k: "fix", zh: "音乐卡的选歌单、选歌下拉框点开就关的问题修好了", en: "The playlist and song dropdowns on the music card no longer close right after opening" }
+  ] },
   { v: "2026-11-14.4", title: { zh: "基本体征：对照同龄正常范围，随时问 AI", en: "Vital signs: normal ranges by age, ask AI anytime" }, items: [
     { k: "better", zh: "数据表多了「年龄」一列；手机上表格不再横向滚动", en: "Data tables show the age at each measurement; no sideways scrolling on phones" },
     { k: "new", zh: "心率、血压图上标出这个年龄的正常范围，超出的点画成红圈；BMI 显示健康体重 / 超重等", en: "Pulse and blood pressure charts show the normal range for the child's age; points outside it are circled in red; BMI shows healthy / overweight etc." },
