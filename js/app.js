@@ -13,7 +13,7 @@ import { initProviders } from "./backup.js";
 import { APP_VERSION } from "./core/config.js";
 import { S } from "./core/state.js";
 import { refreshIfNewDay } from "./hs.js";
-import { render } from "./views.js";
+import { render, restoreRoute } from "./views.js";
 import { initReleases } from "./releases-ui.js";
 import { RELEASES } from "./data/releases.js";
 
@@ -38,6 +38,7 @@ if (!(await healStaleModules())) {
   // 筛选条（js/filterbar.js）：手机上收成「搜索 + 筛选 (n)」一行，滑动时固定在路径条下面（爱家小助手 shared/compact-filters.js 同一份）
   initCompactFilters({ root: document.getElementById("main"), ui: () => ({ "zh-TW": "tw", en: "en" }[locale()] || "zh") });
   watchStick({ path: ".crumb" });
+  restoreRoute();    // 网址里记着的页（#/gr-size）：刷新后还停在这一页（js/views.js）
   render();          // 先画出"连接中"的壳
   initSupabase();    // 加载 supabase-js，登录状态回调里再渲染一次
   initProviders();   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌（js/backup.js）

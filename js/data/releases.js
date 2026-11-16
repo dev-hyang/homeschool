@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.1", title: { zh: "刷新后还停在原来那一页", en: "Refresh keeps you on the same page" }, items: [
+    { k: "better", zh: "比如在 成长 → 基本体征 刷新，还是回到基本体征，不再跳回今天；网址也能收藏或发给家人", en: "Refreshing on, say, Growth → Vital signs brings you back there instead of Today; the link can be bookmarked or shared" }
+  ] },
   { v: "2026-11-15.5", title: { zh: "AI 解读和小月亮通用", en: "AI explanations shared with Little Moon" }, items: [
     { k: "better", zh: "体检、就诊的 AI 解读和小月亮用同一套：在哪边保留的，两边都能看到、重新分析或清除", en: "Checkup and visit explanations work the same in Little Moon: one kept in either app shows in both and can be redone or cleared there" }
   ] },

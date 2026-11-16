@@ -54,6 +54,26 @@ const CORE_TABS = new Set(["course", "growth", "resources", "calendar", "me", "f
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
   "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub, "me-releases": viewReleases,
   bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, ...Object.fromEntries(TOPIC_IDS.map(id => [id, () => topicView(id)()])), "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
+/* 网址记住当前页（#/gr-size，子页的来路带在 ?from= 里）：刷新、收藏、发给家人后还停在这一页。
+   只用 replaceState，不往浏览器历史里加条目（返回仍由「‹ 返回」/ 面包屑管，弹出层、打印页的历史条目不受影响）。
+   登录回跳时 # 后面是 Supabase 的令牌（access_token=…），那时不动，留给 supabase-js 读走。 */
+function readRoute(hash = location.hash){
+  const m = /^#\/([\w-]+)(?:\?from=([\w-]+))?$/.exec(hash);
+  return m && VIEWS[m[1]] ? { tab: m[1], from: m[2] && VIEWS[m[2]] ? m[2] : null } : null;
+}
+let routeHash = null;   // 上一次写进 / 读出网址的 #；网址里的 # 和它不一样 = 是外面改的（手动输入、收藏、浏览器后退），以网址为准
+function restoreRoute(){ routeHash = location.hash; const r = readRoute(); if (!r) return false; S.tab = r.tab; if (r.from) (S.from ||= {})[r.tab] = r.from; return true; }
+function syncRoute(){
+  // 表单 / 打印页开着时，最上面那条历史是它们自己压的，关掉时会 history.back()：这时不写，等退回去以后那次重画再写，免得退回去又被当成「外面改了网址」
+  const hs = history.state;
+  if (S.printView || (hs && (hs.sheet || hs.print)) || (location.hash.includes("=") && !location.hash.startsWith("#/"))) return;
+  const f = S.from && S.from[S.tab], h = S.tab === "today" ? "" : `#/${S.tab}${f ? "?from=" + f : ""}`;
+  if (location.hash !== h) try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) {}
+  routeHash = location.hash;
+}
+// 改了网址里的 #：先于其它重画跳到那一页（有的浏览器先派发 popstate，弹出层的关闭逻辑会抢先重画一次，所以在 render 开头也查一遍）
+function adoptRoute(){ if (routeHash === null || location.hash === routeHash || !readRoute()) return false; S.printView = null; restoreRoute(); return true; }
+window.addEventListener("hashchange", () => { if (adoptRoute()) { render(); window.scrollTo(0, 0); } });
 function renderStatus(){
   const st = { loading: ["", t("连接中")], offline: ["", t("云端不可用")], signedout: ["", t("未登录")], nofamily: ["", t("还没加入家庭")], pending: ["", t("等家主批准")], ready: ["ok", t("家庭 · {n} 人", { n: Object.keys(S.members).length || 1 })] }[S.cloud];
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
@@ -103,6 +123,7 @@ function toggleKids(open = $("#kids").hidden){
 }
 let drawnView = "";   // 上一次画的是哪一页（换页就不保留旧页的输入）
 function render(){
+  if (adoptRoute()) window.scrollTo(0, 0);
   renderStatus();
   // 打印视图：整页就是那张纸（头部、底栏由 body.printview 收起）
   document.body.classList.toggle("printview", !!S.printView);
@@ -114,6 +135,7 @@ function render(){
   const v = VIEWS[S.tab] || viewToday;
   // 法规和“我的”不需要登录也能看；其余要先进家庭。子页顶上有返回所属页的按钮
   trackNav(S.tab);
+  syncRoute();
   // 咩咩咩不登录也能问，只是不带学习情况；睡前安然在这台设备存过一份配置后，没连上云端也能开（播放页离线可用）
   // 大原则：今天页是完整的一张卡（在 today.js 里），其余几层顶上一行小字，点开是同一份
   const core = CORE_TABS.has(S.tab) ? principleHTML("mini") : "", back = crumbHTML(S.tab) + core;
@@ -142,4 +164,4 @@ function gateHTML(){
   return "";
 }
 
-export { renderStatus, toggleKids, render, refreshSettingsIfOpen, crumbHTML, backTo };
+export { renderStatus, toggleKids, render, refreshSettingsIfOpen, crumbHTML, backTo, restoreRoute };
