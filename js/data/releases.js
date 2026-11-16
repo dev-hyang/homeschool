@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.3", title: { zh: "化验页的录入链接直接到这个孩子", en: "Labs page entry link goes straight to this child" }, items: [
+    { k: "better", zh: "「在牧羊人里录入化验」现在直接打开牧羊人里这个孩子的录入化验，不再先到牧羊人首页（爸爸）", en: "\"Enter labs in Shepherd\" now opens that child's lab entry in Shepherd instead of the Shepherd home page" }
+  ] },
   { v: "2026-11-16.2", title: { zh: "修复：在身体与健康页刷新后一直「正在读取」", en: "Fix: Health pages stuck on \"Loading\" after a refresh" }, items: [
     { k: "fix", zh: "在 基本体征、体检与就诊、疫苗、化验、病史 这几页刷新，读完数据会马上显示出来", en: "Refreshing on Vital signs, Visits, Vaccines, Labs or History now shows the records as soon as they load" }
   ] },
