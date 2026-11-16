@@ -21,9 +21,9 @@ import { LABS, LAB_GROUPS } from "./data/health-ref.js";   // 化验项目、套
    数据不另建表，和姊妹应用共用一份：
      · 小月亮的记录（entries）：宝宝健康（体重、身高、头围、体温；来源 = 自己记录 / 儿科体检 / 看病急诊，带医院和医生总结）、疫苗接种、宝宝用药、里程碑；
      · 牧羊人的健康表（hl_*，subject = "c:" + 孩子 id）：化验（hl_labs）、牧羊人里给孩子记的就诊（hl_visits）、档案里的病史 / 过敏 / 长期用药（hl_profiles.data）。
-   页面：身高体重、体检与就诊（上次年度体检多久了）、疫苗、化验、病史 / 过敏 / 用药几张卡；
+   页面：身高体重、体检与就诊（上次年度体检多久了）、疫苗、化验、病史 * 过敏 * 用药几张卡；
    「AI 一次录入体检 / 就诊」和小月亮同一套（js/intake-lib.js 两边同一份）：拍小结或打一段话 → 核对 → 一次存成几条小月亮记录；
-   「量一次身高体重」是同一张表的手填模式（来源 = 自己记录）。病史 / 过敏 / 用药存在牧羊人的档案里，两边看到的是同一份。
+   「量一次身高体重」是同一张表的手填模式（来源 = 自己记录）。病史 * 过敏 * 用药存在牧羊人的档案里，两边看到的是同一份。
    单位跟小月亮的设置走（同一个网址，本机 xiaoyueliang.v1.units）：美制显示 lb / in / ℉，存的都是公制。 */
 const H = (S.gb ||= { key: "", loading: false, loaded: false, err: "", rows: [], hlOk: false, labs: [], visits: [], profiles: [] });
 const fid = () => S.family && S.family.id;
@@ -127,7 +127,7 @@ function labBar(x){
   return `<span class="lab-bar" aria-hidden="true"><i class="ok" style="left:${p(lo).toFixed(1)}%;width:${(p(hi) - p(lo)).toFixed(1)}%"></i><i class="at ${labFlag(x) || ""}" style="left:${p(+x.value).toFixed(1)}%"></i></span>`;
 }
 /** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
-const top = btns => `<div class="gr-top"><div class="gr-adds">${btns}</div></div>`;
+const top = (btns, cls = "") => `<div class="gr-top"><div class="gr-adds ${cls}">${btns}</div></div>`;
 const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检")}</button>`;
 const rec = (icon, title, when, meta, note) => `<div class="task"><span class="bar" style="background:var(--slate)"></span><div class="main" style="cursor:default"><span class="title">${icon} <b>${esc(title)}</b> <span class="small muted num">${esc(when)}</span></span>${meta ? `<span class="meta">${esc(meta)}</span>` : ""}${note ? `<span class="meta gr-note">${esc(note)}</span>` : ""}</div><span class="acts"></span></div>`;
 const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
@@ -211,8 +211,8 @@ function vaxPage(){
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}${aiBtn(!H.hlOk)}<a class="btn sm" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
-  if (!H.hlOk) return `${top(btn)}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
+  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}${aiBtn(!H.hlOk)}<a class="btn sm gr-wide" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
+  if (!H.hlOk) return `${top(btn, "gr-adds-lab")}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
     return `<button type="button" class="mrow lab-row" data-act="gr-lab-open" data-k="${esc(it.k)}"><span class="mi ${f ? "lab-bad" : ""}" aria-hidden="true">${f ? "!" : "✓"}</span>
@@ -220,7 +220,7 @@ function labsPage(){
       <small>${esc([labRange(it.last) && t("参考 {r}", { r: labRange(it.last) }), labDay(it.last.day), t("{n} 次", { n: it.rows.length })].filter(Boolean).join(" · "))}</small></span>${labSpark(it.rows)}<span class="mch" aria-hidden="true">›</span></button>`; };
   const sections = groups.map(([g, items]) => { const nb = items.filter(it => labFlag(it.last)).length;
     return `<section class="gr-sec"><div class="gr-sh"><h2>${esc(t(LAB_GROUPS[g]))} <span class="small muted gr-n">${t("{n} 项", { n: items.length })}${nb ? ` · ${t("{n} 项超出范围", { n: nb })}` : ""}</span></h2></div><div class="panel mlist">${items.map(item).join("")}</div></section>`; }).join("");
-  return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
+  return `${top(btn, "gr-adds-lab")}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
     ${sections || `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("还没有化验记录。点上面的「录入化验」，拍化验单让 AI 填表，或自己填。")}</p></div>`}
     <p class="small muted gr-foot">${t("点一项看走势和每次的记录，可以改或删。范围以化验单为准。")}</p>
     ${recList("labdays", "按日期", labDays().map(d => ({ ts: new Date(d.day + "T12:00:00").getTime(), icon: d.bad ? "⚠️" : "🧪", title: t("{n} 项化验", { n: d.rows.length }) + (d.bad ? ` · ${t("{n} 项超出范围", { n: d.bad })}` : ""),
@@ -277,18 +277,18 @@ const labAi = () => (((profileRow() || {}).data || {}).ai_labdays) || {};
 function historyPage(){
   const p = (profileRow() || {}).data || {}, meds = mine("bmed");
   const row = (label, v) => `<div class="gr-kv"><span class="muted">${t(label)}</span><span>${v ? esc(v) : `<span class="muted">—</span>`}</span></div>`;
-  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 / 过敏 / 用药")}</button>`)}
+  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 * 过敏 * 用药")}</button>`)}
     <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
     <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
     ${recList("meds", "维生素 / 用药", meds.map(e => ({ ts: e.ts, icon: "💧", cat: e.cat || "", title: [t(e.cat || ""), e.name].filter(Boolean).join(" · "), meta: e.dose, note: e.note, edit: `data-act="gr-b-med" data-id="${esc(e.id)}"` })),
       { subs: (cs => (cs.length > 1 ? cs.map(c => [c, t(c), x => x.cat === c]) : null))([...new Set(meds.map(e => e.cat).filter(Boolean))]), foot: EDIT_HERE() })}`;
 }
 
-/* ---- 病史 / 过敏 / 用药：存在牧羊人的档案（hl_profiles.data），两边同一份 ---- */
+/* ---- 病史 * 过敏 * 用药：存在牧羊人的档案（hl_profiles.data），两边同一份 ---- */
 function openProfile(){
   if (!H.hlOk) { toast(t("数据库还没有牧羊人的健康表（迁移 026）")); return; }
   const cur = profileRow(), d = (cur || {}).data || {};
-  openForm(`📋 ${esc(childName())} · ${t("病史 / 过敏 / 用药")}`, [
+  openForm(`📋 ${esc(childName())} · ${t("病史 * 过敏 * 用药")}`, [
     { k: "conditions", label: "病史", type: "area", ph: "哮喘、湿疹、中耳炎反复…" },
     { k: "allergies", label: "过敏", type: "area", ph: "花生、青霉素、尘螨…" },
     { k: "meds", label: "长期用药", type: "area", ph: "名称、剂量、多久一次" },

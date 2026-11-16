@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.6", title: { zh: "修复：刷新总回到同一页；化验页按钮；页面名字", en: "Fix: refresh always returning to the same page; Labs buttons; page name" }, items: [
+    { k: "fix", zh: "在某一页打开过表单后刷新，之后再换页、再刷新总是回到那一页：现在刷新后停在当前这一页", en: "After refreshing with a form open, later refreshes kept returning to the same page; now a refresh stays on the page you are on" },
+    { k: "fix", zh: "化验页顶上的按钮在手机上被挤得文字不全：现在「录入化验」「AI 录入体检」并排，「在牧羊人里录入化验」单独一行", en: "Buttons at the top of Labs were cramped on phones; now Enter labs and AI entry sit side by side and the Shepherd link has its own row" },
+    { k: "better", zh: "页面名「病史 / 过敏 / 用药」改成「病史 * 过敏 * 用药」，不再和路径里的 / 混在一起", en: "The page name \"History / allergies / medicine\" now uses * so it no longer looks like a path separator" }
+  ] },
   { v: "2026-11-16.5", title: { zh: "化验页可以直接录入整张化验表，AI 帮你填", en: "Enter a whole lab sheet right in Labs, with AI filling the table" }, items: [
     { k: "new", zh: "化验页新增「＋ 录入化验」：选日期和套餐（血脂、血常规、代谢综合…），一次填好整张表的结果、单位和参考范围，和牧羊人里的录入一样", en: "New \"+ Enter labs\" on the Labs page: pick the date and panel (lipids, blood count, metabolic…) and fill results, units and reference ranges for the whole sheet, like in Shepherd" },
     { k: "new", zh: "拍化验单或粘贴文字，AI 把表填好，你核对后保存；单子上有多个日期时先填项目最多的那天，并提示其余的怎么录", en: "Photograph a lab sheet or paste text and AI fills the table for you to check; if the sheet has several dates, the date with the most results is filled and you are told how to enter the rest" },

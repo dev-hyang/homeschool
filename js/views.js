@@ -64,8 +64,10 @@ function readRoute(hash = location.hash){
   const q = new URLSearchParams(m[2] || ""), from = q.get("from");
   return { tab: m[1], from: from && VIEWS[from] ? from : null, k: q.get("k") || "" };
 }
+/* 刷新后浏览器还留着「表单开着 / 打印页」的历史标记，但页面已经重新开始、什么都没开：清掉，不然 syncRoute 会一直以为表单还开着，再也不更新网址（刷新永远回到同一页） */
+function clearStaleMarker(){ const hs = history.state; if (hs && (hs.sheet || hs.print)) try { history.replaceState(null, "", location.href); } catch (e) {} }
 let routeHash = null;   // 上一次写进 / 读出网址的 #；网址里的 # 和它不一样 = 是外面改的（手动输入、收藏、浏览器后退），以网址为准
-function restoreRoute(){ routeHash = location.hash; const r = readRoute(); if (!r) return false; S.tab = r.tab; if (r.from) (S.from ||= {})[r.tab] = r.from; if (r.tab === "gr-lab") (S.gb ||= {}).labKey = r.k; return true; }
+function restoreRoute(){ routeHash = location.hash; clearStaleMarker(); const r = readRoute(); if (!r) return false; S.tab = r.tab; if (r.from) (S.from ||= {})[r.tab] = r.from; if (r.tab === "gr-lab") (S.gb ||= {}).labKey = r.k; return true; }
 function syncRoute(){
   // 表单 / 打印页开着时，最上面那条历史是它们自己压的，关掉时会 history.back()：这时不写，等退回去以后那次重画再写，免得退回去又被当成「外面改了网址」
   const hs = history.state;

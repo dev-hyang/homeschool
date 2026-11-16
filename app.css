@@ -1406,3 +1406,6 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .lb-hint{margin:0 0 6px}
 .lb-seg{flex-wrap:wrap}
 @media (min-width:720px){.lb-row{grid-template-columns:minmax(170px,1fr) 2.2fr;align-items:center}}
+
+/* 化验页顶上三个按钮：手机上「录入化验 / AI 录入体检」并排两个，「在牧羊人里录入化验」单独占一行，文字不被截断 */
+@media (max-width:640px){.gr-adds.gr-adds-lab{grid-template-columns:repeat(2,minmax(0,1fr))}.gr-adds-lab .gr-wide{grid-column:1/-1}}
