@@ -66,7 +66,7 @@ function drawForm(){
     if (f.type === "check") return `<div class="field"><label class="check"><input type="checkbox" data-f="${f.k}" ${v ? "checked" : ""}>${label}</label></div>`;
     if (f.type === "html") return `<div class="field">${typeof f.html === "function" ? f.html() : f.html}</div>`; // 只读说明块，不参与读取
     const list = f.list ? `<datalist id="${id}_list">${f.list.map(o => `<option value="${esc(o)}">`).join("")}</datalist>` : "";
-    return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="text" data-f="${f.k}" value="${esc(v || "")}" placeholder="${ph}" ${f.list ? `list="${id}_list"` : ""}>${list}</div>`;
+    return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="text" data-f="${f.k}" value="${esc(v || "")}" placeholder="${ph}" ${f.list ? `list="${id}_list"` : ""}${f.mode ? ` inputmode="${f.mode}"` : ""}>${list}</div>`;
   }).join("");
   const extra = fields.some(f => f.k === "ref") && fields.some(f => f.k === "text_zh") ? `<button class="btn" data-act="form-fetch">${t("按出处抓取经文")}</button>` : "";
   $("#sheetIn").innerHTML = `${head(esc(t(title)))}${html}

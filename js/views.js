@@ -22,6 +22,7 @@ import { BT_TABS, cacheReady, viewBedtime, viewCases, viewFlow, viewLogs, viewRe
 import { viewMusic } from "./music.js";
 import { viewSleep } from "./sleep.js";
 import { topicView, viewGrowth } from "./growth.js";
+import { labItemView } from "./growth-body.js";
 import { TOPICS, TOPIC_IDS } from "./data/growth-topics.js";
 
 /* ============ 渲染 ============ */
@@ -35,6 +36,7 @@ const PAGE_LABELS = { "course-units": "单元与课时", "course-scope": "年度
   bedtime: "睡前安然", sleep: "睡眠", "bt-flow": "流程", "bt-songs": "全部歌曲", "res-music": "音乐", "bt-texts": "带领词", "bt-readings": "睡前经文", "bt-logs": "记录", "bt-cases": "状况与应对" };
 // 成长的第 2 层：每个主题一页（js/data/growth-topics.js），面包屑回到成长
 for (const id of TOPIC_IDS) { PARENT[id] = "growth"; PAGE_LABELS[id] = TOPICS[id].label; }
+PARENT["gr-lab"] = "gr-labs"; PAGE_LABELS["gr-lab"] = "化验项目";   // 化验的单项页（走势 + 每次的记录），项目在网址的 ?k= 里
 const parentOf = tab => (S.from && S.from[tab]) || PARENT[tab] || null;
 const labelOf = tab => t(TAB_LABELS[tab] || PAGE_LABELS[tab] || tab);
 
@@ -53,21 +55,22 @@ function crumbHTML(tab, tail){   // tail：当前页不是页签（比如打印�
 const CORE_TABS = new Set(["course", "growth", "resources", "calendar", "me", "flows", "bedtime", "flow-conflict", "flow-emotion", "flow-trend", "ask"]);
 const VIEWS = { ask: viewAsk, today: viewToday, course: viewCourse, "course-units": viewUnits, "course-scope": viewScope, "course-goals": viewGoals, resources: viewResources, "res-ideas": viewIdeas, "res-library": viewLibrary, calendar: viewRoutines, "cal-routines": viewCalRoutines, law: viewLaw, reports: viewReports, me: viewMe,
   "res-scriptures": viewScriptures, "res-sources": viewSources, flows: viewFlows, "flow-conflict": viewConflict, "flow-emotion": viewEmotion, "flow-trend": viewTrend, "me-print": viewPrintHub, "me-releases": viewReleases,
-  bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, ...Object.fromEntries(TOPIC_IDS.map(id => [id, () => topicView(id)()])), "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
+  bedtime: viewBedtime, sleep: viewSleep, growth: viewGrowth, "gr-lab": labItemView, ...Object.fromEntries(TOPIC_IDS.map(id => [id, () => topicView(id)()])), "bt-flow": viewFlow, "bt-songs": viewSongs, "res-music": viewMusic, "bt-texts": viewTexts, "bt-readings": viewReadings, "bt-logs": viewLogs, "bt-cases": viewCases };
 /* 网址记住当前页（#/gr-size，子页的来路带在 ?from= 里）：刷新、收藏、发给家人后还停在这一页。
    只用 replaceState，不往浏览器历史里加条目（返回仍由「‹ 返回」/ 面包屑管，弹出层、打印页的历史条目不受影响）。
    登录回跳时 # 后面是 Supabase 的令牌（access_token=…），那时不动，留给 supabase-js 读走。 */
 function readRoute(hash = location.hash){
-  const m = /^#\/([\w-]+)(?:\?from=([\w-]+))?$/.exec(hash);
-  return m && VIEWS[m[1]] ? { tab: m[1], from: m[2] && VIEWS[m[2]] ? m[2] : null } : null;
+  const m = /^#\/([\w-]+)(?:\?(.*))?$/.exec(hash); if (!m || !VIEWS[m[1]]) return null;
+  const q = new URLSearchParams(m[2] || ""), from = q.get("from");
+  return { tab: m[1], from: from && VIEWS[from] ? from : null, k: q.get("k") || "" };
 }
 let routeHash = null;   // 上一次写进 / 读出网址的 #；网址里的 # 和它不一样 = 是外面改的（手动输入、收藏、浏览器后退），以网址为准
-function restoreRoute(){ routeHash = location.hash; const r = readRoute(); if (!r) return false; S.tab = r.tab; if (r.from) (S.from ||= {})[r.tab] = r.from; return true; }
+function restoreRoute(){ routeHash = location.hash; const r = readRoute(); if (!r) return false; S.tab = r.tab; if (r.from) (S.from ||= {})[r.tab] = r.from; if (r.tab === "gr-lab") (S.gb ||= {}).labKey = r.k; return true; }
 function syncRoute(){
   // 表单 / 打印页开着时，最上面那条历史是它们自己压的，关掉时会 history.back()：这时不写，等退回去以后那次重画再写，免得退回去又被当成「外面改了网址」
   const hs = history.state;
   if (S.printView || (hs && (hs.sheet || hs.print)) || (location.hash.includes("=") && !location.hash.startsWith("#/"))) return;
-  const f = S.from && S.from[S.tab], h = S.tab === "today" ? "" : `#/${S.tab}${f ? "?from=" + f : ""}`;
+  const f = S.from && S.from[S.tab], q = [f && "from=" + f, S.tab === "gr-lab" && S.gb && S.gb.labKey && "k=" + encodeURIComponent(S.gb.labKey)].filter(Boolean).join("&"), h = S.tab === "today" ? "" : `#/${S.tab}${q ? "?" + q : ""}`;
   if (location.hash !== h) try { history.replaceState(history.state, "", location.pathname + location.search + h); } catch (e) {}
   routeHash = location.hash;
 }

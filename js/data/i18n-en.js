@@ -1174,5 +1174,13 @@ const EN = {
   "就诊的 AI 解读要先在 Supabase 执行 baby-log 的 028_shepherd_visit_place_ai.sql": "To save visit explanations, run baby-log's 028_shepherd_visit_place_ai.sql in Supabase first",
   "已保留": "Kept",
   "清除这条 AI 解读？": "Clear this AI explanation?",
+  "走势图": "Trend chart", "化验项目": "Lab test", "这一项还没有记录。": "No results for this test yet.", "回到化验": "Back to Labs", "再记一次这一项": "Add another result",
+  "只有一次结果，再记一次就能看到走势。": "Only one result so far; add another to see the trend.", "底色带是参考范围；红点 = 那一次超出范围。": "The shaded band is the reference range; a red dot is a result outside it.",
+  "每次的记录": "Each result", "点一条可以改或删。": "Tap one to edit or delete it.", "修改化验结果": "Edit lab result", "再记一次": "Add another",
+  "参考范围：下限（可不填）": "Reference range: low (optional)", "参考范围：上限（可不填）": "Reference range: high (optional)", "请填结果（数字）": "Enter the result (a number)",
+  "删除这一项化验结果？": "Delete this lab result?", "在范围内": "In range", "血脂": "Lipids", "代谢综合（CMP）": "Metabolic panel (CMP)", "血常规（CBC）": "Blood count (CBC)",
+  "糖化 / 血糖": "HbA1c / glucose", "甲状腺": "Thyroid", "维生素与铁": "Vitamins and iron",
+  "还没有化验记录。点上面的「AI 录入」拍化验单，或去牧羊人里录入。": "No lab results yet. Use “AI entry” above to photograph a lab sheet, or enter them in Shepherd.",
+  "点一项看走势和每次的记录，可以改或删。范围以化验单为准。": "Tap a test to see its trend and every result; edit or delete from there. Ranges follow the lab sheet.",
 };
 export { EN };

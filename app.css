@@ -1371,3 +1371,24 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="value"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="unit"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="lo"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="hi"]{flex:1 1 56px;min-width:0}
 @media (min-width:640px){.ix-list[data-ixlist="rows"] .ix-cells input[type=date],.ix-list[data-ixlist="labs"] .ix-cells input[type=date]{flex:0 1 170px}.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="name"]{flex:1 1 160px}}
 .gb-ai-in .btns .btn{min-height:40px;height:auto;padding:6px 16px;font-size:14px;border-radius:999px}
+
+/* ===== 化验：按套餐分组的列表、单项页（走势图、范围条）。和牧羊人的化验页同一个思路 ===== */
+.lab-row{align-items:center}
+.lab-row .mt{gap:1px}
+.lab-now{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px;font-size:15px}
+.lab-now .num{font-weight:700;font-size:17px}
+.lab-spark{flex:none;color:var(--slate);margin-left:4px}
+.mrow .mi.lab-bad{background:var(--rose-soft);color:var(--rose);font-weight:700}
+.lab-flag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.5;background:var(--rose-soft);color:var(--rose)}
+.lab-flag.ok{background:var(--sage-soft);color:var(--sage)}
+.lab-head{margin-top:12px}
+.lab-head.flag-high,.lab-head.flag-low{border-color:var(--rose)}
+.lab-big{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;margin:6px 0 2px}
+.lab-big .num{font-size:34px;line-height:1.1;font-weight:700}
+.lab-bar{position:relative;display:block;height:8px;border-radius:4px;background:var(--field);border:1px solid var(--line);margin:4px 0 2px}
+.lab-bar .ok{position:absolute;top:0;bottom:0;background:var(--sage-soft);border-radius:3px}
+.lab-bar .at{position:absolute;top:-4px;width:4px;height:14px;margin-left:-2px;border-radius:2px;background:var(--slate)}
+.lab-bar .at.high,.lab-bar .at.low{background:var(--rose)}
+.lab-chart{display:block;width:100%;height:auto;max-height:240px}
+.lab-ax{font-size:10px;fill:var(--muted)}
+@media (hover:hover) and (min-width:900px){.lab-chart{max-height:280px}}

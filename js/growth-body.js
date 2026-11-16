@@ -15,6 +15,7 @@ import { render } from "./views.js";
 import { paged, resetPage } from "./pager.js";
 import { fbarHTML, hit, onFbar } from "./filterbar.js";
 import { REC_AI_SYSTEM, parseRecAi, recAiBody } from "./record-ai.js";
+import { LABS, LAB_GROUPS } from "./data/health-ref.js";   // 化验项目、套餐、常见范围（牧羊人同一份）
 
 /* ============ 成长 · 🩺 身体与健康（2026-11-11） ============
    数据不另建表，和姊妹应用共用一份：
@@ -79,7 +80,52 @@ function bodyRowDesc(id){
   return "";
 }
 const labFlag = x => (x.ref_high != null && +x.value > +x.ref_high ? "high" : x.ref_low != null && +x.value < +x.ref_low ? "low" : null);
-function labLatest(){ const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort((a, b) => String(a.day).localeCompare(String(b.day)))) by.set(x.code || x.name, x); return [...by.values()]; }
+/* ---- 化验项目：按「套餐」分组，同一项目（不管是按代码还是按名字存的）合成一条走势 ---- */
+const labNorm = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const LAB_BY_NAME = (() => { const m = new Map(); for (const [c, x] of Object.entries(LABS)) for (const n of [c, x.name, x.en, ...(x.alias || [])]) m.set(labNorm(n), c); return m; })();
+const labKeyOf = x => (x.code && LABS[x.code] ? x.code : LAB_BY_NAME.get(labNorm(x.name || x.code)) || x.name || x.code || "");
+const labTitle = (k, x) => (LABS[k] ? (locale() === "en" ? LABS[k].en : t(LABS[k].name)) : (x && (x.name || x.code)) || k);
+const byDayAsc = (a, b) => String(a.day).localeCompare(String(b.day));
+const labDay = d => String(d).slice(0, 10).replace(/-/g, "/");
+const labNum = v => +(+v).toFixed(2);
+const labRows = k => H.labs.filter(x => x.subject === subj() && labKeyOf(x) === k).sort(byDayAsc);
+function labLatest(){ const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort(byDayAsc)) by.set(labKeyOf(x), x); return [...by.values()]; }
+/** [[套餐 id, [{ k, rows（旧→新）, last, prev }]]]，只列有记录的套餐 */
+function labGroups(){
+  const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj()).sort(byDayAsc)) { const k = labKeyOf(x); (by.get(k) || by.set(k, []).get(k)).push(x); }
+  const out = new Map(Object.keys(LAB_GROUPS).map(g => [g, []])), order = Object.keys(LABS);
+  for (const [k, rows] of by) out.get(LABS[k] ? LABS[k].group : "other").push({ k, rows, last: rows[rows.length - 1], prev: rows[rows.length - 2] || null });
+  for (const a of out.values()) a.sort((x, y) => { const i = order.indexOf(x.k), j = order.indexOf(y.k); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j) || labTitle(x.k, x.last).localeCompare(labTitle(y.k, y.last)); });
+  return [...out].filter(([, a]) => a.length);
+}
+const labRange = x => (x.ref_low != null && x.ref_high != null ? `${+x.ref_low}–${+x.ref_high}` : x.ref_high != null ? `≤ ${+x.ref_high}` : x.ref_low != null ? `≥ ${+x.ref_low}` : "");
+const flagTxt = f => `<span class="lab-flag ${f}">${t(f === "high" ? "偏高" : "偏低")}</span>`;
+/** 小走势线（列表每行右边）：只有 1 次不画 */
+function labSpark(rows){
+  if (rows.length < 2) return "";
+  const v = rows.slice(-8).map(r => +r.value), lo = Math.min(...v), hi = Math.max(...v), W = 60, Hh = 24, y = x => (hi === lo ? Hh / 2 : Hh - 3 - ((x - lo) / (hi - lo)) * (Hh - 6)), xs = i => 3 + (i / (v.length - 1)) * (W - 6);
+  return `<svg class="lab-spark" viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" aria-hidden="true"><polyline fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" points="${v.map((x, i) => `${xs(i).toFixed(1)},${y(x).toFixed(1)}`).join(" ")}"/><circle cx="${xs(v.length - 1).toFixed(1)}" cy="${y(v[v.length - 1]).toFixed(1)}" r="2.4" fill="currentColor"/></svg>`;
+}
+/** 单项走势图：参考范围画成一条底色带（取最新一次的范围），每个点按它自己那次的范围着色 */
+function labChart(rows){
+  const W = 320, Hh = 160, L = 38, R = 10, T = 12, B = 26, last = rows[rows.length - 1], lo0 = last.ref_low != null ? +last.ref_low : null, hi0 = last.ref_high != null ? +last.ref_high : null;
+  const vals = rows.map(r => +r.value), all = [...vals, ...(lo0 != null ? [lo0] : []), ...(hi0 != null ? [hi0] : [])];
+  let mn = Math.min(...all), mx = Math.max(...all); const pad = (mx - mn || Math.abs(mx) || 1) * 0.12; mn -= pad; mx += pad;
+  const ts = rows.map(r => new Date(String(r.day).slice(0, 10) + "T12:00:00").getTime()), t0 = ts[0], t1 = ts[ts.length - 1];
+  const X = i => (t1 === t0 ? (L + W - R) / 2 : L + ((ts[i] - t0) / (t1 - t0)) * (W - L - R)), Y = v => T + (1 - (v - mn) / (mx - mn)) * (Hh - T - B), f2 = n => +n.toFixed(1);
+  const band = lo0 != null || hi0 != null ? `<rect x="${L}" y="${f2(Y(hi0 != null ? hi0 : mx))}" width="${W - L - R}" height="${f2(Y(lo0 != null ? lo0 : mn) - Y(hi0 != null ? hi0 : mx))}" fill="var(--sage)" opacity=".18"/>` : "";
+  const line = rows.length > 1 ? `<polyline fill="none" stroke="var(--slate)" stroke-width="2" stroke-linejoin="round" points="${rows.map((r, i) => `${f2(X(i))},${f2(Y(+r.value))}`).join(" ")}"/>` : "";
+  const dots = rows.map((r, i) => `<circle cx="${f2(X(i))}" cy="${f2(Y(+r.value))}" r="4" fill="${labFlag(r) ? "var(--rose)" : "var(--slate)"}"><title>${esc(labDay(r.day))} ${labNum(r.value)} ${esc(r.unit || "")}</title></circle>`).join("");
+  return `<svg class="lab-chart" viewBox="0 0 ${W} ${Hh}" role="img" aria-label="${esc(t("走势图"))}">${band}
+    <text x="${L - 4}" y="${f2(Y(mx - pad) + 4)}" text-anchor="end" class="lab-ax">${labNum(mx - pad)}</text><text x="${L - 4}" y="${f2(Y(mn + pad) + 4)}" text-anchor="end" class="lab-ax">${labNum(mn + pad)}</text>
+    ${line}${dots}<text x="${f2(X(0))}" y="${Hh - 6}" text-anchor="${rows.length === 1 ? "middle" : "start"}" class="lab-ax">${esc(labDay(rows[0].day).slice(2))}</text>${rows.length > 1 ? `<text x="${f2(X(rows.length - 1))}" y="${Hh - 6}" text-anchor="end" class="lab-ax">${esc(labDay(last.day).slice(2))}</text>` : ""}</svg>`;
+}
+/** 这一次在参考范围里的位置（范围两头各留一半宽） */
+function labBar(x){
+  if (x.ref_low == null || x.ref_high == null || +x.ref_high <= +x.ref_low) return "";
+  const lo = +x.ref_low, hi = +x.ref_high, span = hi - lo, a = lo - span / 2, b = hi + span / 2, p = v => Math.max(0, Math.min(100, ((v - a) / (b - a)) * 100));
+  return `<span class="lab-bar" aria-hidden="true"><i class="ok" style="left:${p(lo).toFixed(1)}%;width:${(p(hi) - p(lo)).toFixed(1)}%"></i><i class="at ${labFlag(x) || ""}" style="left:${p(+x.value).toFixed(1)}%"></i></span>`;
+}
 /** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
 const top = btns => `<div class="gr-top"><div class="gr-adds">${btns}</div></div>`;
 const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检")}</button>`;
@@ -167,15 +213,60 @@ function vaxPage(){
 function labsPage(){
   const btn = `${aiBtn()}<a class="btn sm" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
   if (!H.hlOk) return `${top(btn)}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
-  const latest = labLatest(), bad = latest.filter(labFlag).length, all = H.labs.filter(x => x.subject === subj());
-  const hist = x => all.filter(y => (y.code || y.name) === (x.code || x.name)).sort((a, b) => String(b.day).localeCompare(String(a.day))).slice(1, 4).map(y => `${+(+y.value).toFixed(2)}（${String(y.day).slice(5).replace("-", "/")}）`).join("、");
-  const range = x => (x.ref_low != null || x.ref_high != null ? t("参考 {r}", { r: [x.ref_low, x.ref_high].map(v => (v == null ? "" : v)).join("–") }) : "");
+  const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
+  const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
+    return `<button type="button" class="mrow lab-row" data-act="gr-lab-open" data-k="${esc(it.k)}"><span class="mi ${f ? "lab-bad" : ""}" aria-hidden="true">${f ? "!" : "✓"}</span>
+      <span class="mt"><b>${esc(labTitle(it.k, it.last))}</b><span class="lab-now"><span class="num">${labNum(it.last.value)}</span> <small class="muted">${esc(it.last.unit || "")}</small>${f ? ` ${flagTxt(f)}` : ""}${d ? ` <small class="muted">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</small>` : ""}</span>
+      <small>${esc([labRange(it.last) && t("参考 {r}", { r: labRange(it.last) }), labDay(it.last.day), t("{n} 次", { n: it.rows.length })].filter(Boolean).join(" · "))}</small></span>${labSpark(it.rows)}<span class="mch" aria-hidden="true">›</span></button>`; };
+  const sections = groups.map(([g, items]) => { const nb = items.filter(it => labFlag(it.last)).length;
+    return `<section class="gr-sec"><div class="gr-sh"><h2>${esc(t(LAB_GROUPS[g]))} <span class="small muted gr-n">${t("{n} 项", { n: items.length })}${nb ? ` · ${t("{n} 项超出范围", { n: nb })}` : ""}</span></h2></div><div class="panel mlist">${items.map(item).join("")}</div></section>`; }).join("");
   return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
-    ${recs("每项最新一次", latest.map(x => { const f = labFlag(x), h = hist(x); return rec(f ? "⚠️" : "🧪", `${x.name || x.code} ${+(+x.value).toFixed(2)} ${x.unit || ""}${f ? ` · ${t(f === "high" ? "偏高" : "偏低")}` : ""}`, String(x.day).replace(/-/g, "/"), [range(x), h && t("之前：{s}", { s: h })].filter(Boolean).join(" · "), x.notes); }),
-      t("化验在牧羊人里录入和修改（可以拍化验单），这里自动显示。范围以化验单为准。"))}
+    ${sections || `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("还没有化验记录。点上面的「AI 录入」拍化验单，或去牧羊人里录入。")}</p></div>`}
+    <p class="small muted gr-foot">${t("点一项看走势和每次的记录，可以改或删。范围以化验单为准。")}</p>
     ${recList("labdays", "按日期", labDays().map(d => ({ ts: new Date(d.day + "T12:00:00").getTime(), icon: d.bad ? "⚠️" : "🧪", title: t("{n} 项化验", { n: d.rows.length }) + (d.bad ? ` · ${t("{n} 项超出范围", { n: d.bad })}` : ""),
-      meta: d.rows.map(x => `${x.name || x.code} ${+(+x.value).toFixed(2)}${x.unit ? " " + x.unit : ""}${labFlag(x) ? (labFlag(x) === "high" ? " ↑" : " ↓") : ""}`).join(" · "), aiK: "l:" + d.day, ai: (labAi()[d.day]) || null, bad: !!d.bad })),
+      meta: d.rows.map(x => `${labTitle(labKeyOf(x), x)} ${labNum(x.value)}${x.unit ? " " + x.unit : ""}${labFlag(x) ? (labFlag(x) === "high" ? " ↑" : " ↓") : ""}`).join(" · "), aiK: "l:" + d.day, ai: (labAi()[d.day]) || null, bad: !!d.bad })),
       { subs: [["bad", t("有超出范围的"), x => x.bad]], foot: t("每个日期可以让 AI 解读这次化验：每项是什么意思、后续注意什么。") })}`;
+}
+/** 单项页（gr-lab）：最新值 + 范围 + 走势 + 每次的记录（点一条改或删，也能再记一次） */
+function labItemView(){
+  if (!ensure()) return `<div class="empty">${t("正在读取…")}</div>`;
+  const k = H.labKey, rows = k ? labRows(k) : [];
+  if (!rows.length) return `<div class="empty">${t("这一项还没有记录。")}<br><button type="button" class="btn" data-tab="gr-labs">${t("回到化验")}</button></div>`;
+  const last = rows[rows.length - 1], f = labFlag(last), desc = rows.slice().reverse();
+  const g = LABS[k] ? LAB_GROUPS[LABS[k].group] : LAB_GROUPS.other;
+  const rec = (x, i) => { const p = desc[i + 1], d = p ? labNum(+x.value - +p.value) : null, fx = labFlag(x);
+    return `<button type="button" class="mrow" data-act="gr-lab-edit" data-id="${esc(x.id)}"><span class="mi ${fx ? "lab-bad" : ""}" aria-hidden="true">${fx ? "!" : "✓"}</span><span class="mt"><b>${esc(labDay(x.day))} · <span class="num">${labNum(x.value)}</span> <small class="muted">${esc(x.unit || "")}</small>${fx ? ` ${flagTxt(fx)}` : ""}${d ? ` <small class="muted">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</small>` : ""}</b>
+      <small>${esc([labRange(x) && t("参考 {r}", { r: labRange(x) }), x.notes, x.ai_used ? "AI" : ""].filter(Boolean).join(" · "))}</small></span><span class="mch" aria-hidden="true">›</span></button>`; };
+  return `${top(`<button type="button" class="btn primary sm" data-act="gr-lab-add" data-k="${esc(k)}">＋ ${t("再记一次这一项")}</button>`)}
+    <div class="panel lab-head ${f ? "flag-" + f : ""}"><p class="small muted" style="margin:0 0 2px">${esc(t(g))}</p><h2 style="margin:0">${esc(labTitle(k, last))}</h2>
+      <div class="lab-big"><b class="num">${labNum(last.value)}</b> <span class="muted">${esc(last.unit || "")}</span> ${f ? flagTxt(f) : `<span class="lab-flag ok">${t("在范围内")}</span>`}</div>
+      <p class="small muted" style="margin:2px 0 8px">${esc([t("参考 {r}", { r: labRange(last) || "—" }), t("最近 {d}", { d: labDay(last.day) }), t("{n} 次", { n: rows.length })].join(" · "))}</p>${labBar(last)}</div>
+    <section class="gr-sec"><div class="gr-sh"><h2>${t("走势")}</h2></div><div class="panel">${labChart(rows)}${rows.length < 2 ? `<p class="small muted" style="margin:6px 0 0">${t("只有一次结果，再记一次就能看到走势。")}</p>` : `<p class="small muted" style="margin:6px 0 0">${t("底色带是参考范围；红点 = 那一次超出范围。")}</p>`}</div></section>
+    <section class="gr-sec"><div class="gr-sh"><h2>${t("每次的记录")} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div><div class="panel mlist">${desc.map(rec).join("")}</div><p class="small muted gr-foot">${t("点一条可以改或删。")}</p></section>`;
+}
+/** 改 / 删 / 再记一次：同一张小表单。x = 已有的一条；k = 新记一次时的项目 */
+function labForm(x, k){
+  const base = x || labRows(k).slice(-1)[0] || {}, key = x ? labKeyOf(x) : k, name = labTitle(key, base);
+  openForm(`🧪 ${x ? t("修改化验结果") : t("再记一次")} · ${name}`, [
+    { k: "day", label: "日期", type: "date", past: true }, { k: "value", label: "结果", mode: "decimal" }, { k: "unit", label: "单位" },
+    { k: "ref_low", label: "参考范围：下限（可不填）", mode: "decimal" }, { k: "ref_high", label: "参考范围：上限（可不填）", mode: "decimal" }, { k: "notes", label: "备注", type: "area" }
+  ], { day: x ? String(x.day).slice(0, 10) : dayKey(Date.now()), value: x ? String(x.value) : "", unit: base.unit || (LABS[key] ? LABS[key].unit : ""), ref_low: base.ref_low != null ? String(base.ref_low) : "", ref_high: base.ref_high != null ? String(base.ref_high) : "", notes: x ? x.notes || "" : "" },
+  async f => {
+    if (!f.day) { toast(t("请填日期")); return; }
+    if (f.value === "" || isNaN(+f.value)) { toast(t("请填结果（数字）")); return; }
+    const row = { day: f.day, value: +f.value, unit: f.unit || "", ref_low: numOr(f.ref_low), ref_high: numOr(f.ref_high), notes: f.notes || "" };
+    const { data, error } = await (x ? SB.client.from("hl_labs").update(row).eq("id", x.id) : SB.client.from("hl_labs").insert({ ...row, subject: subj(), code: LABS[key] ? key : "", name: LABS[key] ? "" : name })).select().single();
+    if (error) { toast(t("没存上：{m}", { m: error.message })); return; }
+    H.labs = x ? H.labs.map(y => (y.id === x.id ? data : y)) : [...H.labs, data];
+    closeSheet(); toast(t("已保存")); render();
+  }, x ? async () => {
+    if (!confirm(t("删除这一项化验结果？"))) return;
+    const { error } = await SB.client.from("hl_labs").delete().eq("id", x.id);
+    if (error) { toast(t("没删掉：{m}", { m: error.message })); return; }
+    H.labs = H.labs.filter(y => y.id !== x.id); closeSheet(); toast(t("已删除"));
+    if (!labRows(key).length) S.tab = "gr-labs";   // 这一项没有记录了：回到化验
+    render();
+  } : null);
 }
 /** 化验按日期分组（这个孩子的） */
 function labDays(){
@@ -283,8 +374,7 @@ function editMed(id){
 const sel = (k, opts, v, label) => `<select data-ixk="${k}" aria-label="${esc(t(label))}"><option value="">${esc(t(label))}</option>${opts.map(o => `<option value="${esc(o)}" ${o === v ? "selected" : ""}>${esc(t(o))}</option>`).join("")}</select>`;
 /* ---- 表格：多次测量（每个日期一条「宝宝健康」）、化验（每项一条，存牧羊人的化验表 hl_labs） ---- */
 const sameDay = d => mine("baby").find(e => dayKey(e.ts) === d) || null;   // 那一天已经有的体征记录（不管是体检还是在家量）
-const lkey = s => String(s || "").toLowerCase().replace(/[\s()（）]/g, "");
-const labSeen = (d, name) => H.labs.find(x => x.subject === subj() && String(x.day).slice(0, 10) === d && lkey(x.name || x.code) === lkey(name)) || null;
+const labSeen = (d, name) => H.labs.find(x => x.subject === subj() && String(x.day).slice(0, 10) === d && labKeyOf(x) === labKeyOf({ name })) || null;
 const rowOk = x => x.on && /^\d{4}-\d{2}-\d{2}$/.test(x.day || "") && (x.w || x.l || x.h || Object.keys(x.ex || {}).length);
 const labOk = x => x.on && x.name && x.value !== "" && !isNaN(+x.value) && /^\d{4}-\d{2}-\d{2}$/.test(x.day || "");
 const disp1 = (k, v) => (v == null ? "" : String(Math.round(toDisp(k, v) * 100) / 100));
@@ -565,6 +655,9 @@ function bodyAct(act, btn){
   if (act === "gr-body-reload") { loadBody(true); return true; }
   if (act === "gr-b-view") { BF.view = btn.dataset.v === "timeline" ? "timeline" : "list"; render(); return true; }
   if (act === "gr-b-vax") { editVax(btn.dataset.id); return true; }
+  if (act === "gr-lab-open") { H.labKey = btn.dataset.k; S.tab = "gr-lab"; render(); window.scrollTo(0, 0); return true; }
+  if (act === "gr-lab-edit") { const x = H.labs.find(y => y.id === btn.dataset.id); if (x) labForm(x); return true; }
+  if (act === "gr-lab-add") { labForm(null, btn.dataset.k); return true; }
   if (act === "gr-b-ai") { runAi(btn.dataset.k); return true; }
   if (act === "gr-b-aikeep") { if (AIP) storeAi(AIP.k, AIP.ai).then(ok => { if (ok) { AIP = null; closeSheet(); toast(t("已保留")); render(); } }); return true; }
   if (act === "gr-b-aidrop") { AIP = null; closeSheet(); return true; }
@@ -575,4 +668,4 @@ function bodyAct(act, btn){
 }
 const bodyReady = () => H.loaded;
 
-export { bodyRowDesc, bodyTopicHTML, bodyAct, bodySummary, bodyReady, loadBody };
+export { bodyRowDesc, bodyTopicHTML, bodyAct, bodySummary, bodyReady, loadBody, labItemView };
