@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.10", title: { zh: "修复：手机上滑动时，搜索 / 筛选条盖住底部页签", en: "Fix: the search / filter bar covered the bottom tabs when scrolling on phones" }, items: [
+    { k: "fix", zh: "记录列表往下滑，搜索和筛选条滑过屏幕下方时不再盖住底部页签；固定在顶上时紧贴顶栏下面", en: "Scrolling a records list, the search and filter bar no longer covers the bottom tabs as it passes the bottom of the screen; when pinned it sits right under the top strip" },
+    { k: "fix", zh: "点开「筛选」时，下拉面板如果会伸到底部页签下面，会先把页面往上推，推不动就向上展开", en: "When the Filters dropdown would run under the bottom tabs, the page scrolls up first, or the dropdown opens upward if it cannot" }
+  ] },
   { v: "2026-11-16.9", title: { zh: "化验：去牧羊人录入的入口放进录入表", en: "Labs: the Shepherd entry link now lives inside the entry form" }, items: [
     { k: "better", zh: "化验页只留一个「录入化验」按钮；录入表抬头有「AI 录入」（默认开）和「在牧羊人里录入」，点错不会再跳走", en: "The Labs page keeps one \"Enter labs\" button; the form header has \"AI entry\" (on by default) and \"Enter in Shepherd\", so you won't jump away by mistake" },
     { k: "better", zh: "点「AI 录入」可以收起 / 展开 AI 区，已填的数字不会丢", en: "Tap \"AI entry\" to hide or show the AI area; numbers you already typed are kept" }

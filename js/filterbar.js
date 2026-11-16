@@ -48,3 +48,17 @@ document.addEventListener("click", e => {
   // 清除后按钮消失：焦点放到这一条的第一个输入框，不丢到页面顶上
   requestAnimationFrame(() => { const f = document.querySelector(`[data-fbar="${CSS.escape(key)}"] input, [data-fbar="${CSS.escape(key)}"] select`); if (f) f.focus({ preventScroll: true }); });
 }, true);
+
+/* 手机上点开「筛选」：下拉面板是浮在列表上的，筛选条在屏幕下方时面板会伸到底部页签下面、点不到。点开后如果被盖住，就把页面往上推一点 */
+document.addEventListener("click", ev => {
+  const b = ev.target.closest && ev.target.closest(".tb-toggle"); if (!b) return;
+  requestAnimationFrame(() => {
+    const p = document.getElementById(b.getAttribute("aria-controls")); if (!p) return;
+    p.classList.remove("tb-up");
+    if (!p.classList.contains("open")) return;
+    const nav = document.querySelector("nav.tabs"), limit = nav ? nav.getBoundingClientRect().top : window.innerHeight, over = p.getBoundingClientRect().bottom - limit + 12;
+    if (over <= 0) return;
+    const room = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;   // 页面还能往上推多少
+    if (room >= over) window.scrollBy({ top: over, behavior: "smooth" }); else p.classList.add("tb-up");   // 已经到页面底了：面板改成向上展开
+  });
+});
