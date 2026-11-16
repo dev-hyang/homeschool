@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.2", title: { zh: "修复：在身体与健康页刷新后一直「正在读取」", en: "Fix: Health pages stuck on \"Loading\" after a refresh" }, items: [
+    { k: "fix", zh: "在 基本体征、体检与就诊、疫苗、化验、病史 这几页刷新，读完数据会马上显示出来", en: "Refreshing on Vital signs, Visits, Vaccines, Labs or History now shows the records as soon as they load" }
+  ] },
   { v: "2026-11-16.1", title: { zh: "刷新后还停在原来那一页", en: "Refresh keeps you on the same page" }, items: [
     { k: "better", zh: "比如在 成长 → 基本体征 刷新，还是回到基本体征，不再跳回今天；网址也能收藏或发给家人", en: "Refreshing on, say, Growth → Vital signs brings you back there instead of Today; the link can be bookmarked or shared" }
   ] },

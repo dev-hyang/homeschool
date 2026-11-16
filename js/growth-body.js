@@ -41,7 +41,8 @@ async function loadBody(force = false){
     H.profiles = pr.data || []; H.labs = lb.data || []; H.visits = vs.data || [];
     H.loaded = true; H.err = ""; H.key = f;
   } catch (err) { H.err = String((err && err.message) || err); }
-  finally { H.loading = false; if (S.tab === "growth") render(); }
+  // 读完重画：成长首页，和身体与健康的各个主题页（gr-size 等；刷新时网址直接停在主题页，没有先经过成长首页）
+  finally { H.loading = false; if (S.tab === "growth" || /^gr-/.test(S.tab)) render(); }
 }
 const mine = type => H.rows.filter(e => e.type === type && ownerOf(e) === S.childId).sort((a, b) => b.ts - a.ts);
 const subj = () => "c:" + S.childId;
