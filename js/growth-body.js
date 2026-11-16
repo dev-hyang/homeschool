@@ -1,14 +1,14 @@
 import { aiReady, askText } from "./ai.js";
 import { SB } from "./core/auth.js";
 import { LS_PREFIX } from "./core/config.js";
-import { t } from "./core/i18n.js";
+import { locale, t } from "./core/i18n.js";
 import { selectAll } from "./core/paged.js";
 import { S, ageMonths, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { EXTRA, EXTRA_KEYS, INTAKE_SYSTEM, VAX_NAMES, extraParts, mergeInto, placeText, parseIntake, sameEntry, sameVisit } from "./intake-lib.js";
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
-import { VT_KEYS, vitalsContext, vitalsHTML } from "./vitals.js";
+import { VT_KEYS, bmiBand, bpLimit, flag as vtFlag, hrRange, vitalsContext, vitalsHTML } from "./vitals.js";
 import { askAbout } from "./ask.js";
 import { genderOf } from "./flows-trend.js";
 import { render } from "./views.js";
@@ -91,8 +91,11 @@ const RANGES = [["all", "全部时间"], ["365", "近 1 年"], ["1095", "近 3 �
 const BF = (H.bf ||= { view: "list" });
 const BF_DEF = { range: "all", sub: "all", q: "", sort: "new" };
 function recRow(x, full = true){
+  const busy = x.aiK && H.aiBusy === x.aiK;
+  const aiBtn = x.aiK && !x.ai ? `<button type="button" class="chip gb-ai-btn" data-act="gr-b-ai" data-k="${esc(x.aiK)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : `✦ ${t("AI 解读")}`}</button>` : "";
   const inner = `<span class="title">${x.icon} <b>${esc(x.title)}</b> <span class="small muted num">${esc(full ? day(x.ts) : day(x.ts).slice(5))}</span></span>${x.meta ? `<span class="meta">${esc(x.meta)}</span>` : ""}${x.note ? `<span class="meta gr-note">${esc(x.note)}</span>` : ""}`;
-  return `<div class="task"><span class="bar" style="background:var(--slate)"></span>${x.edit ? `<button type="button" class="main" ${x.edit} aria-label="${esc(t("修改这一条"))}">${inner}</button>` : `<div class="main" style="cursor:default">${inner}</div>`}<span class="acts"></span></div>`;
+  const task = `<div class="task"><span class="bar" style="background:var(--slate)"></span>${x.edit ? `<button type="button" class="main" ${x.edit} aria-label="${esc(t("修改这一条"))}">${inner}</button>` : `<div class="main" style="cursor:default">${inner}</div>`}<span class="acts">${aiBtn}</span></div>`;
+  return x.aiK && x.ai ? `<div class="gb-rec">${task}${aiSavedHTML(x.aiK, x.ai, busy)}</div>` : task;
 }
 function recList(id, title, items, { subs = null, foot = "" } = {}){
   const F = (BF[id] ||= { ...BF_DEF }), R = +F.range || 0, key = "gb-" + id;
@@ -138,8 +141,8 @@ function sizePage(){
 }
 /** 就诊：小月亮里来源是体检 / 看病的「宝宝健康」+ 牧羊人里给孩子记的就诊 */
 function visitsAll(){
-  const a = mine("baby").filter(e => e.src && e.src !== "自己记录").map(e => ({ id: e.id, ts: e.ts, annual: e.src === "儿科体检", kind: t(e.src), where: placeText(e), text: e.note || "", m: [e.weight && show("weight", e.weight), e.length && show("length", e.length), e.temp && show("temp", e.temp), ...extras(e)].filter(Boolean).join(" · ") }));
-  const b = H.visits.filter(v => v.subject === subj()).map(v => ({ ts: new Date(v.day + "T12:00:00").getTime(), annual: v.kind === "annual", kind: t(v.kind === "annual" ? "年度体检" : "就诊"), where: v.provider || "", text: [v.diagnosis, v.advice].filter(Boolean).join(" · "), m: "" }));
+  const a = mine("baby").filter(e => e.src && e.src !== "自己记录").map(e => ({ id: e.id, aiK: "e:" + e.id, ai: e.ai || null, ts: e.ts, annual: e.src === "儿科体检", kind: t(e.src), where: placeText(e), text: e.note || "", m: [e.weight && show("weight", e.weight), e.length && show("length", e.length), e.temp && show("temp", e.temp), ...extras(e)].filter(Boolean).join(" · ") }));
+  const b = H.visits.filter(v => v.subject === subj()).map(v => ({ aiK: "v:" + v.id, ai: v.ai || null, ts: new Date(v.day + "T12:00:00").getTime(), annual: v.kind === "annual", kind: t(v.kind === "annual" ? "年度体检" : "就诊"), where: v.provider || "", text: [v.diagnosis, v.advice].filter(Boolean).join(" · "), m: "" }));
   return [...a, ...b].sort((x, y) => y.ts - x.ts);
 }
 function visitsPage(){
@@ -147,7 +150,7 @@ function visitsPage(){
   const tiles = `<div class="gr-tiles">${statTile(t("上次体检"), a ? esc(day(a.ts)) : "–", a ? t("{n} 个月前", { n: gap }) : t("还没有体检记录"), due ? "var(--honey)" : "var(--sage)")}
     ${statTile(t("就诊次数"), String(list.length), t("全部记录"), "var(--slate)")}</div>`;
   return `${top(aiBtn())}${due ? `<p class="gr-due"><span class="pill warn">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
-    ${recList("visits", "记录", list.map(v => ({ ts: v.ts, annual: v.annual, icon: v.annual ? "🩺" : "🤒", title: v.kind, meta: [v.where, v.m].filter(Boolean).join(" · "), note: v.text, edit: v.id ? `data-ix="edit" data-id="${esc(v.id)}"` : "" })),
+    ${recList("visits", "记录", list.map(v => ({ ts: v.ts, annual: v.annual, aiK: v.aiK, ai: v.ai, icon: v.annual ? "🩺" : "🤒", title: v.kind, meta: [v.where, v.m].filter(Boolean).join(" · "), note: v.text, edit: v.id ? `data-ix="edit" data-id="${esc(v.id)}"` : "" })),
       { subs: [["checkup", t("体检"), x => x.annual], ["sick", t("看病 / 急诊"), x => !x.annual]], foot: `${EDIT_HERE()} ${H.visits.some(v => v.subject === subj()) ? t("牧羊人里记的就诊在牧羊人里改。") : ""}` })}`;
 }
 /** 疫苗按种类筛：去掉括号里的原文（百白破 DTaP（Pediarix）→ 百白破 DTaP），只有一种时不显示筛选 */
@@ -160,15 +163,24 @@ function vaxPage(){
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `<a class="btn primary sm" href="https://dev-hyang.github.io/shepherd/" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;
+  const btn = `${aiBtn()}<a class="btn sm" href="https://dev-hyang.github.io/shepherd/" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;
   if (!H.hlOk) return `${top(btn)}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const latest = labLatest(), bad = latest.filter(labFlag).length, all = H.labs.filter(x => x.subject === subj());
   const hist = x => all.filter(y => (y.code || y.name) === (x.code || x.name)).sort((a, b) => String(b.day).localeCompare(String(a.day))).slice(1, 4).map(y => `${+(+y.value).toFixed(2)}（${String(y.day).slice(5).replace("-", "/")}）`).join("、");
   const range = x => (x.ref_low != null || x.ref_high != null ? t("参考 {r}", { r: [x.ref_low, x.ref_high].map(v => (v == null ? "" : v)).join("–") }) : "");
   return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
     ${recs("每项最新一次", latest.map(x => { const f = labFlag(x), h = hist(x); return rec(f ? "⚠️" : "🧪", `${x.name || x.code} ${+(+x.value).toFixed(2)} ${x.unit || ""}${f ? ` · ${t(f === "high" ? "偏高" : "偏低")}` : ""}`, String(x.day).replace(/-/g, "/"), [range(x), h && t("之前：{s}", { s: h })].filter(Boolean).join(" · "), x.notes); }),
-      t("化验在牧羊人里录入和修改（可以拍化验单），这里自动显示。范围以化验单为准。"))}`;
+      t("化验在牧羊人里录入和修改（可以拍化验单），这里自动显示。范围以化验单为准。"))}
+    ${recList("labdays", "按日期", labDays().map(d => ({ ts: new Date(d.day + "T12:00:00").getTime(), icon: d.bad ? "⚠️" : "🧪", title: t("{n} 项化验", { n: d.rows.length }) + (d.bad ? ` · ${t("{n} 项超出范围", { n: d.bad })}` : ""),
+      meta: d.rows.map(x => `${x.name || x.code} ${+(+x.value).toFixed(2)}${x.unit ? " " + x.unit : ""}${labFlag(x) ? (labFlag(x) === "high" ? " ↑" : " ↓") : ""}`).join(" · "), aiK: "l:" + d.day, ai: (labAi()[d.day]) || null, bad: !!d.bad })),
+      { subs: [["bad", t("有超出范围的"), x => x.bad]], foot: t("每个日期可以让 AI 解读这次化验：每项是什么意思、后续注意什么。") })}`;
 }
+/** 化验按日期分组（这个孩子的） */
+function labDays(){
+  const by = new Map(); for (const x of H.labs.filter(x => x.subject === subj())) { const d = String(x.day).slice(0, 10); (by.get(d) || by.set(d, []).get(d)).push(x); }
+  return [...by].map(([day, rows]) => ({ day, rows, bad: rows.filter(labFlag).length }));
+}
+const labAi = () => (((profileRow() || {}).data || {}).ai_labdays) || {};
 function historyPage(){
   const p = (profileRow() || {}).data || {}, meds = mine("bmed");
   const row = (label, v) => `<div class="gr-kv"><span class="muted">${t(label)}</span><span>${v ? esc(v) : `<span class="muted">—</span>`}</span></div>`;
@@ -208,7 +220,7 @@ const fromLocal = s => { const v = new Date(s).getTime(); return isNaN(v) ? null
 
 function openIntake(src, manual){
   X = { src: src || "儿科体检", ts: Date.now(), child: S.childId, clinic: "", doctor: "", note: "", weight: null, length: null, head: null, temp: null,
-    ...Object.fromEntries(EXTRA_KEYS.map(k => [k, null])), more: false, vaccines: [], meds: [], milestones: [], read: !!manual, busy: false };
+    ...Object.fromEntries(EXTRA_KEYS.map(k => [k, null])), more: false, vaccines: [], meds: [], milestones: [], rows: [], labs: [], read: !!manual, busy: false };
   attachReset(ATT);
   draw(); showSheet();
 }
@@ -217,7 +229,7 @@ function openEdit(id){
   const e = H.rows.find(r => r.id === id); if (!e) return;
   X = { edit: id, src: e.src || "自己记录", ts: e.ts, child: ownerOf(e) || S.childId, clinic: e.clinic || "", doctor: e.doctor || "", note: e.note || "",
     ...Object.fromEntries([...VITALS.map(([k]) => k), ...EXTRA_KEYS].map(k => [k, e[k] == null || e[k] === "" || isNaN(+e[k]) ? null : +e[k]])),
-    more: false, vaccines: [], meds: [], milestones: [], read: true, busy: false };
+    more: false, vaccines: [], meds: [], milestones: [], rows: [], labs: [], read: true, busy: false };
   attachReset(ATT); draw(); showSheet();
 }
 /** 写回一条小月亮记录（deleted = 删除：和小月亮一样只打删除标记） */
@@ -267,6 +279,14 @@ function editMed(id){
   }, async () => { if (!confirm(t("删除这一条？"))) return; if (await putRow(e, true)) { closeSheet(); toast(t("已删除")); render(); } });
 }
 const sel = (k, opts, v, label) => `<select data-ixk="${k}" aria-label="${esc(t(label))}"><option value="">${esc(t(label))}</option>${opts.map(o => `<option value="${esc(o)}" ${o === v ? "selected" : ""}>${esc(t(o))}</option>`).join("")}</select>`;
+/* ---- 表格：多次测量（每个日期一条「宝宝健康」）、化验（每项一条，存牧羊人的化验表 hl_labs） ---- */
+const sameDay = d => mine("baby").find(e => dayKey(e.ts) === d) || null;   // 那一天已经有的体征记录（不管是体检还是在家量）
+const lkey = s => String(s || "").toLowerCase().replace(/[\s()（）]/g, "");
+const labSeen = (d, name) => H.labs.find(x => x.subject === subj() && String(x.day).slice(0, 10) === d && lkey(x.name || x.code) === lkey(name)) || null;
+const rowOk = x => x.on && /^\d{4}-\d{2}-\d{2}$/.test(x.day || "") && (x.w || x.l || x.h || Object.keys(x.ex || {}).length);
+const labOk = x => x.on && x.name && x.value !== "" && !isNaN(+x.value) && /^\d{4}-\d{2}-\d{2}$/.test(x.day || "");
+const disp1 = (k, v) => (v == null ? "" : String(Math.round(toDisp(k, v) * 100) / 100));
+const numOr = v => (v === "" || v == null || isNaN(+v) ? null : +v);
 function draw(){
   const vit = VITALS.map(([k, l]) => { const dv = X[k] == null ? "" : String(Math.round(toDisp(k, X[k]) * 100) / 100);
     return `<div class="field"><label for="ix_${k}">${t(l)}（${unit(k)}）</label><input id="ix_${k}" type="number" inputmode="decimal" step="any" min="0" data-ixf="${k}" data-dim="1" data-orig="${dv}" value="${dv}"></div>`; }).join("");
@@ -296,6 +316,10 @@ function draw(){
     ${home || ed ? "" : `<h3 class="ix-h">💉 ${t("疫苗")} <button type="button" class="chip" data-ix="add-vax">＋ ${t("加一针")}</button></h3><div class="ix-list" data-ixlist="vaccines">${vax || `<p class="small muted">${t("这次没有打针就留空。")}</p>`}</div>
     <h3 class="ix-h">💧 ${t("维生素 / 用药")} <button type="button" class="chip" data-ix="add-med">＋ ${t("加一种")}</button></h3><div class="ix-list" data-ixlist="meds">${meds || `<p class="small muted">${t("医生开了维生素 D、铁剂或药，就加在这里。")}</p>`}</div>
     <h3 class="ix-h">⭐ ${t("里程碑")} <button type="button" class="chip" data-ix="add-ms">＋ ${t("加一个")}</button></h3><div class="ix-list" data-ixlist="milestones">${ms || `<p class="small muted">${t("医生提到的发育情况，可以顺手记下。")}</p>`}</div>`}
+    ${ed || !X.rows.length ? "" : `<h3 class="ix-h">📋 ${t("多次测量（表格里每个日期一条）")} <span class="small muted">${t("{n} 行", { n: X.rows.length })}</span></h3><div class="ix-list" data-ixlist="rows">${X.rows.map((x, i) => row(X.rows, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
+      <input type="number" inputmode="decimal" step="any" min="0" data-ixk="w" value="${esc(x.w)}" placeholder="${esc(t("体重") + " " + unit("weight"))}" aria-label="${esc(t("体重") + " " + unit("weight"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="l" value="${esc(x.l)}" placeholder="${esc(t("身高") + " " + unit("length"))}" aria-label="${esc(t("身高") + " " + unit("length"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="h" value="${esc(x.h)}" placeholder="${esc(t("头围") + " " + unit("head"))}" aria-label="${esc(t("头围") + " " + unit("head"))}">${Object.keys(x.ex || {}).length ? `<span class="small muted ix-note">${esc(extras(x.ex).join(" · "))}</span>` : ""}`)).join("")}</div>`}
+    ${ed || !X.labs.length ? "" : `<h3 class="ix-h">🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span></h3>${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
+      <input type="text" data-ixk="name" value="${esc(x.name)}" placeholder="${esc(t("项目"))}" aria-label="${esc(t("项目"))}"><input type="text" inputmode="decimal" data-ixk="value" value="${esc(x.value)}" placeholder="${esc(t("结果"))}" aria-label="${esc(t("结果"))}"><input type="text" data-ixk="unit" value="${esc(x.unit)}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}"><input type="text" inputmode="decimal" data-ixk="lo" value="${esc(x.lo)}" placeholder="${esc(t("参考下限"))}" aria-label="${esc(t("参考下限"))}"><input type="text" inputmode="decimal" data-ixk="hi" value="${esc(x.hi)}" placeholder="${esc(t("参考上限"))}" aria-label="${esc(t("参考上限"))}">`)).join("")}</div>`}
     <div class="btns">${ed ? `<button type="button" class="btn primary" data-ix="save">${t("保存修改")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button><button type="button" class="btn danger" data-ix="del">${t("删除")}</button>`
       : `<button type="button" class="btn primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button>`}</div>`;
   $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${home ? "📏" : "✦"} ${esc(t(home ? "量一次身高体重" : "AI 一次录入体检 / 就诊"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${read}${form}
@@ -316,7 +340,7 @@ function readIx(){
   });
 }
 const keepVitals = () => VITALS.some(([k]) => X[k] != null) || (X.src !== "自己记录" && EXTRA_KEYS.some(k => X[k] != null)) || X.note.trim() || X.clinic.trim() || (X.doctor || "").trim();
-const listed = () => (X.src === "自己记录" ? [] : [...X.vaccines, ...X.meds, ...X.milestones].filter(x => x.on && x.name));
+const listed = () => [...(X.src === "自己记录" ? [] : [...X.vaccines, ...X.meds, ...X.milestones].filter(x => x.on && x.name)), ...(X.rows || []).filter(rowOk), ...(H.hlOk ? (X.labs || []).filter(labOk) : [])];
 const count = () => (keepVitals() ? 1 : 0) + listed().length;
 
 async function aiRead(){
@@ -346,7 +370,13 @@ async function aiRead(){
       return { on: !seen && !later, seen, name: v.name, day: later ? "" : v.day || "", dose: v.dose || "", site: v.site || "" }; }));
     X.meds.push(...r.meds.map(m => { const seen = !!sameEntry(mine("bmed"), m.name, visit); return { on: !seen, seen, cat: m.cat, name: m.name, dose: m.dose }; }));
     X.milestones.push(...r.milestones.map(m => { const seen = !!sameEntry(mine("milestone"), m.name, null); return { on: !seen, seen, cat: m.cat, name: m.name }; }));
-    const skip = [...X.vaccines, ...X.meds, ...X.milestones].filter(v => v.seen).length;
+    // 表格：每个日期一行体征；那天已经有记录的默认不勾（勾上 = 补进那一条）
+    X.rows.push(...r.rows.map(x => { const seen = !!sameDay(x.day);
+      return { on: !seen, seen, day: x.day, src: x.src || "", w: disp1("weight", x.weight), l: disp1("length", x.length), h: disp1("head", x.head), temp: x.temp, ex: Object.fromEntries(EXTRA_KEYS.filter(k => x[k] != null).map(k => [k, x[k]])) }; }));
+    // 化验：没写日期的用这次就诊的日期；同一天同一项已经有的默认不勾（勾上 = 改成新读到的数）
+    X.labs.push(...r.labs.map(x => { const d = x.day || dayKey(X.ts), seen = !!labSeen(d, x.name);
+      return { on: !seen, seen, day: d, name: x.name, value: String(x.value), unit: x.unit || "", lo: x.lo ?? "", hi: x.hi ?? "" }; }));
+    const skip = [...X.vaccines, ...X.meds, ...X.milestones, ...X.rows, ...X.labs].filter(v => v.seen).length;
     X.read = true; toast(skip ? t("读出来了，请核对（{n} 条已经记过，没勾）", { n: skip }) : t("读出来了，请核对"));
   } catch (e) { toast(t("读取失败：{msg}", { msg: String(e.message || e).slice(0, 100) })); }
   finally { if (X) { X.busy = false; draw(); } }
@@ -369,7 +399,29 @@ async function save(){
     for (const m of X.meds) if (m.on && m.name) rows.push(keepOld({ type: "bmed", cat: m.cat || "药物", name: m.name, dose: m.dose, note: t("{src}时医生开的", { src: t(X.src) }) }, sameEntry(mine("bmed"), m.name, visit), "note"));
     for (const m of X.milestones) if (m.on && m.name) rows.push(keepOld({ type: "milestone", cat: m.cat || "认知", name: m.name, note: t("{src}时医生看到的", { src: t(X.src) }) }, sameEntry(mine("milestone"), m.name, null), "note"));
   }
-  if (!rows.length) return;
+  // 表格里的每个日期：和这次就诊同一天的并进上面那一条；其他日期各一条（那天已有记录就补进去）
+  const visitRow = rows.find(r => r.type === "baby" && !r.ts);
+  for (const x of X.rows.filter(rowOk)) {
+    const ts = new Date(x.day + "T09:00:00").getTime(); if (ts > Date.now()) { toast(t("日期不能晚于今天")); return; }
+    const vals = Object.fromEntries(Object.entries({ weight: fromDisp("weight", x.w), length: fromDisp("length", x.l), head: fromDisp("head", x.h), temp: x.temp, ...x.ex }).filter(([, v]) => v != null));
+    if (visitRow && x.day === visit) { for (const [k, v] of Object.entries(vals)) if (visitRow[k] == null) visitRow[k] = v; continue; }
+    rows.push({ type: "baby", ts, src: x.src || (X.src === "自己记录" ? "自己记录" : X.src), ...vals, old: sameDay(x.day) });
+  }
+  const labs = H.hlOk ? X.labs.filter(labOk) : [];
+  if (!rows.length && !labs.length) return;
+  let labN = 0;
+  if (labs.length) {   // 化验：新的一次插入；同一天同一项已有的改成新读到的数
+    const rec = x => ({ subject: subj(), day: x.day, name: x.name.trim(), value: +x.value, unit: (x.unit || "").trim(), ref_low: numOr(x.lo), ref_high: numOr(x.hi), ai_used: true });
+    const fresh = labs.filter(x => !labSeen(x.day, x.name)).map(rec);
+    if (fresh.length) { const { data, error } = await SB.client.from("hl_labs").insert(fresh).select(); if (error) { toast(t("化验没存上：{m}", { m: error.message })); return; } H.labs = [...H.labs, ...(data || [])]; labN += fresh.length; }
+    for (const x of labs.filter(x => labSeen(x.day, x.name))) {
+      const old = labSeen(x.day, x.name), upd = rec(x);
+      const { data, error } = await SB.client.from("hl_labs").update(upd).eq("id", old.id).select().single();
+      if (error) { toast(t("化验没存上：{m}", { m: error.message })); return; }
+      H.labs = H.labs.map(y => (y.id === old.id ? data : y)); labN++;
+    }
+  }
+  if (!rows.length) { X = null; closeSheet(); toast(t("已保存 {n} 项化验", { n: labN })); render(); return; }
   const out = rows.map(({ old, ...r }, i) => {
     const data = old ? { ...mergeInto(old, r), id: old.id, ts: old.ts, updated: now } : { ...base, ...r, id: id(i) };
     for (const k of Object.keys(data)) if (data[k] === "" || data[k] == null) delete data[k];
@@ -378,7 +430,7 @@ async function save(){
   if (error) { toast(t("没记上：{m}", { m: error.message })); return; }
   const ids = new Set(out.map(o => o.id)), upd = rows.filter(r => r.old).length;
   H.rows = [...out.map(o => ({ ...o.data, id: o.id, type: o.type, ts: o.ts })), ...H.rows.filter(e => !ids.has(e.id))];
-  X = null; closeSheet(); toast(upd ? t("已保存 {n} 条（其中 {u} 条是更新已有的）", { n: out.length, u: upd }) : t("已保存 {n} 条", { n: out.length })); render();
+  X = null; closeSheet(); toast((upd ? t("已保存 {n} 条（其中 {u} 条是更新已有的）", { n: out.length, u: upd }) : t("已保存 {n} 条", { n: out.length })) + (labN ? ` · ${t("{n} 项化验", { n: labN })}` : "")); render();
 }
 
 document.addEventListener("click", async ev => {
@@ -424,12 +476,104 @@ function bodySummary(){
     history: p.conditions || "", allergies: p.allergies || "", long_term_meds: p.meds || ""
   };
 }
+/* ============ 每条记录的 AI 解读（体检 / 就诊 / 化验）：先看结果，再选「保留」；保留的可以重新分析或清除 ============
+   格式和牧羊人的就诊解读一样（plain / agree / differ / questions），多了 advice（医生建议是什么意思、怎么做）和 follow（后续注意）。
+   存在哪：小月亮的记录 → 记录里的 ai；牧羊人的就诊 → hl_visits.ai（牧羊人也显示）；某一天的化验 → 档案 data.ai_labdays[日期]。
+   发给 AI 的：年龄、性别、体征和同龄正常范围、医生写的总结 / 建议、同一天的疫苗 / 用药 / 化验、之前几次的数；不发姓名、不发医院和医生的名字。 */
+const REC_AI_OK = LS_PREFIX + ".recAiOk";
+const langName = () => ({ "zh-TW": "Traditional Chinese", en: "English" }[locale()] || "Simplified Chinese");
+const REC_AI_SYSTEM = () => `You explain a child's pediatric record (a well-child checkup, a sick visit, or lab results) to a parent in plain language. You are not a doctor.
+Input is de-identified JSON: age, sex, record kind, measurements with percentiles and the normal range for this age, the doctor's own summary and advice as written, vaccines / medicines / labs from the same day, and earlier values for trends.
+Reply ONLY with JSON: {"plain":"3-5 sentences: what this visit or these results show overall","advice":["each piece of the doctor's advice: what it means and how to do it at home (empty if the input has no advice)"],"follow":["what to keep an eye on next, when to recheck, and warning signs that need a doctor sooner"],"agree":["where the numbers support the doctor's assessment"],"differ":["anything worth raising with the doctor, phrased as a topic to ask about, never as a contradiction"],"questions":["up to 4 concrete questions for the next visit"]}.
+Use the given normal ranges and the lab's own reference ranges. Never diagnose, never suggest starting, stopping or changing a medicine. Keep each item short. Write in ${langName()}.`;
+let AIP = null;   // 刚分析出来、还没决定保不保留的：{ k, ai }
+const aiList = (title, arr) => (arr && arr.length ? `<b>${esc(t(title))}</b><ul>${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "");
+const aiBody = a => `${a.plain ? `<p>${esc(a.plain)}</p>` : ""}${aiList("医生建议是什么意思、怎么做", a.advice)}${aiList("后续注意", a.follow)}${aiList("和医生意见一致的", a.agree)}${aiList("可以问问医生的", a.differ)}${aiList("下次可以问的问题", a.questions)}`;
+function aiSavedHTML(k, a, busy){
+  return `<details class="gb-ai"><summary>✦ ${t("AI 解读")} <span class="small muted">${esc(String(a.at || "").slice(0, 10))}</span></summary><div class="gb-ai-in">${aiBody(a)}
+    <div class="btns"><button type="button" class="btn sm" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="btn sm" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
+    <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。")}</p></div></details>`;
+}
+const ageOf = ts => { const m = ageMonths(S.childId, ts); return m == null ? null : m < 24 ? `${m} months` : `${Math.floor(m / 12)} years ${m % 12} months`; };
+const sexOf = () => ({ m: "boy", f: "girl" }[genderOf()] || null);
+const prevDays = (ts, n) => mine("baby").filter(e => e.ts < ts - D && (e.weight || e.length || e.bmi || e.bp_sys)).slice(0, n)
+  .map(e => ({ date: dayKey(e.ts), weight_kg: e.weight ?? null, height_cm: e.length ?? null, bmi: e.bmi ?? null, weight_pct: e.wpct ?? null, height_pct: e.lpct ?? null }));
+const labIn = x => ({ test: x.name || x.code, value: +x.value, unit: x.unit || "", ref_low: x.ref_low, ref_high: x.ref_high, flag: labFlag(x) });
+/** 一条记录 → 发给 AI 的输入（不含姓名、医院、医生） */
+function aiInput(k){
+  const [kind, id] = [k.slice(0, 1), k.slice(2)];
+  if (kind === "e") {
+    const e = H.rows.find(r => r.id === id); if (!e) return null;
+    const m = ageMonths(S.childId, e.ts), sx = genderOf() || null, d = dayKey(e.ts), hr = hrRange(m), bp = bpLimit(m, sx);
+    const meas = Object.fromEntries(Object.entries({ weight_kg: e.weight, height_cm: e.length, head_cm: e.head, temp_c: e.temp, bmi: e.bmi, bp_systolic: e.bp_sys, bp_diastolic: e.bp_dia, pulse: e.pulse,
+      weight_pct: e.wpct, height_pct: e.lpct, head_pct: e.headpct, bmi_pct: e.bmipct }).filter(([, v]) => v != null && v !== ""));
+    const flags = ["pulse", "bp_sys", "bp_dia", "bmipct", "wpct", "lpct"].map(f => [f, vtFlag(f, e[f], m, sx)]).filter(([, v]) => v).map(([f, v]) => `${f}: ${v === "高" ? "high" : "low"}`);
+    return { record: e.src === "儿科体检" ? "well-child checkup" : "sick / urgent visit", date: d, age: ageOf(e.ts), sex: sexOf(), measurements: meas,
+      normal_ranges: { pulse: hr ? `${hr.lo}-${hr.hi}` : null, bp_screen_limit: bp ? `${bp.sys}/${bp.dia}` : null, bmi_band: e.bmipct != null ? bmiBand(+e.bmipct) : null, percentiles: "P3-P97 is the usual range" }, flags,
+      doctor_summary_and_advice: e.note || "", vaccines_same_day: mine("vax").filter(v => dayKey(v.ts) === d).map(v => [v.name, v.dose].filter(Boolean).join(" ")),
+      medicines_same_day: mine("bmed").filter(v => dayKey(v.ts) === d).map(v => [v.name, v.dose].filter(Boolean).join(" ")),
+      labs_same_day: H.labs.filter(x => x.subject === subj() && String(x.day).slice(0, 10) === d).map(labIn), earlier: prevDays(e.ts, 3),
+      history: ((profileRow() || {}).data || {}).conditions || "", allergies: ((profileRow() || {}).data || {}).allergies || "" };
+  }
+  if (kind === "v") {
+    const v = H.visits.find(x => x.id === id); if (!v) return null;
+    return { record: v.kind === "annual" ? "annual checkup" : "visit (" + v.kind + ")", date: v.day, age: ageOf(new Date(v.day + "T12:00:00").getTime()), sex: sexOf(), reason: v.reason || "", vitals: v.vitals || {},
+      diagnosis: v.diagnosis || "", doctor_advice: v.advice || "", labs_same_day: H.labs.filter(x => x.visit_id === v.id || (x.subject === v.subject && String(x.day).slice(0, 10) === v.day)).map(labIn),
+      history: ((profileRow() || {}).data || {}).conditions || "" };
+  }
+  const d = labDays().find(x => x.day === id); if (!d) return null;
+  const all = H.labs.filter(x => x.subject === subj());
+  return { record: "lab results", date: d.day, age: ageOf(new Date(d.day + "T12:00:00").getTime()), sex: sexOf(),
+    labs: d.rows.map(x => ({ ...labIn(x), earlier: all.filter(y => (y.code || y.name) === (x.code || x.name) && String(y.day).slice(0, 10) < d.day).sort((a, b) => String(b.day).localeCompare(String(a.day))).slice(0, 3).map(y => ({ date: String(y.day).slice(0, 10), value: +y.value })) })),
+    history: ((profileRow() || {}).data || {}).conditions || "" };
+}
+async function runAi(k){
+  if (!aiReady()) { toast(t("还没填 API key：在 我的 → 咩咩咩 里设置")); return; }
+  let ok = false; try { ok = localStorage.getItem(REC_AI_OK) === "1"; } catch (e) {}
+  if (!ok) { if (!confirm(t("会把这条记录的体征、医生的总结和建议、同一天的化验 / 疫苗 / 用药和孩子的年龄发给你自己设置的 AI 服务商（不发姓名、医院和医生名字）。继续吗？"))) return; try { localStorage.setItem(REC_AI_OK, "1"); } catch (e) {} }
+  const input = aiInput(k); if (!input) return;
+  H.aiBusy = k; render(); if ($("#sheet").open && AIP) drawAiSheet(true);
+  try {
+    const raw = await askText(REC_AI_SYSTEM(), JSON.stringify(input), { json: true, maxTokens: 2200 });
+    let o; try { o = JSON.parse(String(raw).replace(/^\s*```(json)?|```\s*$/g, "").trim()); } catch (e) { throw new Error(t("AI 返回的格式不对，再试一次")); }
+    const arr = x => (Array.isArray(x) ? x.map(y => String(y).slice(0, 400)).filter(Boolean).slice(0, 6) : []);
+    AIP = { k, ai: { at: new Date().toISOString(), plain: String(o.plain || "").slice(0, 1500), advice: arr(o.advice), follow: arr(o.follow), agree: arr(o.agree), differ: arr(o.differ), questions: arr(o.questions) } };
+    drawAiSheet(false); showSheet();
+  } catch (e) { toast(t("分析失败：{msg}", { msg: String(e.message || e).slice(0, 100) })); }
+  finally { H.aiBusy = null; render(); }
+}
+function drawAiSheet(busy){
+  if (!AIP) return;
+  $("#sheetIn").innerHTML = `${head(`✦ ${esc(t("AI 解读"))}`)}<div class="panel gb-ai-in">${aiBody(AIP.ai)}</div>
+    <div class="btns"><button type="button" class="btn primary" data-act="gr-b-aikeep">${t("保留")}</button><button type="button" class="btn" data-act="gr-b-ai" data-k="${esc(AIP.k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="btn" data-act="gr-b-aidrop">${t("不要")}</button></div>
+    <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。保留后显示在这条记录下面，可以重新分析或清除。")}</p>`;
+}
+/** 保存 / 清除一条记录的解读（ai = null 是清除） */
+async function storeAi(k, ai){
+  const [kind, id] = [k.slice(0, 1), k.slice(2)];
+  if (kind === "e") { const e = H.rows.find(r => r.id === id); if (!e) return false; const { ai: _, ...rest } = e; return putRow(ai ? { ...rest, ai } : rest); }
+  if (kind === "v") {
+    const { data, error } = await SB.client.from("hl_visits").update({ ai }).eq("id", id).select().single();
+    if (error) { toast(/column|ai/i.test(error.message || "") ? t("就诊的 AI 解读要先在 Supabase 执行 baby-log 的 028_shepherd_visit_place_ai.sql") : t("没存上：{m}", { m: error.message })); return false; }
+    H.visits = H.visits.map(x => (x.id === id ? data : x)); return true;
+  }
+  const cur = profileRow(), d = (cur || {}).data || {}, map = { ...(d.ai_labdays || {}) };
+  if (ai) map[id] = ai; else delete map[id];
+  const data = { ...d, ai_labdays: map };
+  const { data: row, error } = await (cur ? SB.client.from("hl_profiles").update({ data }).eq("id", cur.id).select().single() : SB.client.from("hl_profiles").insert({ subject: subj(), data }).select().single());
+  if (error) { toast(t("没存上：{m}", { m: error.message })); return false; }
+  H.profiles = [...H.profiles.filter(p => p.id !== row.id), row]; return true;
+}
 const VT_Q = "看看孩子的这些体征（体重、身高、BMI、血压、心率）：和同龄正常范围比怎么样？走势有没有要注意的？平时可以怎么做？什么情况要去看医生？";
 function bodyAct(act, btn){
   if (act === "gr-profile") { openProfile(); return true; }
   if (act === "gr-body-reload") { loadBody(true); return true; }
   if (act === "gr-b-view") { BF.view = btn.dataset.v === "timeline" ? "timeline" : "list"; render(); return true; }
   if (act === "gr-b-vax") { editVax(btn.dataset.id); return true; }
+  if (act === "gr-b-ai") { runAi(btn.dataset.k); return true; }
+  if (act === "gr-b-aikeep") { if (AIP) storeAi(AIP.k, AIP.ai).then(ok => { if (ok) { AIP = null; closeSheet(); toast(t("已保留")); render(); } }); return true; }
+  if (act === "gr-b-aidrop") { AIP = null; closeSheet(); return true; }
+  if (act === "gr-b-aiclr") { if (confirm(t("清除这条 AI 解读？"))) storeAi(btn.dataset.k, null).then(ok => { if (ok) { toast(t("已清除")); render(); } }); return true; }
   if (act === "gr-b-med") { editMed(btn.dataset.id); return true; }
   if (act === "gr-vt-ask") { askAbout({ q: t(VT_Q), extra: vitalsContext(mine("baby"), vtCtx()), name: t("基本体征摘要"), from: "growth" }); return true; }
   return false;

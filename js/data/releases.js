@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-15.4", title: { zh: "AI 录入能一次读整张表；每条体检、就诊、化验都能让 AI 解读", en: "AI entry reads whole tables; AI explains each checkup, visit and lab" }, items: [
+    { k: "new", zh: "AI 录入：生长表、历次体征表按日期一行读出来，化验单每一项连参考范围一起读出来；核对后一次存成多条，化验存到化验页", en: "AI entry: growth and vitals tables are read one row per date, lab sheets item by item with reference ranges; review and save them all at once, labs go to the Labs page" },
+    { k: "new", zh: "体检与就诊、化验（按日期）每条都有「✦ AI 解读」：这次结果说明、医生建议是什么意思怎么做、后续注意、下次可以问医生的问题", en: "Each checkup, visit and lab date has \"✦ AI explanation\": what the results show, what the doctor's advice means, what to watch next, questions for next time" },
+    { k: "better", zh: "解读先给你看，选「保留」才存下来；保留的可以重新分析或清除。牧羊人的就诊解读两边通用", en: "You see the explanation first and choose Keep to save it; kept ones can be redone or cleared. Visit explanations are shared with Shepherd" }
+  ] },
   { v: "2026-11-15.3", title: { zh: "筛选、排序、搜索换成统一的一条", en: "One consistent filter bar everywhere" }, items: [
     { k: "better", zh: "成长记录、身体与健康、经文卡库、资源库、日常点子、冲突管理和睡前的记录：一行搜索框 + 下拉筛选 + 排序，和爱家小助手同一个样子", en: "Growth records, health, scripture cards, resources, ideas, conflict and bedtime records: one row with search, filter dropdowns and sort, same as Home Helper" },
     { k: "new", zh: "成长记录可以搜索、按类型筛、选最新或最早在前；改过筛选会出现「✕ 清除筛选」", en: "Growth records can be searched, filtered by type and sorted newest or oldest first; \"✕ Clear filters\" appears when a filter is set" },

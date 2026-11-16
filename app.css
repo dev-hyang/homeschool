@@ -1345,3 +1345,28 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .gr-sh + .toolbar{margin-top:-2px}
 .toolbar + .gr-tags{margin:-2px 0 10px}
 .rf-bar .toolbar{margin-bottom:6px}
+/* ── 11-15 每条记录的 AI 解读（体检 / 就诊 / 化验）：行尾一个小按钮；保留的解读收在这一条下面，点开看 ── */
+.gb-ai-btn{min-height:36px;padding:4px 12px;font-size:13.5px;white-space:nowrap}
+.gb-rec{border-bottom:1px solid var(--line)}
+.gb-rec:last-child{border-bottom:0}
+.gb-rec > .task{border-bottom:0}
+.gb-ai{margin:0 0 10px 14px;border-left:3px solid var(--slate);border-radius:0 var(--radius-sm) var(--radius-sm) 0;background:var(--slate-soft)}
+.gb-ai > summary{list-style:none;cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;padding:6px 12px;font-weight:600;color:var(--slate)}
+.gb-ai > summary::-webkit-details-marker{display:none}
+.gb-ai > summary::after{content:"▸";margin-left:auto;color:var(--muted);transition:transform .15s}
+.gb-ai[open] > summary::after{transform:rotate(90deg)}
+.gb-ai > summary:focus-visible{outline:3px solid var(--focus,#9ec5fe);outline-offset:1px}
+.gb-ai-in{padding:0 12px 10px;font-size:14.5px;line-height:1.55}
+.gb-ai-in p{margin:0 0 8px}
+.gb-ai-in b{display:block;margin:10px 0 2px;font-size:13.5px}
+.gb-ai-in ul{margin:0;padding-left:20px}
+.gb-ai-in li{margin:2px 0}
+.gb-ai-in .btns{margin-top:10px}
+.panel.gb-ai-in{padding:14px 16px}
+@media (max-width:440px){.gb-ai{margin-left:6px}.gb-ai-btn{padding:4px 10px}}
+/* AI 录入的表格行（多次测量 / 化验）：日期一行，几个数并排，手机上不一格一行 */
+.ix-list[data-ixlist="rows"] .ix-cells input[type=date],.ix-list[data-ixlist="labs"] .ix-cells input[type=date]{flex:1 1 100%}
+.ix-list[data-ixlist="rows"] .ix-cells input[type=number]{flex:1 1 64px;min-width:0}
+.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="name"]{flex:1 1 100%}
+.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="value"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="unit"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="lo"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="hi"]{flex:1 1 56px;min-width:0}
+@media (min-width:640px){.ix-list[data-ixlist="rows"] .ix-cells input[type=date],.ix-list[data-ixlist="labs"] .ix-cells input[type=date]{flex:0 1 170px}.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="name"]{flex:1 1 160px}}
