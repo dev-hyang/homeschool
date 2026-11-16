@@ -1392,3 +1392,17 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .lab-chart{display:block;width:100%;height:auto;max-height:240px}
 .lab-ax{font-size:10px;fill:var(--muted)}
 @media (hover:hover) and (min-width:900px){.lab-chart{max-height:280px}}
+
+/* ===== 录入化验：整张表（手机上每项两行：名字 + 结果 / 单位 / 范围；电脑上一行） ===== */
+.lb-tbl{border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface);padding:2px 10px;margin:4px 0 10px}
+.lb-row{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.lb-row:last-child{border-bottom:0}
+.lb-row.flag-high,.lb-row.flag-low{background:var(--rose-soft);margin:0 -10px;padding:10px;border-radius:var(--radius-sm)}
+.lb-name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:600;font-size:15px;min-width:0}
+.lb-cells{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,2fr);gap:8px;align-items:center}
+.lb-rng{display:flex;align-items:center;gap:4px;min-width:0}
+.lb-in{box-sizing:border-box;width:100%;min-width:0;min-height:44px;border:1px solid var(--line);background:var(--field);border-radius:var(--radius-sm);padding:9px 10px;font-size:16px;color:var(--ink)}
+.lb-nm{font-weight:600}
+.lb-hint{margin:0 0 6px}
+.lb-seg{flex-wrap:wrap}
+@media (min-width:720px){.lb-row{grid-template-columns:minmax(170px,1fr) 2.2fr;align-items:center}}

@@ -211,7 +211,7 @@ function vaxPage(){
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `${aiBtn()}<a class="btn sm" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
+  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}${aiBtn(!H.hlOk)}<a class="btn sm" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
   if (!H.hlOk) return `${top(btn)}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
@@ -221,7 +221,7 @@ function labsPage(){
   const sections = groups.map(([g, items]) => { const nb = items.filter(it => labFlag(it.last)).length;
     return `<section class="gr-sec"><div class="gr-sh"><h2>${esc(t(LAB_GROUPS[g]))} <span class="small muted gr-n">${t("{n} 项", { n: items.length })}${nb ? ` · ${t("{n} 项超出范围", { n: nb })}` : ""}</span></h2></div><div class="panel mlist">${items.map(item).join("")}</div></section>`; }).join("");
   return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
-    ${sections || `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("还没有化验记录。点上面的「AI 录入」拍化验单，或去牧羊人里录入。")}</p></div>`}
+    ${sections || `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("还没有化验记录。点上面的「录入化验」，拍化验单让 AI 填表，或自己填。")}</p></div>`}
     <p class="small muted gr-foot">${t("点一项看走势和每次的记录，可以改或删。范围以化验单为准。")}</p>
     ${recList("labdays", "按日期", labDays().map(d => ({ ts: new Date(d.day + "T12:00:00").getTime(), icon: d.bad ? "⚠️" : "🧪", title: t("{n} 项化验", { n: d.rows.length }) + (d.bad ? ` · ${t("{n} 项超出范围", { n: d.bad })}` : ""),
       meta: d.rows.map(x => `${labTitle(labKeyOf(x), x)} ${labNum(x.value)}${x.unit ? " " + x.unit : ""}${labFlag(x) ? (labFlag(x) === "high" ? " ↑" : " ↓") : ""}`).join(" · "), aiK: "l:" + d.day, ai: (labAi()[d.day]) || null, bad: !!d.bad })),
@@ -649,6 +649,121 @@ async function storeAi(k, ai){
   if (error) { toast(t("没存上：{m}", { m: error.message })); return false; }
   H.profiles = [...H.profiles.filter(p => p.id !== row.id), row]; return true;
 }
+/* ---- 录入化验（11-16）：和牧羊人的「录入化验」同一个样子——日期、套餐、整张表一次填；也可以拍化验单 / 贴文字，让 AI 把表填好再核对 ----
+   LB.vals = { 项目代码: { value, unit, ref_low, ref_high } }；对不上内置项目的放 LB.extra = [{ name, value, unit, ref_low, ref_high }]。
+   表里改的数字马上记进 LB（input 事件，不重画，光标不跳）；切换套餐不会丢。保存时只存填了数字的；同一天同一项已有的改成新填的数。
+   参考范围不预填：内置的常见范围是成人的，孩子不一样；范围以化验单为准（AI 读图会带上单子上的范围，也可以手填）。 */
+const LATT = "hs-labs";
+let LB = null;
+const lbFilled = v => !!v && v.value !== "" && v.value != null && !isNaN(+v.value);
+const lbFlagOf = v => (lbFilled(v) ? labFlag({ value: +v.value, ref_low: numOr(v.ref_low), ref_high: numOr(v.ref_high) }) : null);
+const lbCount = g => Object.entries(LB.vals).filter(([c, v]) => lbFilled(v) && LABS[c] && LABS[c].group === g).length + (g === "other" ? LB.extra.filter(lbFilled).length : 0);
+const lbTotal = () => Object.keys(LAB_GROUPS).reduce((a, g) => a + lbCount(g), 0);
+function openLabBatch(){
+  if (!fid() || !H.hlOk) return;
+  attachReset(LATT);
+  LB = { day: dayKey(Date.now()), panel: "lipid", vals: {}, extra: [], fasting: false, busy: false, ai: false };
+  drawLb(); showSheet();
+}
+function lbRow(attr, label, v, unitDef){
+  const f = lbFlagOf(v), cell = (k, val, cls, ph, aria, num = true) => `<input class="lb-in ${cls}" ${attr} data-lbf="${k}" type="text" ${num ? 'inputmode="decimal"' : ""} autocomplete="off" value="${esc(val ?? "")}" placeholder="${esc(t(ph))}" aria-label="${esc(aria)}">`;
+  const nm = attr.startsWith("data-lbx") ? "" : label;
+  return `<div class="lb-row ${f ? "flag-" + f : ""}" ${attr}><div class="lb-name">${attr.startsWith("data-lbx") ? cell("name", v.name, "lb-nm", "项目名称", t("项目名称"), false) : nm}<span class="lb-f">${f ? flagTxt(f) : ""}</span></div>
+    <div class="lb-cells">${cell("value", v.value, "lb-v", "结果", `${nm || v.name || ""} ${t("结果")}`)}${cell("unit", v.unit ?? unitDef, "lb-u", "单位", t("单位"), false)}
+      <span class="lb-rng">${cell("ref_low", v.ref_low, "lb-r", "下限", t("参考范围：下限（可不填）"))}<span aria-hidden="true">–</span>${cell("ref_high", v.ref_high, "lb-r", "上限", t("参考范围：上限（可不填）"))}</span></div></div>`;
+}
+function drawLb(){
+  if (!LB) return;
+  const g = LB.panel, items = Object.entries(LABS).filter(([, x]) => x.group === g), n = lbTotal();
+  const rows = items.map(([c, x]) => lbRow(`data-lbk="${esc(c)}"`, esc(locale() === "en" ? x.en : t(x.name)), LB.vals[c] || {}, x.unit)).join("")
+    + (g === "other" ? LB.extra.map((v, i) => lbRow(`data-lbx="${i}"`, "", v, "")).join("") : "");
+  $("#sheetIn").innerHTML = `${head(`🧪 ${esc(t("录入化验"))}`)}
+    <div class="panel lb-ai"><p class="small muted" style="margin:0 0 8px">${t("拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。")}</p>
+      ${attachHTML(LATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：LDL 104 mg/dL（参考 <100），血红蛋白 12.1 g/dL（11.5–15.5）"), forceOpen: LB.busy })}
+      <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
+      <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>
+    <div class="field"><label for="lb_day">${t("采样日期")}</label><input id="lb_day" type="date" data-lbd="day" max="${dayKey(Date.now())}" value="${esc(LB.day)}"></div>
+    <div class="field"><div class="lab" id="lb_panel">${t("套餐")}</div><div class="seg lb-seg" role="group" aria-labelledby="lb_panel">${Object.entries(LAB_GROUPS).map(([k, l]) => `<button type="button" data-lb="panel" data-v="${k}" aria-pressed="${g === k}">${esc(t(l))}${lbCount(k) ? ` · ${lbCount(k)}` : ""}</button>`).join("")}</div></div>
+    <div class="lb-tbl">${rows}</div>${g === "other" ? `<button type="button" class="chip" data-lb="extra">＋ ${t("加一项（单子上别的项目）")}</button>` : ""}
+    <div class="field"><label class="check"><input type="checkbox" data-lbd="fasting" ${LB.fasting ? "checked" : ""}>${t("空腹采血")}</label></div>
+    <p class="small muted lb-hint">${t("参考范围以化验单为准（孩子和成人不一样，这里不预填）。")}</p>
+    <div class="btns"><button type="button" class="btn primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
+}
+/** 改了数字之后只更新提示、套餐上的数目和保存按钮（不重画，光标不跳） */
+function lbRefresh(row){
+  if (row) { const v = row.dataset.lbk !== undefined ? LB.vals[row.dataset.lbk] : LB.extra[+row.dataset.lbx], f = lbFlagOf(v || {});
+    row.classList.remove("flag-high", "flag-low"); if (f) row.classList.add("flag-" + f); const el = row.querySelector(".lb-f"); if (el) el.innerHTML = f ? flagTxt(f) : ""; }
+  const n = lbTotal(), btn = $("#sheetIn [data-lb=save]"); if (btn) { btn.disabled = !n; btn.textContent = n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的"); }
+  $("#sheetIn").querySelectorAll("[data-lb=panel]").forEach(b => { const k = b.dataset.v, c = lbCount(k); b.textContent = t(LAB_GROUPS[k]) + (c ? ` · ${c}` : ""); });
+}
+async function lbRead(){
+  if (!attachHas(LATT)) { toast(t("先拍照 / 选图片，或者打一段话")); return; }
+  if (!aiReady()) { toast(t("还没填 API key：在 我的 → 咩咩咩 里设置")); return; }
+  let ok = false; try { ok = localStorage.getItem(OK_KEY) === "1"; } catch (e) {}
+  if (!ok) { if (!confirm(t("照片和文字会发给你自己设置的 AI 服务商来读取（提示里要求它不要读姓名、生日、地址）；不保存照片。继续吗？"))) return; try { localStorage.setItem(OK_KEY, "1"); } catch (e) {} }
+  LB.busy = true; drawLb();
+  try {
+    const { images, text } = attachPayload(LATT);
+    const r = parseIntake(await askText(INTAKE_SYSTEM, `Read this lab report: put every test row in "labs" with its value, unit and printed reference range.${text ? "\nParent's notes:\n" + text.slice(0, 12000) : ""}`, { json: true, images, maxTokens: 6000 }));
+    if (!r || !r.labs.length) throw new Error(t("没读出化验项目，换一张清楚点的照片或多写几句试试"));
+    if (!LB) return;
+    // 单子里可能有好几个日期：这张表只放一天，取项目最多的那天（并列取最近的）；其余的请用「AI 录入体检」，它按日期一行一行读
+    const today = dayKey(Date.now()), dayOf = x => x.day || r.day || LB.day, cnt = new Map();
+    for (const x of r.labs) cnt.set(dayOf(x), (cnt.get(dayOf(x)) || 0) + 1);
+    const best = [...cnt].sort((a, b) => b[1] - a[1] || b[0].localeCompare(a[0]))[0][0];
+    let skipped = 0;
+    for (const x of r.labs) {
+      if (dayOf(x) !== best) { skipped++; continue; }
+      const code = LAB_BY_NAME.get(labNorm(x.name)), v = { value: String(x.value), unit: x.unit || (code ? LABS[code].unit : ""), ref_low: x.lo ?? "", ref_high: x.hi ?? "" };
+      if (code) LB.vals[code] = v; else LB.extra.push({ name: x.name, ...v });
+    }
+    if (best <= today) LB.day = best;
+    const counts = Object.keys(LAB_GROUPS).map(g => [g, lbCount(g)]).sort((a, b) => b[1] - a[1]);
+    if (counts[0][1]) LB.panel = counts[0][0];
+    LB.ai = true;
+    toast(skipped ? t("读出来了；另外 {n} 项是别的日期，请用「AI 录入体检」按日期录入", { n: skipped }) : t("读出来了，请核对"));
+  } catch (e) { toast(t("读取失败：{m}", { m: String((e && e.message) || e).slice(0, 100) })); }
+  finally { if (LB) { LB.busy = false; drawLb(); } }
+}
+async function saveLb(){
+  if (!LB.day) { toast(t("请填日期")); return; }
+  if (LB.day > dayKey(Date.now())) { toast(t("日期不能晚于今天")); return; }
+  const out = [];
+  for (const [c, v] of Object.entries(LB.vals)) if (lbFilled(v) && LABS[c]) out.push({ code: c, name: "", value: +v.value, unit: (v.unit ?? LABS[c].unit) || "", ref_low: numOr(v.ref_low), ref_high: numOr(v.ref_high) });
+  for (const v of LB.extra.filter(lbFilled)) {
+    const nm = String(v.name || "").trim(); if (!nm) { toast(t("「其他」里填了结果的项目要写名字")); return; }
+    const code = LAB_BY_NAME.get(labNorm(nm)) || "";
+    out.push({ code, name: code ? "" : nm.slice(0, 80), value: +v.value, unit: String(v.unit || "").trim(), ref_low: numOr(v.ref_low), ref_high: numOr(v.ref_high) });
+  }
+  if (!out.length) { toast(t("请至少填一项结果")); return; }
+  const rec = x => ({ ...x, subject: subj(), day: LB.day, ai_used: LB.ai, ...(LB.fasting ? { notes: t("空腹") } : {}) });
+  const seen = x => H.labs.find(y => y.subject === subj() && String(y.day).slice(0, 10) === LB.day && labKeyOf(y) === labKeyOf(x)) || null;
+  const fresh = out.filter(x => !seen(x)).map(rec), upd = out.filter(x => seen(x));
+  if (fresh.length) { const { data, error } = await SB.client.from("hl_labs").insert(fresh).select(); if (error) { toast(t("化验没存上：{m}", { m: error.message })); return; } H.labs = [...H.labs, ...(data || [])]; }
+  for (const x of upd) {
+    const old = seen(x), { data, error } = await SB.client.from("hl_labs").update(rec(x)).eq("id", old.id).select().single();
+    if (error) { toast(t("化验没存上：{m}", { m: error.message })); return; }
+    H.labs = H.labs.map(y => (y.id === old.id ? data : y));
+  }
+  LB = null; closeSheet(); toast(t("已保存 {n} 项化验", { n: out.length })); render();
+}
+document.addEventListener("click", async ev => {
+  const b = ev.target.closest && ev.target.closest("[data-lb]"); if (!b || !LB) return;
+  switch (b.dataset.lb) {
+    case "panel": LB.panel = b.dataset.v; drawLb(); return;
+    case "extra": LB.extra.push({ name: "", value: "", unit: "", ref_low: "", ref_high: "" }); drawLb(); return;
+    case "read": await lbRead(); return;
+    case "save": await saveLb(); return;
+  }
+});
+document.addEventListener("input", ev => {
+  const el = ev.target; if (!LB || !el.dataset || !el.closest || !el.closest("#sheetIn")) return;
+  if (el.dataset.lbd === "day") { LB.day = el.value; return; }
+  if (el.dataset.lbd === "fasting") { LB.fasting = el.checked; return; }
+  const row = el.closest(".lb-row"); if (!row || el.dataset.lbf === undefined) return;
+  const v = row.dataset.lbk !== undefined ? (LB.vals[row.dataset.lbk] ||= {}) : LB.extra[+row.dataset.lbx]; if (!v) return;
+  v[el.dataset.lbf] = el.value; lbRefresh(row);
+});
 const VT_Q = "看看孩子的这些体征（体重、身高、BMI、血压、心率）：和同龄正常范围比怎么样？走势有没有要注意的？平时可以怎么做？什么情况要去看医生？";
 function bodyAct(act, btn){
   if (act === "gr-profile") { openProfile(); return true; }
@@ -658,6 +773,7 @@ function bodyAct(act, btn){
   if (act === "gr-lab-open") { H.labKey = btn.dataset.k; S.tab = "gr-lab"; render(); window.scrollTo(0, 0); return true; }
   if (act === "gr-lab-edit") { const x = H.labs.find(y => y.id === btn.dataset.id); if (x) labForm(x); return true; }
   if (act === "gr-lab-add") { labForm(null, btn.dataset.k); return true; }
+  if (act === "gr-lab-batch") { openLabBatch(); return true; }
   if (act === "gr-b-ai") { runAi(btn.dataset.k); return true; }
   if (act === "gr-b-aikeep") { if (AIP) storeAi(AIP.k, AIP.ai).then(ok => { if (ok) { AIP = null; closeSheet(); toast(t("已保留")); render(); } }); return true; }
   if (act === "gr-b-aidrop") { AIP = null; closeSheet(); return true; }

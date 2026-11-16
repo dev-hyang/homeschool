@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.5", title: { zh: "化验页可以直接录入整张化验表，AI 帮你填", en: "Enter a whole lab sheet right in Labs, with AI filling the table" }, items: [
+    { k: "new", zh: "化验页新增「＋ 录入化验」：选日期和套餐（血脂、血常规、代谢综合…），一次填好整张表的结果、单位和参考范围，和牧羊人里的录入一样", en: "New \"+ Enter labs\" on the Labs page: pick the date and panel (lipids, blood count, metabolic…) and fill results, units and reference ranges for the whole sheet, like in Shepherd" },
+    { k: "new", zh: "拍化验单或粘贴文字，AI 把表填好，你核对后保存；单子上有多个日期时先填项目最多的那天，并提示其余的怎么录", en: "Photograph a lab sheet or paste text and AI fills the table for you to check; if the sheet has several dates, the date with the most results is filled and you are told how to enter the rest" },
+    { k: "better", zh: "孩子的参考范围不预填（内置的是成人范围），以化验单上的为准；同一天同一项已有的会更新，不会重复记", en: "Reference ranges are not pre-filled for children (built-in ones are adult ranges); use the lab sheet's. A result already saved for the same day and test is updated, not duplicated" }
+  ] },
   { v: "2026-11-16.4", title: { zh: "化验页重做：按套餐分组，有走势和历史，能改能再记", en: "Labs page redone: grouped by panel, with trends and history, editable" }, items: [
     { k: "new", zh: "化验按「血脂、血常规、代谢综合…」分组，每项显示最新值、是否超出范围和一条小走势", en: "Labs are grouped by panel (lipids, blood count, metabolic…); each test shows its latest value, whether it is out of range and a small trend" },
     { k: "new", zh: "点一项进入单项页：参考范围里的位置、完整走势图、每次的记录；点一条可以改或删，也能「再记一次这一项」", en: "Tap a test for its own page: where it sits in the range, a full trend chart and every result; tap one to edit or delete, or add another result" },

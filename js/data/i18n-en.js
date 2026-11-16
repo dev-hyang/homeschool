@@ -1180,7 +1180,15 @@ const EN = {
   "参考范围：下限（可不填）": "Reference range: low (optional)", "参考范围：上限（可不填）": "Reference range: high (optional)", "请填结果（数字）": "Enter the result (a number)",
   "删除这一项化验结果？": "Delete this lab result?", "在范围内": "In range", "血脂": "Lipids", "代谢综合（CMP）": "Metabolic panel (CMP)", "血常规（CBC）": "Blood count (CBC)",
   "糖化 / 血糖": "HbA1c / glucose", "甲状腺": "Thyroid", "维生素与铁": "Vitamins and iron",
-  "还没有化验记录。点上面的「AI 录入」拍化验单，或去牧羊人里录入。": "No lab results yet. Use “AI entry” above to photograph a lab sheet, or enter them in Shepherd.",
+  "还没有化验记录。点上面的「录入化验」，拍化验单让 AI 填表，或自己填。": "No lab results yet. Tap “Enter labs” above: photograph a lab sheet and let AI fill the table, or type it in.",
+  "录入化验": "Enter labs", "拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。": "Photograph the lab sheet or a patient-portal screenshot (several are fine), or paste the text; AI fills the table below and you check it before saving. You can also skip AI and fill the table yourself.",
+  "例：LDL 104 mg/dL（参考 <100），血红蛋白 12.1 g/dL（11.5–15.5）": "e.g. LDL 104 mg/dL (ref <100), hemoglobin 12.1 g/dL (11.5–15.5)",
+  "采样日期": "Collection date", "套餐": "Panel", "加一项（单子上别的项目）": "Add a test (anything else on the sheet)", "空腹采血": "Fasting draw",
+  "参考范围以化验单为准（孩子和成人不一样，这里不预填）。": "Reference ranges follow the lab sheet (children differ from adults, so none is pre-filled).",
+  "保存 {n} 项化验": "Save {n} results", "还没有要保存的": "Nothing to save yet", "项目名称": "Test name",
+  "没读出化验项目，换一张清楚点的照片或多写几句试试": "Couldn't read any lab tests; try a clearer photo or add a few words",
+  "读出来了；另外 {n} 项是别的日期，请用「AI 录入体检」按日期录入": "Read it; {n} more results are from other dates, so use “AI entry” to enter them by date",
+  "读出来了，请核对": "Read it; please check", "读取失败：{m}": "Couldn't read it: {m}", "「其他」里填了结果的项目要写名字": "Give each test under “Other” a name", "请至少填一项结果": "Fill in at least one result",
   "点一项看走势和每次的记录，可以改或删。范围以化验单为准。": "Tap a test to see its trend and every result; edit or delete from there. Ranges follow the lab sheet.",
 };
 export { EN };
