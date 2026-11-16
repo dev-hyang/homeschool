@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-15.1", title: { zh: "录入体检：医院和医生分开填", en: "Checkup entry: hospital and doctor are separate" }, items: [
+    { k: "better", zh: "AI 录入体检时，「医院 / 诊所」和「医生」是两栏，AI 也分开读出来", en: "When adding a checkup, \"Hospital / clinic\" and \"Doctor\" are two fields, and AI reads them separately" },
+    { k: "better", zh: "就诊记录里显示「医院 · 医生」；以前写在一起的旧记录照常显示", en: "Visit records show \"Hospital · Doctor\"; older records with both in one field still show as before" }
+  ] },
   { v: "2026-11-14.6", title: { zh: "修复：今天页打不开", en: "Fix: Today page failed to load" }, items: [
     { k: "fix", zh: "上一版的一个小错误让页面打不开，已修好", en: "A small mistake in the last version stopped the page from loading; fixed" }
   ] },

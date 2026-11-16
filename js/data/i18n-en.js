@@ -1110,6 +1110,9 @@ const EN = {
   "白天一觉建议不超过 {d}，可以叫醒了": "Daytime naps are best kept under {d}: time to wake",
   "小睡：建议 {time} 前叫醒": "Nap: wake by {time}",
   "{h} 小时": "{h} h",
-  "选声音": "Choose a sound"
+  "选声音": "Choose a sound",
+  "医院 / 诊所": "Hospital / clinic",
+  "医生": "Doctor",
+  "如 Dr. Lee": "e.g. Dr. Lee",
 };
 export { EN };
