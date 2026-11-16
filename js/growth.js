@@ -82,7 +82,7 @@ function viewGrowth(){
     const rows = Object.entries(TOPICS).filter(([, x]) => x.sec === s.id).filter(([id, x]) => !x.ages || m == null || (m >= x.ages[0] && m < x.ages[1]) || topicHasData(id))
       .map(([id, x]) => hubRow(`data-tab="${id}"`, x.icon, t(x.label), rowDesc(id, x)));
     for (const l of LINKS[s.id] || []) rows.push(hubRow(l.attr, l.icon, t(l.label), linkDesc(l.id)));
-    const act = s.id === "body" ? `<button type="button" class="chip" data-ix="open" data-src="儿科体检">✦ ${t("AI 录入体检")}</button>` : "";
+    const act = s.id === "body" ? `<button type="button" class="chip" data-ix="open" data-src="儿科体检">✦ ${t("AI 综合录入")}</button>` : "";
     return `<section class="gr-hub-sec" aria-labelledby="grh-${s.id}"><div class="gr-hub-h"><h2 id="grh-${s.id}"><span aria-hidden="true">${s.icon}</span> ${t(s.label)}</h2>${act}</div>
       <div class="panel mlist">${rows.join("")}</div></section>`;
   };
