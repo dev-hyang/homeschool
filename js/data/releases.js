@@ -2,6 +2,12 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.8", title: { zh: "录入按页面分开：基本体征、体检与就诊、疫苗各有自己的录入", en: "Entry split by page: vital signs, checkups & visits and vaccines each have their own" }, items: [
+    { k: "new", zh: "基本体征、体检与就诊、疫苗页各一个录入按钮（「录入基本体征」「录入体检 / 就诊」「录入疫苗」），表单只放这一页相关的内容；默认 AI 录入，可切换成手动录入", en: "Vital signs, Checkups & visits and Vaccines each get their own entry button, and the form holds only what belongs to that page; AI entry by default, switchable to manual" },
+    { k: "better", zh: "录入基本体征：至少要填一项体征才能保存", en: "Entering vital signs now requires at least one measurement before saving" },
+    { k: "better", zh: "化验页只留「录入化验」和「在牧羊人里录入化验」两个按钮；成长首页的「AI 综合录入」仍可一次录入全部", en: "The Labs page keeps just \"Enter labs\" and \"Enter labs in Shepherd\"; \"AI all-in-one entry\" on the Growth page still records everything at once" },
+    { k: "better", zh: "AI 读到这个入口用不上的内容时会提醒，可到「AI 综合录入」一起存", en: "If AI finds items this entry doesn't use, you are told and can save them with \"AI all-in-one entry\"" }
+  ] },
   { v: "2026-11-16.7", title: { zh: "「AI 综合录入」：每一块可以折叠；页面名用 · 分隔", en: "\"AI all-in-one entry\": every section folds; page name uses ·" }, items: [
     { k: "better", zh: "成长首页的「AI 录入体检」改名「AI 综合录入」", en: "\"AI checkup entry\" on the Growth page is now \"AI all-in-one entry\"" },
     { k: "better", zh: "录入表里的每一块（体征、疫苗、用药、里程碑、多次测量、化验）点标题就能展开 / 折叠，改别处时不会丢", en: "Each section of the entry form (vitals, vaccines, medicine, milestones, tables, labs) can be folded or unfolded by tapping its title, and stays that way while you edit" },

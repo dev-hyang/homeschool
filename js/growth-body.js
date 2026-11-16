@@ -128,7 +128,8 @@ function labBar(x){
 }
 /** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
 const top = (btns, cls = "") => `<div class="gr-top"><div class="gr-adds ${cls}">${btns}</div></div>`;
-const aiBtn = (primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-src="儿科体检">✦ ${t("AI 综合录入")}</button>`;
+/** 各个子页面自己的录入入口：只带这一页相关的那几块（scope），默认 AI 录入，可以切换成手动录入。综合录入（scope = all）只在成长首页 */
+const entryBtn = (scope, src, label, primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-scope="${scope}" data-src="${src}">＋ ${t(label)}</button>`;
 const rec = (icon, title, when, meta, note) => `<div class="task"><span class="bar" style="background:var(--slate)"></span><div class="main" style="cursor:default"><span class="title">${icon} <b>${esc(title)}</b> <span class="small muted num">${esc(when)}</span></span>${meta ? `<span class="meta">${esc(meta)}</span>` : ""}${note ? `<span class="meta gr-note">${esc(note)}</span>` : ""}</div><span class="acts"></span></div>`;
 const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
   <div class="panel">${rows.length ? `<div class="tasks">${rows.join("")}</div>` : `<div class="empty">${t("还没有记录。")}</div>`}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
@@ -181,7 +182,7 @@ const vtCtx = () => ({ t, val: (dim, v) => toDisp(dim, v), unit, day, months: ts
   src: e => t(e.src && e.src !== "自己记录" ? e.src : "在家量") });
 function sizePage(){
   const rows = mine("baby").filter(e => VT_KEYS.some(k => e[k] != null && e[k] !== ""));
-  return `${top(`<button type="button" class="btn primary sm" data-ix="open" data-src="自己记录" data-manual="1">＋ ${t("量身高体重")}</button>${aiBtn(false)}<button type="button" class="btn sm" data-act="gr-vt-ask">✦ ${t("问 AI 这些体征")}</button>`)}
+  return `${top(`${entryBtn("size", "自己记录", "录入基本体征")}<button type="button" class="btn sm" data-act="gr-vt-ask">✦ ${t("问 AI 这些体征")}</button>`)}
     ${vitalsHTML(rows, vtCtx())}
     ${recList("size", "记录", rows.map(e => ({ ts: e.ts, icon: "📏", home: !e.src || e.src === "自己记录", title: [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · ") || t("体征"),
       meta: [t(e.src && e.src !== "自己记录" ? e.src : "在家量"), ...extras(e)].join(" · "), note: e.note, edit: `data-ix="edit" data-id="${esc(e.id)}"` })),
@@ -197,7 +198,7 @@ function visitsPage(){
   const list = visitsAll(), a = list.find(v => v.annual), m = ageMonths(), gap = a ? monthsAgo(a.ts) : null, due = m != null && m >= 36 && (gap == null || gap >= 12);
   const tiles = `<div class="gr-tiles">${statTile(t("上次体检"), a ? esc(day(a.ts)) : "–", a ? t("{n} 个月前", { n: gap }) : t("还没有体检记录"), due ? "var(--honey)" : "var(--sage)")}
     ${statTile(t("就诊次数"), String(list.length), t("全部记录"), "var(--slate)")}</div>`;
-  return `${top(aiBtn())}${due ? `<p class="gr-due"><span class="pill warn">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
+  return `${top(entryBtn("visit", "儿科体检", "录入体检 / 就诊"))}${due ? `<p class="gr-due"><span class="pill warn">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
     ${recList("visits", "记录", list.map(v => ({ ts: v.ts, annual: v.annual, aiK: v.aiK, ai: v.ai, icon: v.annual ? "🩺" : "🤒", title: v.kind, meta: [v.where, v.m].filter(Boolean).join(" · "), note: v.text, edit: v.id ? `data-ix="edit" data-id="${esc(v.id)}"` : "" })),
       { subs: [["checkup", t("体检"), x => x.annual], ["sick", t("看病 / 急诊"), x => !x.annual]], foot: `${EDIT_HERE()} ${H.visits.some(v => v.subject === subj()) ? t("牧羊人里记的就诊在牧羊人里改。") : ""}` })}`;
 }
@@ -206,12 +207,12 @@ const vaxKey = n => String(n || "").replace(/（.*?）|\(.*?\)/g, "").trim();
 function vaxSubs(list){ const ks = [...new Set(list.map(e => vaxKey(e.name)).filter(Boolean))]; return ks.length > 1 ? ks.map(k => [k, t(k), x => x.k === k]) : null; }
 function vaxPage(){
   const list = mine("vax");
-  return `${top(aiBtn())}<div class="gr-tiles">${statTile(t("接种"), String(list.length), list.length ? t("最近 {d}", { d: day(list[0].ts) }) : t("还没有接种记录"), "#3F8F8B")}</div>
+  return `${top(entryBtn("vax", "儿科体检", "录入疫苗"))}<div class="gr-tiles">${statTile(t("接种"), String(list.length), list.length ? t("最近 {d}", { d: day(list[0].ts) }) : t("还没有接种记录"), "#3F8F8B")}</div>
     ${recList("vax", "记录", list.map(e => ({ ts: e.ts, icon: "💉", k: vaxKey(e.name), title: t(e.name || "疫苗"), meta: [e.dose && t(e.dose), e.site && t(e.site), placeText(e), e.reaction && e.reaction !== "无" && t("反应：{r}", { r: t(e.reaction) })].filter(Boolean).join(" · "), note: e.note, edit: `data-act="gr-b-vax" data-id="${esc(e.id)}"` })),
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}${aiBtn(!H.hlOk)}<a class="btn sm gr-wide" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
+  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}<a class="btn sm gr-wide" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
   if (!H.hlOk) return `${top(btn, "gr-adds-lab")}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
@@ -311,8 +312,14 @@ const VITALS = [["weight", "体重"], ["length", "身高"], ["head", "头围"], 
 const toLocal = ts => new Date(ts - new Date(ts).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 const fromLocal = s => { const v = new Date(s).getTime(); return isNaN(v) ? null : v; };
 
-function openIntake(src, manual){
-  X = { src: src || "儿科体检", ts: Date.now(), child: S.childId, clinic: "", doctor: "", note: "", weight: null, length: null, head: null, temp: null,
+const SC_TEXT = {
+  size: { icon: "📏", title: "录入基本体征", desc: "拍体检单或成长记录（可多张），或者打 / 粘贴一段话：体重、身高、头围、体温、血压、心率…。AI 读出来后在下面核对，再保存。", ph: "例：体重 20 kg，身高 112 cm，头围 50 cm，体温 36.8 ℃，血压 98/60" },
+  visit: { icon: "🩺", title: "录入体检 / 就诊", desc: "拍就诊小结或体检单（可多张），或者打 / 粘贴一段话：哪家医院、哪位医生、量了多少、医生说了什么、开了什么药。AI 读出来后在下面核对，再保存。", ph: "例：Dr. Lee 儿科体检，体重 20 kg，身高 112 cm，医生说发育正常，注意少吃甜食，明年再来" },
+  vax: { icon: "💉", title: "录入疫苗", desc: "拍疫苗本或接种记录（可多张），或者打 / 粘贴一段话：打了什么针、哪天、哪个部位。AI 读出来后在下面核对，再保存。", ph: "例：2026-10-12 流感疫苗，左上臂；2026-11-02 百白破 第4剂，左大腿" }
+};
+const emptyVax = () => ({ on: true, name: "", day: "", dose: "", site: "" });
+function openIntake(src, manual, scope){
+  X = { scope: SC_TEXT[scope] ? scope : "all", mode: "ai", src: src || "儿科体检", ts: Date.now(), child: S.childId, clinic: "", doctor: "", note: "", weight: null, length: null, head: null, temp: null,
     ...Object.fromEntries(EXTRA_KEYS.map(k => [k, null])), more: false, vaccines: [], meds: [], milestones: [], rows: [], labs: [], read: !!manual, busy: false, fold: {} };
   attachReset(ATT);
   draw(); showSheet();
@@ -394,29 +401,30 @@ function draw(){
     <input type="date" data-ixk="day" value="${esc(v.day || "")}" max="${today}" aria-label="${esc(t("接种日期（空着就用上面的时间）"))}" title="${esc(t("接种日期（空着就用上面的时间）"))}">${sel("dose", VAX_DOSE, v.dose, "剂次")}${sel("site", VAX_SITE, v.site, "接种部位")}`)).join("");
   const meds = X.meds.map((m, i) => row(X.meds, i, `${sel("cat", MED_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("名称"))}" placeholder="${esc(t("名称"))}"><input type="text" data-ixk="dose" value="${esc(m.dose)}" aria-label="${esc(t("剂量"))}" placeholder="${esc(t("剂量"))}">`)).join("");
   const ms = X.milestones.map((m, i) => row(X.milestones, i, `${sel("cat", MS_CAT, m.cat, "类别")}<input type="text" data-ixk="name" value="${esc(m.name)}" aria-label="${esc(t("做到了什么"))}" placeholder="${esc(t("做到了什么"))}">`)).join("");
-  const n = count(), home = X.src === "自己记录", ed = !!X.edit, upd = !ed && !home && sameVisit(mine("baby"), dayKey(X.ts));
-  const read = ed || (home && X.read && !attachHas(ATT)) ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t("拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
-    ${attachHTML(ATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来") })}
-    <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read ? "" : `<button type="button" class="btn" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
+  const sc = X.scope || "all", scoped = sc !== "all", n = count(), home = X.src === "自己记录", ed = !!X.edit, upd = !ed && !home && sc !== "vax" && sameVisit(mine("baby"), dayKey(X.ts));
+  const read = ed || (scoped ? X.mode !== "ai" : (home && X.read && !attachHas(ATT))) ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t(scoped ? SC_TEXT[sc].desc : "拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
+    ${attachHTML(ATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t(scoped ? SC_TEXT[sc].ph : "例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来") })}
+    <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read || scoped ? "" : `<button type="button" class="btn" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
     <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>`;
+  const modeSeg = !scoped || ed ? "" : `<div class="seg ix-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-ix="mode" data-v="ai" aria-pressed="${X.mode === "ai"}">✦ ${t("AI 录入")}</button><button type="button" data-ix="mode" data-v="manual" aria-pressed="${X.mode === "manual"}">✎ ${t("手动录入")}</button></div>`;
   const form = !X.read ? "" : `
-    <div class="field"><div class="lab" id="ix_src">${t("记录来源")}</div><div class="seg" role="group" aria-labelledby="ix_src">${["儿科体检", "看病/急诊", "自己记录"].map(o => `<button type="button" data-ix="src" data-v="${o}" aria-pressed="${X.src === o}">${t(o === "自己记录" ? "在家量" : o)}</button>`).join("")}</div></div>
+    <div class="field" ${sc === "vax" ? "hidden" : ""}><div class="lab" id="ix_src">${t("记录来源")}</div><div class="seg" role="group" aria-labelledby="ix_src">${(sc === "visit" ? ["儿科体检", "看病/急诊"] : ["儿科体检", "看病/急诊", "自己记录"]).map(o => `<button type="button" data-ix="src" data-v="${o}" aria-pressed="${X.src === o}">${t(o === "自己记录" ? "在家量" : o)}</button>`).join("")}</div></div>
     <div class="ix-two ix-where"><div class="field"><label for="ix_ts">${t("时间")}</label><input id="ix_ts" type="datetime-local" data-ixf="ts" max="${toLocal(Date.now())}" value="${toLocal(X.ts)}"></div>
       ${home ? "" : `<div class="field"><label for="ix_clinic">${t("医院 / 诊所")}</label><input id="ix_clinic" type="text" data-ixf="clinic" autocomplete="off" value="${esc(X.clinic)}"></div><div class="field"><label for="ix_doctor">${t("医生")}</label><input id="ix_doctor" type="text" data-ixf="doctor" autocomplete="off" placeholder="${esc(t("如 Dr. Lee"))}" value="${esc(X.doctor || "")}"></div>`}</div>
-    ${upd ? `<p class="small muted ix-upd" role="status">${t("这一天已经有一条体检 / 就诊记录：保存时会更新那一条，补上新读到的数，不会多记一条。")}</p>` : ""}
-    ${secOpen("vitals", `🌡 ${t("体征")}`)}<div class="ix-vitals">${vit}</div>${secClose}
-    ${home ? "" : showMore ? `${secOpen("more", `❤️ ${t("BMI、血压、百分位")}`)}<div class="ix-vitals">${more}</div>${secClose}` : `<div class="ix-more"><button type="button" class="chip" data-ix="more">＋ ${t("BMI、血压、心率、百分位")}</button></div>`}
-    <div class="field"><label for="ix_note">${t(home ? "备注" : "医生的总结 / 建议")}</label><textarea id="ix_note" data-ixf="note" placeholder="${esc(t(home ? "穿不穿鞋、什么时候量的…" : "医生说了什么、要注意什么、下次什么时候来…"))}">${esc(X.note)}</textarea></div>
-    ${home || ed ? "" : `${secOpen("vax", `💉 ${t("疫苗")} <button type="button" class="chip" data-ix="add-vax">＋ ${t("加一针")}</button>`)}<div class="ix-list" data-ixlist="vaccines">${vax || `<p class="small muted">${t("这次没有打针就留空。")}</p>`}</div>${secClose}
-    ${secOpen("meds", `💧 ${t("维生素 / 用药")} <button type="button" class="chip" data-ix="add-med">＋ ${t("加一种")}</button>`)}<div class="ix-list" data-ixlist="meds">${meds || `<p class="small muted">${t("医生开了维生素 D、铁剂或药，就加在这里。")}</p>`}</div>${secClose}
-    ${secOpen("ms", `⭐ ${t("里程碑")} <button type="button" class="chip" data-ix="add-ms">＋ ${t("加一个")}</button>`)}<div class="ix-list" data-ixlist="milestones">${ms || `<p class="small muted">${t("医生提到的发育情况，可以顺手记下。")}</p>`}</div>${secClose}`}
-    ${ed || !X.rows.length ? "" : `${secOpen("rows", `📋 ${t("多次测量（表格里每个日期一条）")} <span class="small muted">${t("{n} 行", { n: X.rows.length })}</span>`)}<div class="ix-list" data-ixlist="rows">${X.rows.map((x, i) => row(X.rows, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
+    ${upd && sc !== "vax" ? `<p class="small muted ix-upd" role="status">${t("这一天已经有一条体检 / 就诊记录：保存时会更新那一条，补上新读到的数，不会多记一条。")}</p>` : ""}
+    ${sc === "vax" ? "" : `${secOpen("vitals", `🌡 ${t("体征")}`)}<div class="ix-vitals">${vit}</div>${secClose}`}
+    ${(home && sc !== "size") || sc === "vax" ? "" : showMore ? `${secOpen("more", `❤️ ${t("BMI、血压、百分位")}`)}<div class="ix-vitals">${more}</div>${secClose}` : `<div class="ix-more"><button type="button" class="chip" data-ix="more">＋ ${t("BMI、血压、心率、百分位")}</button></div>`}
+    <div class="field" ${sc === "vax" ? "hidden" : ""}><label for="ix_note">${t(home ? "备注" : "医生的总结 / 建议")}</label><textarea id="ix_note" data-ixf="note" placeholder="${esc(t(home ? "穿不穿鞋、什么时候量的…" : "医生说了什么、要注意什么、下次什么时候来…"))}">${esc(X.note)}</textarea></div>
+    ${(home && sc !== "vax") || ed || !(sc === "all" || sc === "vax") ? "" : `${secOpen("vax", `💉 ${t("疫苗")} <button type="button" class="chip" data-ix="add-vax">＋ ${t("加一针")}</button>`)}<div class="ix-list" data-ixlist="vaccines">${vax || `<p class="small muted">${t("这次没有打针就留空。")}</p>`}</div>${secClose}`}
+    ${home || ed || !(sc === "all" || sc === "visit") ? "" : `${secOpen("meds", `💧 ${t("维生素 / 用药")} <button type="button" class="chip" data-ix="add-med">＋ ${t("加一种")}</button>`)}<div class="ix-list" data-ixlist="meds">${meds || `<p class="small muted">${t("医生开了维生素 D、铁剂或药，就加在这里。")}</p>`}</div>${secClose}`}
+    ${home || ed || sc !== "all" ? "" : `${secOpen("ms", `⭐ ${t("里程碑")} <button type="button" class="chip" data-ix="add-ms">＋ ${t("加一个")}</button>`)}<div class="ix-list" data-ixlist="milestones">${ms || `<p class="small muted">${t("医生提到的发育情况，可以顺手记下。")}</p>`}</div>${secClose}`}
+    ${ed || !X.rows.length || !(sc === "all" || sc === "size") ? "" : `${secOpen("rows", `📋 ${t("多次测量（表格里每个日期一条）")} <span class="small muted">${t("{n} 行", { n: X.rows.length })}</span>`)}<div class="ix-list" data-ixlist="rows">${X.rows.map((x, i) => row(X.rows, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
       <input type="number" inputmode="decimal" step="any" min="0" data-ixk="w" value="${esc(x.w)}" placeholder="${esc(t("体重") + " " + unit("weight"))}" aria-label="${esc(t("体重") + " " + unit("weight"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="l" value="${esc(x.l)}" placeholder="${esc(t("身高") + " " + unit("length"))}" aria-label="${esc(t("身高") + " " + unit("length"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="h" value="${esc(x.h)}" placeholder="${esc(t("头围") + " " + unit("head"))}" aria-label="${esc(t("头围") + " " + unit("head"))}">${Object.keys(x.ex || {}).length ? `<span class="small muted ix-note">${esc(extras(x.ex).join(" · "))}</span>` : ""}`)).join("")}</div>${secClose}`}
-    ${ed || !X.labs.length ? "" : `${secOpen("labs", `🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span>`)}${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
+    ${ed || !X.labs.length || sc !== "all" ? "" : `${secOpen("labs", `🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span>`)}${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
       <input type="text" data-ixk="name" value="${esc(x.name)}" placeholder="${esc(t("项目"))}" aria-label="${esc(t("项目"))}"><input type="text" inputmode="decimal" data-ixk="value" value="${esc(x.value)}" placeholder="${esc(t("结果"))}" aria-label="${esc(t("结果"))}"><input type="text" data-ixk="unit" value="${esc(x.unit)}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}"><input type="text" inputmode="decimal" data-ixk="lo" value="${esc(x.lo)}" placeholder="${esc(t("参考下限"))}" aria-label="${esc(t("参考下限"))}"><input type="text" inputmode="decimal" data-ixk="hi" value="${esc(x.hi)}" placeholder="${esc(t("参考上限"))}" aria-label="${esc(t("参考上限"))}">`)).join("")}</div>${secClose}`}
     <div class="btns">${ed ? `<button type="button" class="btn primary" data-ix="save">${t("保存修改")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button><button type="button" class="btn danger" data-ix="del">${t("删除")}</button>`
       : `<button type="button" class="btn primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button>`}</div>`;
-  $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${home ? "📏" : "✦"} ${esc(t(home ? "量一次身高体重" : "AI 综合录入"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${read}${form}
+  $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${scoped ? SC_TEXT[sc].icon : home ? "📏" : "✦"} ${esc(t(scoped ? SC_TEXT[sc].title : home ? "量一次身高体重" : "AI 综合录入"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${modeSeg}${read}${form}
     <datalist id="ixvax">${VAX_NAMES.map(v => `<option value="${esc(t(v))}">`).join("")}</datalist>`;
 }
 function readIx(){
@@ -433,7 +441,8 @@ function readIx(){
     list.querySelectorAll(".ix-row").forEach((r, i) => { const o = arr[i]; if (!o) return; o.on = r.querySelector("[data-ixon]").checked; r.querySelectorAll("[data-ixk]").forEach(el => { o[el.dataset.ixk] = el.value.trim(); }); });
   });
 }
-const keepVitals = () => VITALS.some(([k]) => X[k] != null) || (X.src !== "自己记录" && EXTRA_KEYS.some(k => X[k] != null)) || X.note.trim() || X.clinic.trim() || (X.doctor || "").trim();
+const hasVit = () => VITALS.some(([k]) => X[k] != null) || EXTRA_KEYS.some(k => X[k] != null);
+const keepVitals = () => X.scope === "vax" ? false : X.scope === "size" ? hasVit() : VITALS.some(([k]) => X[k] != null) || (X.src !== "自己记录" && EXTRA_KEYS.some(k => X[k] != null)) || X.note.trim() || X.clinic.trim() || (X.doctor || "").trim();
 const listed = () => [...(X.src === "自己记录" ? [] : [...X.vaccines, ...X.meds, ...X.milestones].filter(x => x.on && x.name)), ...(X.rows || []).filter(rowOk), ...(H.hlOk ? (X.labs || []).filter(labOk) : [])];
 const count = () => (keepVitals() ? 1 : 0) + listed().length;
 
@@ -450,34 +459,40 @@ async function aiRead(){
     if (!r) throw new Error(t("没读出内容，换一张清楚点的照片或多写几句试试"));
     if (!X) return;
     readIx();
+    const sc = X.scope || "all";
     if (r.day) { const d = new Date(r.day + "T09:00:00").getTime(); if (d <= Date.now()) X.ts = d; }
     if (r.src) X.src = r.src; else if (X.src === "自己记录" && (r.vaccines.length || r.note)) X.src = "儿科体检";
-    for (const k of ["weight", "length", "head", "temp", ...EXTRA_KEYS]) if (r[k] != null) X[k] = r[k];
+    if (sc === "visit" || sc === "vax") { if (X.src === "自己记录") X.src = "儿科体检"; }
+    if (sc !== "vax") for (const k of ["weight", "length", "head", "temp", ...EXTRA_KEYS]) if (r[k] != null) X[k] = r[k];
     if (r.clinic) X.clinic = r.clinic;
     if (r.doctor) X.doctor = r.doctor;
     const next = r.next ? t("下次：{s}", { s: r.next }) : "";
-    if (r.note || next) X.note = [X.note.trim(), r.note, next].filter(Boolean).join("\n");
+    if (sc !== "vax" && (r.note || next)) X.note = [X.note.trim(), r.note, next].filter(Boolean).join("\n");
     // 疫苗本：每一针带自己的日期。已经记过的（同一天同一种针 / 同一天同一种药 / 同一个里程碑）和还没到日子的默认不勾，免得记重；
     // 勾上的话保存时更新那一条（补上剂次、部位等），也不会多一条
     const today = dayKey(Date.now()), visit = dayKey(X.ts);
-    X.vaccines.push(...r.vaccines.map(v => { const seen = !!sameEntry(mine("vax"), v.name, v.day || visit), later = !!v.day && v.day > today;
+    (sc === "all" || sc === "vax" ? X.vaccines : []).push(...r.vaccines.map(v => { const seen = !!sameEntry(mine("vax"), v.name, v.day || visit), later = !!v.day && v.day > today;
       return { on: !seen && !later, seen, name: v.name, day: later ? "" : v.day || "", dose: v.dose || "", site: v.site || "" }; }));
-    X.meds.push(...r.meds.map(m => { const seen = !!sameEntry(mine("bmed"), m.name, visit); return { on: !seen, seen, cat: m.cat, name: m.name, dose: m.dose }; }));
-    X.milestones.push(...r.milestones.map(m => { const seen = !!sameEntry(mine("milestone"), m.name, null); return { on: !seen, seen, cat: m.cat, name: m.name }; }));
+    (sc === "all" || sc === "visit" ? X.meds : []).push(...r.meds.map(m => { const seen = !!sameEntry(mine("bmed"), m.name, visit); return { on: !seen, seen, cat: m.cat, name: m.name, dose: m.dose }; }));
+    (sc === "all" ? X.milestones : []).push(...r.milestones.map(m => { const seen = !!sameEntry(mine("milestone"), m.name, null); return { on: !seen, seen, cat: m.cat, name: m.name }; }));
     // 表格：每个日期一行体征；那天已经有记录的默认不勾（勾上 = 补进那一条）
-    X.rows.push(...r.rows.map(x => { const seen = !!sameDay(x.day);
+    (sc === "all" || sc === "size" ? X.rows : []).push(...r.rows.map(x => { const seen = !!sameDay(x.day);
       return { on: !seen, seen, day: x.day, src: x.src || "", w: disp1("weight", x.weight), l: disp1("length", x.length), h: disp1("head", x.head), temp: x.temp, ex: Object.fromEntries(EXTRA_KEYS.filter(k => x[k] != null).map(k => [k, x[k]])) }; }));
     // 化验：没写日期的用这次就诊的日期；同一天同一项已经有的默认不勾（勾上 = 改成新读到的数）
-    X.labs.push(...r.labs.map(x => { const d = x.day || dayKey(X.ts), seen = !!labSeen(d, x.name);
+    (sc === "all" ? X.labs : []).push(...r.labs.map(x => { const d = x.day || dayKey(X.ts), seen = !!labSeen(d, x.name);
       return { on: !seen, seen, day: d, name: x.name, value: String(x.value), unit: x.unit || "", lo: x.lo ?? "", hi: x.hi ?? "" }; }));
     const skip = [...X.vaccines, ...X.meds, ...X.milestones, ...X.rows, ...X.labs].filter(v => v.seen).length;
-    X.read = true; toast(skip ? t("读出来了，请核对（{n} 条已经记过，没勾）", { n: skip }) : t("读出来了，请核对"));
+    // 这一个入口用不上的内容（比如在疫苗里读到了化验）：不放进表，提醒一下可以用成长首页的「AI 综合录入」一起存
+    const other = sc === "all" ? 0 : (sc === "vax" ? 0 : r.vaccines.length) + (sc === "visit" ? 0 : r.meds.length) + r.milestones.length + (sc === "size" ? 0 : r.rows.length) + r.labs.length + (sc === "vax" ? (r.weight != null || r.length != null || r.head != null ? 1 : 0) : 0);
+    X.read = true; toast((skip ? t("读出来了，请核对（{n} 条已经记过，没勾）", { n: skip }) : t("读出来了，请核对")) + (other ? " · " + t("单子里还有 {n} 项别的内容，用成长首页的「AI 综合录入」可以一起存", { n: other }) : ""));
   } catch (e) { toast(t("读取失败：{msg}", { msg: String(e.message || e).slice(0, 100) })); }
   finally { if (X) { X.busy = false; draw(); } }
 }
 /** 存成小月亮的记录（entries），和小月亮里一条条记的一样，小月亮里也能看到、能改 */
 async function save(){
   readIx();
+  if (X.scope === "size" && !hasVit() && !X.rows.some(rowOk)) { toast(t("请至少填一项基本体征")); return; }
+  if (X.scope === "vax" && !X.vaccines.some(v => v.on && v.name)) { toast(t("请至少填一种疫苗的名称")); return; }
   if (X.ts > Date.now() + 60000) { toast(t("时间不能晚于现在")); return; }
   const vaxTs = v => (v.day ? new Date(v.day + "T09:00:00").getTime() : X.ts);   // 疫苗本里每针自己的日期
   if (X.src !== "自己记录" && X.vaccines.some(v => v.on && v.name && !(vaxTs(v) <= Date.now() + 60000))) { toast(t("接种日期不能晚于今天")); return; }
@@ -486,7 +501,7 @@ async function save(){
   // old = 已经记过的同一条：保存时更新它（新读到的数盖上去、没读到的保留），不多记一条；它原来的时间、反应、备注不动
   const keepOld = (r, old, ...drop) => (old ? { ...Object.fromEntries(Object.entries(r).filter(([k]) => !drop.includes(k))), old } : r);
   if (keepVitals()) { const home = X.src === "自己记录";
-    rows.push({ type: "baby", src: X.src, clinic: home ? "" : clinic, doctor: home ? "" : doctor, ...Object.fromEntries([...VITALS.map(([k]) => k), ...(home ? [] : EXTRA_KEYS)].map(k => [k, X[k]]).filter(([, v]) => v != null)), note: X.note.trim(),
+    rows.push({ type: "baby", src: X.src, clinic: home ? "" : clinic, doctor: home ? "" : doctor, ...Object.fromEntries([...VITALS.map(([k]) => k), ...(home && X.scope !== "size" ? [] : EXTRA_KEYS)].map(k => [k, X[k]]).filter(([, v]) => v != null)), note: X.note.trim(),
       old: home ? null : sameVisit(mine("baby"), visit) }); }
   if (X.src !== "自己记录") {
     for (const v of X.vaccines) if (v.on && v.name) rows.push(keepOld({ type: "vax", ts: vaxTs(v), name: v.name, dose: v.dose, site: v.site, clinic, doctor, reaction: "无" }, sameEntry(mine("vax"), v.name, dayKey(vaxTs(v))), "reaction"));
@@ -530,7 +545,7 @@ async function save(){
 document.addEventListener("click", async ev => {
   const b = ev.target.closest && ev.target.closest("[data-ix]"); if (!b) return;
   const act = b.dataset.ix;
-  if (act === "open") { if (!fid()) return; openIntake(b.dataset.src, !!b.dataset.manual); return; }
+  if (act === "open") { if (!fid()) return; openIntake(b.dataset.src, !!b.dataset.manual, b.dataset.scope); return; }
   if (act === "edit") { if (!fid()) return; openEdit(b.dataset.id); return; }
   if (!X) return;
   readIx();
@@ -538,6 +553,7 @@ document.addEventListener("click", async ev => {
     case "close": X = null; closeSheet(); return;
     case "read": await aiRead(); return;
     case "manual": X.read = true; break;
+    case "mode": X.mode = b.dataset.v === "manual" ? "manual" : "ai"; if (X.mode === "manual") { X.read = true; if (X.scope === "vax" && !X.vaccines.length) X.vaccines.push(emptyVax()); } break;
     case "src": X.src = b.dataset.v; break;
     case "more": X.more = true; break;
     case "add-vax": X.vaccines.push({ on: true, name: "", day: "", dose: "", site: "" }); break;

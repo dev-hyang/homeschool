@@ -1407,8 +1407,8 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .lb-seg{flex-wrap:wrap}
 @media (min-width:720px){.lb-row{grid-template-columns:minmax(170px,1fr) 2.2fr;align-items:center}}
 
-/* 化验页顶上三个按钮：手机上「录入化验 / AI 录入体检」并排两个，「在牧羊人里录入化验」单独占一行，文字不被截断 */
-@media (max-width:640px){.gr-adds.gr-adds-lab{grid-template-columns:repeat(2,minmax(0,1fr))}.gr-adds-lab .gr-wide{grid-column:1/-1}}
+/* 化验页顶上两个按钮：手机上各占一行，文字不被截断 */
+@media (max-width:640px){.gr-adds.gr-adds-lab{grid-template-columns:minmax(0,1fr)}}
 
 /* ===== 综合录入表单：每一块可以点标题展开 / 折叠 ===== */
 .ix-sec{margin:0}
@@ -1419,3 +1419,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ix-sec>summary:focus-visible{outline:3px solid var(--slate);outline-offset:2px;border-radius:var(--radius-sm)}
 .ix-sec>summary .chip{margin-left:auto}
 .ix-sec-b{padding:0 0 4px}
+
+/* 录入方式：AI 录入 | 手动录入 */
+.ix-mode{margin:0 0 12px}
+.ix-mode button{flex:1 1 0;min-height:44px}
