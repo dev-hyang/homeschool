@@ -1175,6 +1175,7 @@ const EN = {
   "已保留": "Kept",
   "清除这条 AI 解读？": "Clear this AI explanation?",
   "AI 综合录入": "AI all-in-one entry",
+  "在牧羊人里录入": "Enter in Shepherd",
   "录入基本体征": "Enter vital signs", "录入体检 / 就诊": "Enter checkup / visit", "录入疫苗": "Enter vaccines", "AI 录入": "AI entry", "手动录入": "Enter manually", "录入方式": "Entry method",
   "拍体检单或成长记录（可多张），或者打 / 粘贴一段话：体重、身高、头围、体温、血压、心率…。AI 读出来后在下面核对，再保存。": "Photograph a checkup sheet or growth record (several are fine), or type / paste a few lines: weight, height, head circumference, temperature, blood pressure, pulse… AI reads it and you check below before saving.",
   "例：体重 20 kg，身高 112 cm，头围 50 cm，体温 36.8 ℃，血压 98/60": "e.g. weight 20 kg, height 112 cm, head 50 cm, temperature 36.8 °C, blood pressure 98/60",

@@ -212,8 +212,8 @@ function vaxPage(){
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}<a class="btn sm gr-wide" href="https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab" target="_blank" rel="noopener">🧪 ${t("在牧羊人里录入化验")} ↗</a>`;   // 直接打开牧羊人里这个孩子的「录入化验」，不是牧羊人首页（牧羊人 2026-11-16.2 起）
-  if (!H.hlOk) return `${top(btn, "gr-adds-lab")}<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
+  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}`;   // 牧羊人的入口放在录入表的抬头里（和「AI 录入」并排），页面上只留这一个按钮，免得点错
+  if (!H.hlOk) return `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
     return `<button type="button" class="mrow lab-row" data-act="gr-lab-open" data-k="${esc(it.k)}"><span class="mi ${f ? "lab-bad" : ""}" aria-hidden="true">${f ? "!" : "✓"}</span>
@@ -221,7 +221,7 @@ function labsPage(){
       <small>${esc([labRange(it.last) && t("参考 {r}", { r: labRange(it.last) }), labDay(it.last.day), t("{n} 次", { n: it.rows.length })].filter(Boolean).join(" · "))}</small></span>${labSpark(it.rows)}<span class="mch" aria-hidden="true">›</span></button>`; };
   const sections = groups.map(([g, items]) => { const nb = items.filter(it => labFlag(it.last)).length;
     return `<section class="gr-sec"><div class="gr-sh"><h2>${esc(t(LAB_GROUPS[g]))} <span class="small muted gr-n">${t("{n} 项", { n: items.length })}${nb ? ` · ${t("{n} 项超出范围", { n: nb })}` : ""}</span></h2></div><div class="panel mlist">${items.map(item).join("")}</div></section>`; }).join("");
-  return `${top(btn, "gr-adds-lab")}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
+  return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
     ${sections || `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("还没有化验记录。点上面的「录入化验」，拍化验单让 AI 填表，或自己填。")}</p></div>`}
     <p class="small muted gr-foot">${t("点一项看走势和每次的记录，可以改或删。范围以化验单为准。")}</p>
     ${recList("labdays", "按日期", labDays().map(d => ({ ts: new Date(d.day + "T12:00:00").getTime(), icon: d.bad ? "⚠️" : "🧪", title: t("{n} 项化验", { n: d.rows.length }) + (d.bad ? ` · ${t("{n} 项超出范围", { n: d.bad })}` : ""),
@@ -681,7 +681,7 @@ const lbTotal = () => Object.keys(LAB_GROUPS).reduce((a, g) => a + lbCount(g), 0
 function openLabBatch(){
   if (!fid() || !H.hlOk) return;
   attachReset(LATT);
-  LB = { day: dayKey(Date.now()), panel: "lipid", vals: {}, extra: [], fasting: false, busy: false, ai: false };
+  LB = { day: dayKey(Date.now()), panel: "lipid", vals: {}, extra: [], fasting: false, busy: false, ai: false, aiOn: true };
   drawLb(); showSheet();
 }
 function lbRow(attr, label, v, unitDef){
@@ -696,11 +696,13 @@ function drawLb(){
   const g = LB.panel, items = Object.entries(LABS).filter(([, x]) => x.group === g), n = lbTotal();
   const rows = items.map(([c, x]) => lbRow(`data-lbk="${esc(c)}"`, esc(locale() === "en" ? x.en : t(x.name)), LB.vals[c] || {}, x.unit)).join("")
     + (g === "other" ? LB.extra.map((v, i) => lbRow(`data-lbx="${i}"`, "", v, "")).join("") : "");
+  const shep = `https://dev-hyang.github.io/shepherd/#/health/labs?who=${encodeURIComponent(subj())}&new=lab`;   // 直接打开牧羊人里这个孩子的「录入化验」（牧羊人 2026-11-16.2 起）
   $("#sheetIn").innerHTML = `${head(`🧪 ${esc(t("录入化验"))}`)}
-    <div class="panel lb-ai"><p class="small muted" style="margin:0 0 8px">${t("拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。")}</p>
+    <div class="seg ix-mode lb-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-lb="aitoggle" aria-pressed="${LB.aiOn}">✦ ${t("AI 录入")}</button><a href="${shep}" target="_blank" rel="noopener" title="${esc(t("在牧羊人里录入化验"))}">${t("在牧羊人里录入")} ↗</a></div>
+    ${LB.aiOn ? `<div class="panel lb-ai"><p class="small muted" style="margin:0 0 8px">${t("拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。")}</p>
       ${attachHTML(LATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：LDL 104 mg/dL（参考 <100），血红蛋白 12.1 g/dL（11.5–15.5）"), forceOpen: LB.busy })}
       <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
-      <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>
+      <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>` : ""}
     <div class="field"><label for="lb_day">${t("采样日期")}</label><input id="lb_day" type="date" data-lbd="day" max="${dayKey(Date.now())}" value="${esc(LB.day)}"></div>
     <div class="field"><div class="lab" id="lb_panel">${t("套餐")}</div><div class="seg lb-seg" role="group" aria-labelledby="lb_panel">${Object.entries(LAB_GROUPS).map(([k, l]) => `<button type="button" data-lb="panel" data-v="${k}" aria-pressed="${g === k}">${esc(t(l))}${lbCount(k) ? ` · ${lbCount(k)}` : ""}</button>`).join("")}</div></div>
     <div class="lb-tbl">${rows}</div>${g === "other" ? `<button type="button" class="chip" data-lb="extra">＋ ${t("加一项（单子上别的项目）")}</button>` : ""}
@@ -771,6 +773,7 @@ document.addEventListener("click", async ev => {
   switch (b.dataset.lb) {
     case "panel": LB.panel = b.dataset.v; drawLb(); return;
     case "extra": LB.extra.push({ name: "", value: "", unit: "", ref_low: "", ref_high: "" }); drawLb(); return;
+    case "aitoggle": LB.aiOn = !LB.aiOn; drawLb(); return;
     case "read": await lbRead(); return;
     case "save": await saveLb(); return;
   }

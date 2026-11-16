@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-16.9", title: { zh: "化验：去牧羊人录入的入口放进录入表", en: "Labs: the Shepherd entry link now lives inside the entry form" }, items: [
+    { k: "better", zh: "化验页只留一个「录入化验」按钮；录入表抬头有「AI 录入」（默认开）和「在牧羊人里录入」，点错不会再跳走", en: "The Labs page keeps one \"Enter labs\" button; the form header has \"AI entry\" (on by default) and \"Enter in Shepherd\", so you won't jump away by mistake" },
+    { k: "better", zh: "点「AI 录入」可以收起 / 展开 AI 区，已填的数字不会丢", en: "Tap \"AI entry\" to hide or show the AI area; numbers you already typed are kept" }
+  ] },
   { v: "2026-11-16.8", title: { zh: "录入按页面分开：基本体征、体检与就诊、疫苗各有自己的录入", en: "Entry split by page: vital signs, checkups & visits and vaccines each have their own" }, items: [
     { k: "new", zh: "基本体征、体检与就诊、疫苗页各一个录入按钮（「录入基本体征」「录入体检 / 就诊」「录入疫苗」），表单只放这一页相关的内容；默认 AI 录入，可切换成手动录入", en: "Vital signs, Checkups & visits and Vaccines each get their own entry button, and the form holds only what belongs to that page; AI entry by default, switchable to manual" },
     { k: "better", zh: "录入基本体征：至少要填一项体征才能保存", en: "Entering vital signs now requires at least one measurement before saving" },
