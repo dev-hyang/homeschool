@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-15.2", title: { zh: "成长 → 身体与健康：记录能筛、能看时间线、能改", en: "Growth → Health: filter, timeline and edit records" }, items: [
+    { k: "new", zh: "基本体征、体检与就诊、疫苗、用药的记录：按时间（近 1 年 / 近 3 年 / 全部）和类别筛，列表 | 时间线（按年份）切换", en: "Vital signs, visits, vaccines and medicines: filter by time (past year / 3 years / all) and type, and switch between list and a by-year timeline" },
+    { k: "new", zh: "点一条就能改或删：体检 / 就诊和测量用录入那张表改，疫苗和用药有自己的小表；和小月亮是同一份记录", en: "Tap a record to edit or delete it: visits and measurements use the entry form, vaccines and medicines have their own short form; same records as Little Moon" },
+    { k: "better", zh: "用药记录不再只显示最近半年，旧的也能找到", en: "Medicine records are no longer limited to the last six months" }
+  ] },
   { v: "2026-11-15.1", title: { zh: "录入体检：医院和医生分开填", en: "Checkup entry: hospital and doctor are separate" }, items: [
     { k: "better", zh: "AI 录入体检时，「医院 / 诊所」和「医生」是两栏，AI 也分开读出来", en: "When adding a checkup, \"Hospital / clinic\" and \"Doctor\" are two fields, and AI reads them separately" },
     { k: "better", zh: "就诊记录里显示「医院 · 医生」；以前写在一起的旧记录照常显示", en: "Visit records show \"Hospital · Doctor\"; older records with both in one field still show as before" }

@@ -1332,3 +1332,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ix-two.ix-where > .field:first-child{grid-column:1 / -1}
 .ix-two.ix-where > .field input{width:100%;box-sizing:border-box}
 @media (min-width:640px){.ix-two.ix-where{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}.ix-two.ix-where > .field:first-child{grid-column:auto}}
+/* ── 11-15 身体与健康的记录：时间范围 + 类别筛选一排（窄屏自动换行），列表 | 时间线 ── */
+.gb-filter{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 10px}
+.gb-filter .gr-seg button{min-height:32px;padding:4px 12px;font-size:13.5px}
+@media (min-width:640px){.gb-filter .gr-seg + .gr-seg{padding-left:14px;border-left:1px solid var(--line)}}
