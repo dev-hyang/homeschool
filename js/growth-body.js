@@ -13,6 +13,7 @@ import { askAbout } from "./ask.js";
 import { genderOf } from "./flows-trend.js";
 import { render } from "./views.js";
 import { paged, resetPage } from "./pager.js";
+import { fbarHTML, hit, onFbar } from "./filterbar.js";
 
 /* ============ 成长 · 🩺 身体与健康（2026-11-11） ============
    数据不另建表，和姊妹应用共用一份：
@@ -84,31 +85,35 @@ const rec = (icon, title, when, meta, note) => `<div class="task"><span class="b
 const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
   <div class="panel">${rows.length ? `<div class="tasks">${rows.join("")}</div>` : `<div class="empty">${t("还没有记录。")}</div>`}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
 const EDIT_HERE = () => t("点一条可以修改或删除；和小月亮是同一份记录。");
-/* ---- 记录列表（11-15）：时间范围 + 类别筛选、列表 | 时间线、点一条就改（和小月亮成长页的记录同一种用法）
+/* ---- 记录列表（11-15）：筛选条（搜索 + 时间 + 类别 + 排序 + 清除，js/filterbar.js，和爱家小助手同一套）、列表 | 时间线、点一条就改
    items: [{ ts, icon, title, meta, note, edit: 点了干什么的属性（没有 = 只看） }]；subs: [[键, 名字, x => 是不是这一类]] */
-const RANGES = [["365", "近 1 年"], ["1095", "近 3 年"], ["all", "全部"]];
+const RANGES = [["all", "全部时间"], ["365", "近 1 年"], ["1095", "近 3 年"]];
 const BF = (H.bf ||= { view: "list" });
+const BF_DEF = { range: "all", sub: "all", q: "", sort: "new" };
 function recRow(x, full = true){
   const inner = `<span class="title">${x.icon} <b>${esc(x.title)}</b> <span class="small muted num">${esc(full ? day(x.ts) : day(x.ts).slice(5))}</span></span>${x.meta ? `<span class="meta">${esc(x.meta)}</span>` : ""}${x.note ? `<span class="meta gr-note">${esc(x.note)}</span>` : ""}`;
   return `<div class="task"><span class="bar" style="background:var(--slate)"></span>${x.edit ? `<button type="button" class="main" ${x.edit} aria-label="${esc(t("修改这一条"))}">${inner}</button>` : `<div class="main" style="cursor:default">${inner}</div>`}<span class="acts"></span></div>`;
 }
 function recList(id, title, items, { subs = null, foot = "" } = {}){
-  const F = (BF[id] ||= { range: "all", sub: "all" }), R = +F.range || 0;
-  let list = items.filter(x => !R || x.ts >= Date.now() - R * D);
-  if (subs && F.sub !== "all") { const sb = subs.find(x => x[0] === F.sub); if (sb) list = list.filter(sb[2]); else F.sub = "all"; }
-  list = list.sort((a, b) => b.ts - a.ts);
-  const pg = paged("gb-" + id, list), tl = BF.view === "timeline";
+  const F = (BF[id] ||= { ...BF_DEF }), R = +F.range || 0, key = "gb-" + id;
+  if (subs && F.sub !== "all" && !subs.some(x => x[0] === F.sub)) F.sub = "all";
+  const sb = subs && F.sub !== "all" ? subs.find(x => x[0] === F.sub) : null;
+  const list = items.filter(x => (!R || x.ts >= Date.now() - R * D) && (!sb || sb[2](x)) && hit(F.q, x.title, x.meta, x.note))
+    .sort((a, b) => (F.sort === "old" ? a.ts - b.ts : b.ts - a.ts));
+  const pg = paged(key, list), tl = BF.view === "timeline", filtered = F.range !== "all" || F.sub !== "all" || !!F.q;
+  onFbar(key, { set(k, v){ F[k === "type" ? "sub" : k] = v; resetPage(key); render(); }, clear(){ Object.assign(F, { range: "all", sub: "all", q: "" }); resetPage(key); render(); } });
   let body;
-  if (!list.length) body = `<div class="empty">${items.length ? t("这段时间、这一类没有记录。") : t("还没有记录。")}</div>`;
+  if (!list.length) body = `<div class="empty">${items.length ? t("没有符合筛选的记录。") : t("还没有记录。")}</div>`;
   else if (tl) {   // 时间线：按年份分组（体检、疫苗一年就几条，按天分太散）
     const g = []; pg.rows.forEach(x => { const y = new Date(x.ts).getFullYear(), last = g[g.length - 1]; if (last && last.y === y) last.xs.push(x); else g.push({ y, xs: [x] }); });
     body = `<div class="tl">${g.map(x => `<div class="tl-day"><div class="tl-head"><b>${x.y}</b> <span class="small muted">${t("{n} 条", { n: x.xs.length })}</span></div>${x.xs.map(r => `<div class="tl-item">${recRow(r, false)}</div>`).join("")}</div>`).join("")}</div>`;
   } else body = `<div class="tasks">${pg.rows.map(r => recRow(r)).join("")}</div>`;
-  const seg = (act, opts, cur, label) => `<div class="seg gr-seg" role="group" aria-label="${esc(label)}">${opts.map(([k, l]) => `<button type="button" data-act="${act}" data-id="${id}" data-v="${esc(k)}" aria-pressed="${cur === k}">${esc(l)}</button>`).join("")}</div>`;
-  const filters = items.length ? `<div class="gb-filter">${seg("gr-b-range", RANGES.map(([k, l]) => [k, t(l)]), F.range, t("时间范围"))}${subs ? seg("gr-b-sub", [["all", t("全部")], ...subs.map(([k, l]) => [k, l])], F.sub, t("类别")) : ""}</div>` : "";
-  return `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: list.length })}</span></h2>
-      ${items.length ? seg("gr-b-view", [["list", t("列表")], ["timeline", t("时间线")]], tl ? "timeline" : "list", t("视图")) : ""}</div>
-    ${filters}<div class="panel">${body}${pg.more}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
+  const bar = items.length ? fbarHTML(key, { q: { value: F.q, ph: t("搜索记录、医院、备注") },
+    selects: [{ k: "range", label: t("时间范围"), opts: RANGES.map(([k, l]) => [k, t(l)]), v: F.range }, subs && { k: "type", label: t("类别"), opts: [["all", t("全部类别")], ...subs.map(([k, l]) => [k, l])], v: F.sub }],
+    sort: { opts: [["new", t("最新在前")], ["old", t("最早在前")]], v: F.sort }, changed: filtered }) : "";
+  const view = `<div class="seg gr-seg" role="group" aria-label="${esc(t("视图"))}">${[["list", t("列表")], ["timeline", t("时间线")]].map(([k, l]) => `<button type="button" data-act="gr-b-view" data-v="${k}" aria-pressed="${(tl ? "timeline" : "list") === k}">${esc(l)}</button>`).join("")}</div>`;
+  return `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${filtered ? t("{n} / {m} 条", { n: list.length, m: items.length }) : t("{n} 条", { n: list.length })}</span></h2>${items.length ? view : ""}</div>
+    ${bar}<div class="panel">${body}${pg.more}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
 }
 function statTile(label, value, sub, color, attrs = "", on = false){
   const tag = attrs ? "button" : "div";
@@ -423,7 +428,6 @@ const VT_Q = "看看孩子的这些体征（体重、身高、BMI、血压、心
 function bodyAct(act, btn){
   if (act === "gr-profile") { openProfile(); return true; }
   if (act === "gr-body-reload") { loadBody(true); return true; }
-  if (act === "gr-b-range" || act === "gr-b-sub") { const F = (BF[btn.dataset.id] ||= { range: "all", sub: "all" }); F[act === "gr-b-range" ? "range" : "sub"] = btn.dataset.v; resetPage("gb-" + btn.dataset.id); render(); return true; }
   if (act === "gr-b-view") { BF.view = btn.dataset.v === "timeline" ? "timeline" : "list"; render(); return true; }
   if (act === "gr-b-vax") { editVax(btn.dataset.id); return true; }
   if (act === "gr-b-med") { editMed(btn.dataset.id); return true; }

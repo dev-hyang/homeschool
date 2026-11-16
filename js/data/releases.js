@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-15.3", title: { zh: "筛选、排序、搜索换成统一的一条", en: "One consistent filter bar everywhere" }, items: [
+    { k: "better", zh: "成长记录、身体与健康、经文卡库、资源库、日常点子、冲突管理和睡前的记录：一行搜索框 + 下拉筛选 + 排序，和爱家小助手同一个样子", en: "Growth records, health, scripture cards, resources, ideas, conflict and bedtime records: one row with search, filter dropdowns and sort, same as Home Helper" },
+    { k: "new", zh: "成长记录可以搜索、按类型筛、选最新或最早在前；改过筛选会出现「✕ 清除筛选」", en: "Growth records can be searched, filtered by type and sorted newest or oldest first; \"✕ Clear filters\" appears when a filter is set" },
+    { k: "better", zh: "手机上筛选收成一个「筛选」按钮（数字 = 用了几个筛选），点开才出下拉，往下滑时这一行固定在顶上", en: "On phones the filters fold into one \"Filters\" button (the number shows how many are on); the row stays at the top while scrolling" }
+  ] },
   { v: "2026-11-15.2", title: { zh: "成长 → 身体与健康：记录能筛、能看时间线、能改", en: "Growth → Health: filter, timeline and edit records" }, items: [
     { k: "new", zh: "基本体征、体检与就诊、疫苗、用药的记录：按时间（近 1 年 / 近 3 年 / 全部）和类别筛，列表 | 时间线（按年份）切换", en: "Vital signs, visits, vaccines and medicines: filter by time (past year / 3 years / all) and type, and switch between list and a by-year timeline" },
     { k: "new", zh: "点一条就能改或删：体检 / 就诊和测量用录入那张表改，疫苗和用药有自己的小表；和小月亮是同一份记录", en: "Tap a record to edit or delete it: visits and measurements use the entry form, vaccines and medicines have their own short form; same records as Little Moon" },

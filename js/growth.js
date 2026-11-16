@@ -13,6 +13,7 @@ import { bodyAct, bodyRowDesc, bodyTopicHTML } from "./growth-body.js";
 import { reviewAct, reviewHTML } from "./growth-review.js";
 import { LINKS, SECTIONS, TOPICS } from "./data/growth-topics.js";
 import { render } from "./views.js";
+import { fbarHTML, hit, onFbar } from "./filterbar.js";
 
 /* ============ 成长（底部页签）：三层，和课程、我的同一种分层 ============
    第 1 层 成长首页：最上面「✦ AI 身心灵分析」（js/growth-review.js）；下面三块——🩺 身体与健康 · 🌱 习惯与情绪 · 📚 学习与培训，
@@ -24,7 +25,8 @@ import { render } from "./views.js";
    数据：和趋势与分析同一份（flows-trend.js 的 S.cf：小月亮 entries 近 61 天），身体与健康另外读全部历史（growth-body.js）。
    2026-11-11 第二版：去掉了顶上的两排导航和下拉筛选（睡前安然、趋势与分析留在 资源 → 定制流程）。 */
 const G = (S.gr = S.gr || {});
-Object.assign(G, { view: G.view === "timeline" ? "timeline" : "list", days: G.days || 14, metric: G.metric || {}, span: G.span || null, spanTopic: G.spanTopic || null });
+Object.assign(G, { view: G.view === "timeline" ? "timeline" : "list", days: G.days || 14, metric: G.metric || {}, span: G.span || null, spanTopic: G.spanTopic || null,
+  rq: G.rq || "", rtype: G.rtype || "all", rsort: G.rsort === "old" ? "old" : "new" });   // 记录的筛选条：搜索、类型、排序（js/filterbar.js）
 if (typeof G.metric !== "object") G.metric = {};
 const BEH = { icon: "🙂", label: "情绪行为" };   // 小月亮 / 冲突管理记的，不是记一笔的格子：只看，不在这里改
 const rowsIn = (a, b, type) => mineRows().filter(e => e.type === type && e.ts >= a && e.ts < b);
@@ -112,7 +114,7 @@ function viewTopic(id){
   if (x.sec === "body") return bodyTopicHTML(id);
   const status = B.loading && !B.loaded ? `<p class="small muted" role="status">${t("正在读取记录…")}</p>` : B.err && !B.loaded ? `<p class="small muted" role="status">${t("读取小月亮失败：")}${esc(String(B.err).slice(0, 80))}</p>` : "";
   if (!B.loaded) return status;
-  if (G.spanTopic !== id) { G.span = null; G.spanTopic = id; }
+  if (G.spanTopic !== id) { G.span = null; G.spanTopic = id; G.rq = ""; G.rtype = "all"; }
   const days = daysNow();
   const range = `<div class="seg gr-days" role="group" aria-label="${esc(t("时间范围"))}">${DAYS.map(d => `<button type="button" data-act="gr-days" data-v="${d}" aria-pressed="${d === days}">${t("近 {n} 天", { n: d })}</button>`).join("")}</div>`;
   const adds = (x.add || []).map(tileById).filter(Boolean).map((tl, i) => `<button type="button" class="btn ${i ? "" : "primary"} sm" data-act="ql-new" data-id="${tl.id}">＋ ${t(tl.label)}</button>`).join("");
@@ -165,8 +167,9 @@ function classBlock(days){
   if (!by.size) return "";
   return `<section class="gr-sec"><h2 class="gr-sh2">${t("每门课")}</h2><div class="panel mlist">${[...by].map(([k, v]) => `<div class="mrow gr-static"><span class="mi" aria-hidden="true">🎹</span><span class="mt"><b>${esc(k)}</b><small>${t("{n} 次", { n: v.n })}${v.min ? ` · ${t("{n} 分钟", { n: v.min })}` : ""}${v.last.progress ? ` · ${esc(v.last.progress)}` : ""}</small></span></div>`).join("")}</div></section>`;
 }
+const sumOf = e => (e.type === "behavior" ? [e.kind, e.trigger && t("起因：{s}", { s: e.trigger }), e.how && t("处理：{s}", { s: e.how })].filter(Boolean).map(x => t(x)).join(" · ") : summary(asRec(e)));
 function rowHTML(e, { time = false } = {}){
-  const m = metaOf(e), sum = e.type === "behavior" ? [e.kind, e.trigger && t("起因：{s}", { s: e.trigger }), e.how && t("处理：{s}", { s: e.how })].filter(Boolean).map(x => t(x)).join(" · ") : summary(asRec(e));
+  const m = metaOf(e), sum = sumOf(e);
   const when = time ? hm(e.ts) : `${e.date.slice(5)} ${hm(e.ts)}`;
   const inner = `<span class="title">${m.icon} <b>${esc(t(m.label))}</b> <span class="small muted num">${esc(when)}</span></span><span class="meta">${esc(sum || "")}${e.note ? ` · ${esc(e.note)}` : ""}</span>`;
   return `<div class="task"><span class="bar" style="background:${e.type === "behavior" ? "var(--rose)" : "var(--slate)"}"></span>
@@ -175,23 +178,36 @@ function rowHTML(e, { time = false } = {}){
 const spanText = () => (!G.span ? "" : G.span.from === G.span.to ? G.span.from.slice(5) : `${G.span.from.slice(5)} – ${G.span.to.slice(5)}`);
 function recordsSection(id, x, days){
   const from = periods(days).cur[0], types = new Set(x.types || []);
-  const all = mineRows().filter(e => +e.ts >= from && types.has(typeKey(e))).map(e => ({ ...e, date: dayKey(e.ts) }))
-    .filter(e => !G.span || (e.date >= G.span.from && e.date <= G.span.to)).sort((a, b) => b.ts - a.ts);
-  const pg = paged("gr-rec", all), view = G.view === "timeline" ? "timeline" : "list";
+  const base = mineRows().filter(e => +e.ts >= from && types.has(typeKey(e))).map(e => ({ ...e, date: dayKey(e.ts) }));
+  const kinds = [...new Set(base.map(typeKey))];
+  if (!kinds.includes(G.rtype)) G.rtype = "all";
+  const all = base.filter(e => (!G.span || (e.date >= G.span.from && e.date <= G.span.to)) && (G.rtype === "all" || typeKey(e) === G.rtype) && hit(G.rq, t(metaOf(e).label), sumOf(e), e.note))
+    .sort((a, b) => (G.rsort === "old" ? a.ts - b.ts : b.ts - a.ts));
+  const pg = paged("gr-rec", all), view = G.view === "timeline" ? "timeline" : "list", filtered = !!(G.span || G.rq || G.rtype !== "all");
   let body;
-  if (!all.length) body = `<div class="empty">${G.span ? t("那几天没有记录。") : t("这段时间没有记录。")}</div>`;
+  if (!all.length) body = `<div class="empty">${filtered ? t("没有符合筛选的记录。") : t("这段时间没有记录。")}</div>`;
   else if (view === "timeline") {
     const groups = []; pg.rows.forEach(r => { const g = groups[groups.length - 1]; if (g && g.date === r.date) g.items.push(r); else groups.push({ date: r.date, items: [r] }); });
     body = `<div class="tl">${groups.map(g => `<div class="tl-day"><div class="tl-head"><b>${esc(dayLabel(g.date))}</b> <span class="small muted">${g.date}</span></div>${g.items.map(r => `<div class="tl-item">${rowHTML(r, { time: true })}</div>`).join("")}</div>`).join("")}</div>`;
   } else body = `<div class="tasks">${pg.rows.map(r => rowHTML(r)).join("")}</div>`;
-  const tag = G.span ? `<button type="button" class="gr-tag" data-act="gr-clear" aria-label="${esc(t("去掉这个筛选：{s}", { s: spanText() }))}">📅 ${esc(spanText())} <span aria-hidden="true">✕</span></button>` : "";
+  const tag = G.span ? `<div class="gr-tags"><button type="button" class="gr-tag" data-act="gr-clear" aria-label="${esc(t("去掉这个筛选：{s}", { s: spanText() }))}">📅 ${esc(spanText())} <span aria-hidden="true">✕</span></button></div>` : "";
+  const label = k => t((tileById(k) || (k === "behavior" ? BEH : { label: k })).label);
+  const bar = base.length ? fbarHTML("gr-rec", { q: { value: G.rq, ph: t("搜索记录、备注") },
+    selects: [kinds.length > 1 && { k: "type", label: t("类型"), opts: [["all", t("全部类型")], ...kinds.map(k => [k, label(k)])], v: G.rtype }],
+    sort: { opts: [["new", t("最新在前")], ["old", t("最早在前")]], v: G.rsort }, changed: filtered }) : "";
   return `<section class="gr-sec" id="grRec" aria-labelledby="grRecH">
-    <div class="gr-sh"><h2 id="grRecH">${t("记录")} <span class="small muted gr-n">${t("{n} 条", { n: all.length })}</span> ${tag}</h2>
+    <div class="gr-sh"><h2 id="grRecH">${t("记录")} <span class="small muted gr-n">${filtered ? t("{n} / {m} 条", { n: all.length, m: base.length }) : t("{n} 条", { n: all.length })}</span></h2>
       <div class="seg gr-seg" role="group" aria-label="${t("视图")}"><button type="button" data-act="gr-view" data-v="list" aria-pressed="${view === "list"}">${t("列表")}</button><button type="button" data-act="gr-view" data-v="timeline" aria-pressed="${view === "timeline"}">${t("时间线")}</button></div></div>
+    ${bar}${tag}
     <div class="panel">${body}${pg.more}</div>
     <p class="small muted gr-foot">${x.types.includes("behavior") ? t("点一条可以修改或删除（情绪行为在冲突管理 / 小月亮里改）。") : t("点一条可以修改或删除。")}${t("最多看最近 2 个月；和小月亮是同一份记录。")}</p>
   </section>`;
 }
+// 记录的筛选条：搜索、类型、排序；清除 = 搜索、类型和图上点出来的日期都去掉（排序不动）
+onFbar("gr-rec", {
+  set(k, v){ if (k === "q") G.rq = v; else if (k === "type") G.rtype = v; else if (k === "sort") G.rsort = v === "old" ? "old" : "new"; resetPage("gr-rec"); render(); },
+  clear(){ G.rq = ""; G.rtype = "all"; G.span = null; resetPage("gr-rec"); render(); }
+});
 
 /* ---- 给 AI 身心灵分析和咩咩咩用 ---- */
 function metricsList(days){

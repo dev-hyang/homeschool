@@ -8,7 +8,8 @@ import { render } from "./views.js";
 import { mrow } from "./me.js";
 import { musicEntry } from "./music.js";
 import { learnedCount, poolOf } from "./hs.js";
-import { paged } from "./pager.js";
+import { differs, fbarHTML, hit, onFbar } from "./filterbar.js";
+import { paged, resetPage } from "./pager.js";
 
 /* ============ 资源：入口页（日常点子 / 资源库 / 参考来源 三个入口带摘要）→ 子页 ============ */
 const missing = () => `<div class="empty">${t("资源库需要数据库迁移 004。")}<br>${t("请在 Supabase 执行本地")} <code>supabase/migrations/004_homeschool_phase2_4.sql</code>${t("，然后刷新。")}</div>`;
@@ -16,6 +17,9 @@ const missing = () => `<div class="empty">${t("资源库需要数据库迁移 00
 /* ============ 日常点子：手工 / 户外 / 家务，按孩子年龄段 ============
    两种来源：每日新鲜 = 直接读几家博客的公开接口，每条链接到原文；精选清单 = 内置的固定清单（离线也能用）。 */
 S.ideaFilter = S.ideaFilter || { band: "", cat: "craft", seed: 0, all: false, mode: "feed", lang: "en" };
+const IDEA_DEF = { band: "", cat: "craft", mode: "feed", lang: "en" };
+// 日常点子的筛选条（js/filterbar.js）：来源 / 博客语言 / 年龄段 / 类别（年龄段默认跟着孩子的年龄走）
+onFbar("idea", { set(k, v){ S.ideaFilter[k] = v; S.ideaFilter.all = false; render(); }, clear(){ Object.assign(S.ideaFilter, IDEA_DEF, { all: false }); render(); } });
 const feedCache = new Map(); // key → "loading" | { items, errors, feeds }
 let shownFeed = [];          // 当前画在页面上的那组，给“加到今天”按下标取
 const feedItem = i => shownFeed[i];
@@ -48,15 +52,17 @@ function pick(list, n, seed){
 function viewIdeas(){
   const f = S.ideaFilter, auto = bandFor(ageMonths()), band = BANDS.find(b => b.id === f.band) || auto, list = ideas(band.id, f.cat);
   const shown = f.all ? list.map((x, i) => [x, i]) : pick(list, 4, f.seed);
-  const chip = (attr, val, label, cur) => `<button class="chip" data-if="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
   const color = subject(CATS[f.cat].subject).color, feed = f.mode !== "list";
   const item = ([x, i]) => `<div class="res"><span class="bar" style="background:${color}"></span>
     <div class="v"><b>${esc(tc(x.t))}</b> <a class="small" href="${searchUrl(x)}" target="_blank" rel="noopener">${t("搜详情")}</a><div class="small">${esc(tc(x.h))}</div>${x.f ? `<div class="small muted">✝ ${esc(tc(x.f))}</div>` : ""}</div>
     <button class="chip" data-act="idea-add" data-band="${band.id}" data-cat="${f.cat}" data-i="${i}" title="${t("加到{name}今天的任务", { name: esc(childName()) })}">${t("加到今天")}</button></div>`;
   return `<h2>${t("日常点子")}</h2>
-  <div class="chips" role="group" aria-label="${t("来源")}">${chip("mode", "feed", t("每日新鲜（博客）"), feed ? "feed" : "list")}${chip("mode", "list", t("精选清单"), feed ? "feed" : "list")}${feed ? `<span style="flex-basis:100%"></span>${chip("lang", "en", t("English 博客"), f.lang)}${chip("lang", "zh", t("中文博客（在家教育 · 亲子）"), f.lang)}` : ""}</div>
-  <div class="chips" role="group" aria-label="${t("年龄段")}" style="margin-top:0">${BANDS.map(b => chip("band", b.id, t(b.name) + (b.id === auto.id ? `（${childName()}）` : ""), band.id)).join("")}</div>
-  <div class="chips" role="group" aria-label="${t("类别")}" style="margin-top:0">${Object.entries(CATS).map(([k, c]) => chip("cat", k, `${c.icon} ${t(c.name)}`, f.cat)).join("")}</div>
+  ${fbarHTML("idea", { selects: [
+    { k: "mode", label: t("来源"), opts: [["feed", t("每日新鲜（博客）")], ["list", t("精选清单")]], v: feed ? "feed" : "list" },
+    feed && { k: "lang", label: t("博客语言"), opts: [["en", t("English 博客")], ["zh", t("中文博客（在家教育 · 亲子）")]], v: f.lang },
+    { k: "band", label: t("年龄段"), opts: [["", `${t(auto.name)}（${childName()}）`], ...BANDS.filter(b => b.id !== auto.id).map(b => [b.id, t(b.name)])], v: f.band === auto.id ? "" : f.band },
+    { k: "cat", label: t("类别"), opts: Object.entries(CATS).map(([k, c]) => [k, `${c.icon} ${t(c.name)}`]), v: f.cat }],
+    changed: differs({ ...f, band: f.band === auto.id ? "" : f.band, mode: feed ? "feed" : "list" }, IDEA_DEF) })}
   <div class="panel">${feed ? feedHTML(f, band.id, color) : `${f.cat === "chore" ? `<p class="small muted" style="margin-top:0">${t("家务按年龄逐级加码：前一档会做的继续做，这里只列本档新加的。先一起做，再放手。")}</p>` : ""}${shown.map(item).join("")}`}
     <div class="btns" style="margin-top:8px">${feed ? `<button class="btn" data-act="idea-shuffle">${t("换一批")}</button>` : f.all ? `<button class="btn" data-act="idea-less">${t("只看几条")}</button>` : `<button class="btn" data-act="idea-shuffle">${t("换一批")}</button><button class="btn" data-act="idea-all">${t("看全部 {n} 条", { n: list.length })}</button>`}<button class="btn" data-act="idea-sources">${t("参考来源")}</button></div></div>`;
 }
@@ -68,7 +74,10 @@ const ideaSourcesHTML = () => `<p class="small muted">${t("<b>每日新鲜</b>�
   ${IDEA_SOURCES.map(s => `<div class="res"><span class="bar" style="background:var(--line)"></span><div class="v"><a href="${esc(s.url)}" target="_blank" rel="noopener"><b>${esc(tc(s.name))}</b></a><div class="small muted">${esc(tc(s.note))}</div></div><span></span></div>`).join("")}`;
 
 /* ============ 资源页：链接、书目、视频、打印件，按领域 / 语言 / 类型筛选 ============ */
-S.resFilter = S.resFilter || { subject: "", lang: "", type: "" };
+S.resFilter = Object.assign({ subject: "", lang: "", type: "", q: "" }, S.resFilter || {});
+const RES_DEF = { subject: "", lang: "", type: "", q: "" };
+// 资源库的筛选条（js/filterbar.js）：搜索 + 领域 / 语言 / 类型
+onFbar("res", { set(k, v){ S.resFilter[k] = v; resetPage("res"); render(); }, clear(){ Object.assign(S.resFilter, RES_DEF); resetPage("res"); render(); } });
 const TYPES = { link: "链接", book: "书", video: "视频", print: "打印件", course: "课程", org: "机构" };
 const LANGS = { zh: "中文", en: "英文", bi: "双语" };
 
@@ -101,9 +110,9 @@ function viewResources(){
 function viewLibrary(){
   if (!S.hs.phase2) return missing();
   const f = S.resFilter;
-  const list = S.hs.resources.filter(r => (!f.subject || r.subject === f.subject) && (!f.lang || r.lang === f.lang) && (!f.type || r.type === f.type)).sort((a, b) => a.sort - b.sort);
+  const list = S.hs.resources.filter(r => (!f.subject || r.subject === f.subject) && (!f.lang || r.lang === f.lang) && (!f.type || r.type === f.type)
+    && hit(f.q, tb(r.title), r.title, r.source && tb(r.source), r.note && tb(r.note), (r.tags || []).join(" "))).sort((a, b) => a.sort - b.sort);
   const pg = paged("res", list);   // 只画前一页，筛选一换回到第一页（js/events.js）
-  const chip = (attr, val, label, cur) => `<button class="chip" data-rf="${attr}" data-v="${esc(val)}" aria-pressed="${cur === val}">${esc(label)}</button>`;
   const age = r => r.age_min != null || r.age_max != null ? ` · ${r.age_min ?? ""}${r.age_min != null && r.age_max != null ? "–" : ""}${r.age_max ?? ""} ${t("岁")}${r.age_min != null && r.age_max == null ? t("起") : ""}` : "";
   const row = r => `<div class="res"><span class="bar" style="background:${r.subject ? subject(r.subject).color : "var(--line)"}"></span>
     <div class="v">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener"><b>${esc(tb(r.title))}</b></a>` : `<b>${esc(tb(r.title))}</b>`}
@@ -111,8 +120,10 @@ function viewLibrary(){
       ${r.note ? `<div class="small">${esc(tb(r.note))}</div>` : ""}</div>
     <button class="chip" data-act="res-edit" data-rid="${esc(r.id)}">${t("编辑")}</button></div>`;
   return `<h2>${t("资源库")}</h2>
-  <div class="chips" role="group" aria-label="${t("领域")}">${chip("subject", "", t("全部"), f.subject)}${Object.keys(SUBJECTS).map(k => chip("subject", k, SUBJECTS[k].short, f.subject)).join("")}</div>
-  <div class="chips" role="group" aria-label="${t("语言与类型")}" style="margin-top:0">${chip("lang", "", t("所有语言"), f.lang)}${Object.entries(LANGS).map(([k, l]) => chip("lang", k, t(l), f.lang)).join("")}<span style="flex-basis:100%"></span>${chip("type", "", t("所有类型"), f.type)}${Object.entries(TYPES).map(([k, l]) => chip("type", k, t(l), f.type)).join("")}</div>
+  ${S.hs.resources.length ? fbarHTML("res", { q: { value: f.q, ph: t("搜索标题、来源、标签") }, selects: [
+    { k: "subject", label: t("领域"), opts: [["", t("全部领域")], ...Object.keys(SUBJECTS).map(k => [k, SUBJECTS[k].short])], v: f.subject },
+    { k: "lang", label: t("语言"), opts: [["", t("所有语言")], ...Object.entries(LANGS).map(([k, l]) => [k, t(l)])], v: f.lang },
+    { k: "type", label: t("类型"), opts: [["", t("所有类型")], ...Object.entries(TYPES).map(([k, l]) => [k, t(l)])], v: f.type }], changed: differs(f, RES_DEF) }) : ""}
   <div class="panel">${list.length ? pg.rows.map(row).join("") + pg.more : `<p class="muted">${S.hs.resources.length ? t("没有符合筛选的资源。") : t("资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。")}</p>`}
     <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="res-add">＋ ${t("资源")}</button><button class="btn" data-act="seed-resources">${S.hs.resources.length ? t("补充导入起步资源") : t("导入起步资源")}</button></div></div>
   <p class="small muted" style="margin-top:8px">${t("资源属于全家。链接随时会失效，发现了就点编辑改掉。")}</p>`;

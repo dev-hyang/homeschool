@@ -46,13 +46,9 @@ document.addEventListener("change", async ev => {
   if (btChange(ev)) return;         // 睡前安然：选了音频文件、播放页的音量 / 备注
   if (ev.target && growthChange(ev.target)) return;   // 成长记录：页面导航、筛选器的下拉
   const id = ev.target && ev.target.id, v = ev.target && ev.target.value;
-  if (id === "libKind") { S.scrFilter.kind = v; resetPage("lib"); openScriptures(); }
-  else if (id === "libSt") { S.scrFilter.st = v; resetPage("lib"); renderLibList(); }
-  else if (id === "libSort") { S.scrFilter.sort = v; resetPage("lib"); renderLibList(); }
-  else if (id === "poolBatch") { await hs.saveSettings({ verseBatch: +v }); toast(t("每批 {n} 节，下一批起生效", { n: +v })); openScriptures(); }
+  if (id === "poolBatch") { await hs.saveSettings({ verseBatch: +v }); toast(t("每批 {n} 节，下一批起生效", { n: +v })); openScriptures(); }
   else if (id === "poolCat") { await hs.saveSettings({ catShare: +v }); toast(t("问答占 {n}%，下一批起生效", { n: +v })); openScriptures(); }
 });
-document.addEventListener("input", ev => { if (ev.target && ev.target.id === "libQ") { S.scrFilter.q = ev.target.value; resetPage("lib"); renderLibList(); } });
 
 document.addEventListener("click", async ev => {
   if (!$("#kids").hidden && !ev.target.closest("#bname")) toggleKids(false);
@@ -83,8 +79,6 @@ document.addEventListener("click", async ev => {
   if (d.plan) { await hs.choosePlan(d.plan); openSettings(); toast(t("已切换读经计划")); return; }
   if (d.state) { setLawState(d.state); render(); return; }
   if (d.subject) { S.courseSubject = d.subject; render(); return; }
-  if (d.rf) { S.resFilter[d.rf] = d.v; resetPage("res"); render(); return; }
-  if (d.if) { S.ideaFilter[d.if] = d.v; S.ideaFilter.all = false; render(); return; }
   if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
   if (d.rday !== undefined) { S.routineDay = d.rday === "week" ? "week" : +d.rday; render(); return; }
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }

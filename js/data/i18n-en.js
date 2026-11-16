@@ -1137,5 +1137,16 @@ const EN = {
   "如 400 IU 每天一次": "e.g. 400 IU once a day",
   "保存修改": "Save changes",
   "修改这条记录": "Edit this record",
+  "清除筛选": "Clear filters",
+  "全部类型": "All types",
+  "搜索记录、备注": "Search records and notes",
+  "没有符合筛选的记录。": "No records match these filters.",
+  "{n} / {m} 条": "{n} of {m}",
+  "全部时间": "All time",
+  "全部类别": "All types",
+  "搜索记录、医院、备注": "Search records, clinics, notes",
+  "搜索标题、来源、标签": "Search titles, sources, tags",
+  "全部领域": "All subjects",
+  "博客语言": "Blog language",
 };
 export { EN };

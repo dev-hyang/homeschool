@@ -3,24 +3,35 @@ import { S } from "./core/state.js";
 import { D, dayKey, esc } from "./core/util.js";
 import { weekdayLabel } from "./data/subjects.js";
 import { paged, resetPage } from "./pager.js";
+import { render } from "./views.js";
+import { fbarHTML, hit, onFbar } from "./filterbar.js";
 
 /* ============ 记录的日期筛选 + 列表 / 时间线 ============
    按习惯养成的看法：先看「今天」「本周」，再往回看「近 2 周」「本月」，最后「近 3 个月」「全部」，由近到远。
    同一套用在冲突管理、睡前状况、睡前每晚的记录上；每个列表有自己的 key，各记各的选择（只在这次打开期间）。
    一天的记录在时间线里归成一组，组头写「今天 / 昨天 / 周几 日期」。 */
 const RANGES = [["today", "今天"], ["week", "本周"], ["2w", "近 2 周"], ["month", "本月"], ["3m", "近 3 个月"], ["all", "全部"]];
-const st = key => ((S.rf ||= {})[key] ||= { range: "2w", view: "list" });
+const st = key => ((S.rf ||= {})[key] ||= { range: "2w", view: "list", q: "", sort: "new" });
+// 下拉里默认（近 2 周）排第一，其余由近到远（手机上「筛选 (n)」按「不是第一项」计数）
+const RANGE_OPTS = [RANGES[2], ...RANGES.filter((_, i) => i !== 2)];
+/** 搜索：一条记录里所有文字字段（状况、怎么处理的、备注……） */
+const textOf = x => Object.values(x).map(v => (typeof v === "string" ? v : Array.isArray(v) ? v.filter(y => typeof y === "string").join(" ") : "")).join(" ");
 const mondayKey = () => dayKey(Date.now() - ((new Date().getDay() + 6) % 7) * D);
 function rangeFrom(range){
   const now = Date.now(), today = dayKey(now);
   return { today, week: mondayKey(), "2w": dayKey(now - 13 * D), month: today.slice(0, 8) + "01", "3m": dayKey(now - 89 * D), all: "" }[range] ?? "";
 }
-const inRange = (key, items) => { const from = rangeFrom(st(key).range); return items.filter(x => !from || x.date >= from).sort((a, b) => (b.date + (b.updated_at || "")).localeCompare(a.date + (a.updated_at || ""))); };
+const inRange = (key, items) => {
+  const s = st(key), from = rangeFrom(s.range), dir = s.sort === "old" ? -1 : 1;
+  return items.filter(x => (!from || x.date >= from) && hit(s.q, textOf(x))).sort((a, b) => dir * (b.date + (b.updated_at || "")).localeCompare(a.date + (a.updated_at || "")));
+};
 const dayLabel = date => { const today = dayKey(Date.now()), y = dayKey(Date.now() - D); return date === today ? t("今天") : date === y ? t("昨天") : `${weekdayLabel(new Date(date + "T12:00:00").getDay())} ${date.slice(5)}`; };
 
 function barHTML(key, shown, total){
-  const s = st(key);
-  return `<div class="rf-bar"><div class="chips rf-chips" role="group" aria-label="${t("日期范围")}">${RANGES.map(([k, l]) => `<button type="button" class="chip" data-act="rf-set" data-key="${esc(key)}" data-range="${k}" aria-pressed="${s.range === k}">${t(l)}</button>`).join("")}</div>
+  const s = st(key), fk = "rf:" + key;
+  onFbar(fk, { set(k, v){ s[k] = v; resetPage(fk); render(); }, clear(){ Object.assign(s, { range: "2w", q: "" }); resetPage(fk); render(); } });
+  return `<div class="rf-bar">${total ? fbarHTML(fk, { q: { value: s.q, ph: t("搜索记录、备注") }, selects: [{ k: "range", label: t("日期范围"), opts: RANGE_OPTS.map(([k, l]) => [k, t(l)]), v: s.range }],
+      sort: { opts: [["new", t("最新在前")], ["old", t("最早在前")]], v: s.sort }, changed: s.range !== "2w" || !!s.q }) : ""}
     <div class="rf-row"><span class="small muted">${t("{n} 条", { n: shown })}${shown !== total ? ` / ${t("共 {n} 条", { n: total })}` : ""}</span>
       <div class="seg rf-view" role="group" aria-label="${t("视图")}"><button type="button" data-act="rf-set" data-key="${esc(key)}" data-view="list" aria-pressed="${s.view === "list"}">${t("列表")}</button><button type="button" data-act="rf-set" data-key="${esc(key)}" data-view="timeline" aria-pressed="${s.view === "timeline"}">${t("时间线")}</button></div></div></div>`;
 }

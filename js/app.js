@@ -3,6 +3,8 @@
    跨模块调用都在函数体内，循环引用是安全的。 */
 import { locale, t } from "./core/i18n.js";
 import { initSwipeRows } from "./swipe-rows.js";
+import { initCompactFilters, watchStick } from "./compact-filters.js";
+import "./filterbar.js";
 import "./data/content-en.js";   // 应用自带内容的英文登记（英文界面下 tc / tb 用）
 import "./events.js";
 import "./attach.js";   // AI 附件区 + 会自己长高的文字框（姊妹应用同一份）
@@ -33,6 +35,9 @@ if (!(await healStaleModules())) {
   // 发布日志（js/releases-ui.js，四个姊妹应用共用）：我的 → 发布日志；新版本头几次打开时今天页顶上有提示
   initReleases({ version: APP_VERSION, releases: RELEASES, lang: locale, accent: "var(--slate)", appId: "homeschool", open: 'data-tab="me-releases"' });
   initSwipeRows({ kinds: ["break"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
+  // 筛选条（js/filterbar.js）：手机上收成「搜索 + 筛选 (n)」一行，滑动时固定在路径条下面（爱家小助手 shared/compact-filters.js 同一份）
+  initCompactFilters({ root: document.getElementById("main"), ui: () => ({ "zh-TW": "tw", en: "en" }[locale()] || "zh") });
+  watchStick({ path: ".crumb" });
   render();          // 先画出"连接中"的壳
   initSupabase();    // 加载 supabase-js，登录状态回调里再渲染一次
   initProviders();   // 从 Dropbox 授权页跳回来时把 ?code= 换成令牌（js/backup.js）

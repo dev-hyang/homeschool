@@ -7,7 +7,8 @@ import { INTERVALS, fetchVersions, poolCfg, poolOf, progressOf } from "./hs.js";
 import { closeSheet, head, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
-import { paged } from "./pager.js";
+import { fbarHTML, onFbar, showClear } from "./filterbar.js";
+import { paged, resetPage } from "./pager.js";
 
 /* ============ 经文卡库：总览（图表）+ 列表（按类型分层）============
    筛选集成在一行：类型 / 状态 / 排序 / 搜索，都是下拉和输入框，没有标签条。
@@ -134,6 +135,12 @@ function listHTML(){
   return { n: list.length, html };
 }
 /** 只刷新列表块（搜索框打字、排序、状态下拉用，不丢输入焦点） */
+/** 筛选条（js/filterbar.js）：类型换了整页重画（图表跟着变）；状态、排序、搜索只刷新列表，不丢搜索框的焦点 */
+const libChanged = () => { const f = S.scrFilter; return f.kind !== "all" || f.st !== "active" || !!f.q; };
+onFbar("lib", {
+  set(k, v){ const f = S.scrFilter; resetPage("lib"); if (k === "kind") { f.kind = v; openScriptures(); return; } f[k] = v; renderLibList(); showClear("lib", libChanged()); },
+  clear(){ Object.assign(S.scrFilter, { kind: "all", st: "active", q: "" }); resetPage("lib"); openScriptures(); }
+});
 function renderLibList(){
   const host = $("#libList"); if (!host) return;
   const r = listHTML(); host.innerHTML = r.html;
@@ -191,10 +198,9 @@ function viewScriptures(){
     <span class="lib-tools">${tb("add", "＋", t("添加"))}${tb("cfg", "⚙", t("设置"))}</span></div>
   ${menuHTML(menu, cfg, pool, fv)}
   ${all.length ? "" : `<div class="empty">${t("还没有经文卡。点“添加”导入起步卡，或者加你们自己选的经文。")}</div>`}
-  ${all.length ? `<div class="lib-filters"><label>${t("类型")} <select id="libKind">${opt("all", t("全部"), f.kind)}${KINDS.map(([k, n]) => opt(k, t(n), f.kind)).join("")}</select></label>
-      ${view === "list" ? `<label>${t("状态")} <select id="libSt">${STATUS_OPTS.map(([v, l]) => opt(v, t(l), f.st)).join("")}</select></label>
-      <label>${t("排序")} <select id="libSort">${SORT_OPTS.map(([v, l]) => opt(v, t(l), f.sort)).join("")}</select></label>
-      <input type="search" id="libQ" value="${esc(f.q)}" placeholder="${t("搜索出处或经文")}" aria-label="${t("搜索")}">` : ""}</div>` : ""}
+  ${all.length ? fbarHTML("lib", { q: view === "list" ? { value: f.q, ph: t("搜索出处或经文") } : null,
+      selects: [{ k: "kind", label: t("类型"), opts: [["all", t("全部类型")], ...KINDS.map(([k, n]) => [k, t(n)])], v: f.kind }, view === "list" && { k: "st", label: t("状态"), opts: STATUS_OPTS.map(([v, l]) => [v, t(l)]), v: f.st }],
+      sort: view === "list" ? { opts: SORT_OPTS.map(([v, l]) => [v, t(l)]), v: f.sort } : null, changed: libChanged() }) : ""}
   ${all.length ? (view === "chart" ? overviewHTML(all, cid, day, f) : `<p class="small muted" id="libCount" style="margin:8px 0 0">${first ? t("共 {n} 张", { n: first.n }) : ""}</p><div id="libList">${first ? first.html : ""}</div>`) : ""}`;
 }
 
