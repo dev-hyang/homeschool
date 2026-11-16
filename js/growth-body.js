@@ -14,6 +14,7 @@ import { genderOf } from "./flows-trend.js";
 import { render } from "./views.js";
 import { paged, resetPage } from "./pager.js";
 import { fbarHTML, hit, onFbar } from "./filterbar.js";
+import { REC_AI_SYSTEM, parseRecAi, recAiBody } from "./record-ai.js";
 
 /* ============ 成长 · 🩺 身体与健康（2026-11-11） ============
    数据不另建表，和姊妹应用共用一份：
@@ -481,14 +482,8 @@ function bodySummary(){
    存在哪：小月亮的记录 → 记录里的 ai；牧羊人的就诊 → hl_visits.ai（牧羊人也显示）；某一天的化验 → 档案 data.ai_labdays[日期]。
    发给 AI 的：年龄、性别、体征和同龄正常范围、医生写的总结 / 建议、同一天的疫苗 / 用药 / 化验、之前几次的数；不发姓名、不发医院和医生的名字。 */
 const REC_AI_OK = LS_PREFIX + ".recAiOk";
-const langName = () => ({ "zh-TW": "Traditional Chinese", en: "English" }[locale()] || "Simplified Chinese");
-const REC_AI_SYSTEM = () => `You explain a child's pediatric record (a well-child checkup, a sick visit, or lab results) to a parent in plain language. You are not a doctor.
-Input is de-identified JSON: age, sex, record kind, measurements with percentiles and the normal range for this age, the doctor's own summary and advice as written, vaccines / medicines / labs from the same day, and earlier values for trends.
-Reply ONLY with JSON: {"plain":"3-5 sentences: what this visit or these results show overall","advice":["each piece of the doctor's advice: what it means and how to do it at home (empty if the input has no advice)"],"follow":["what to keep an eye on next, when to recheck, and warning signs that need a doctor sooner"],"agree":["where the numbers support the doctor's assessment"],"differ":["anything worth raising with the doctor, phrased as a topic to ask about, never as a contradiction"],"questions":["up to 4 concrete questions for the next visit"]}.
-Use the given normal ranges and the lab's own reference ranges. Never diagnose, never suggest starting, stopping or changing a medicine. Keep each item short. Write in ${langName()}.`;
 let AIP = null;   // 刚分析出来、还没决定保不保留的：{ k, ai }
-const aiList = (title, arr) => (arr && arr.length ? `<b>${esc(t(title))}</b><ul>${arr.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : "");
-const aiBody = a => `${a.plain ? `<p>${esc(a.plain)}</p>` : ""}${aiList("医生建议是什么意思、怎么做", a.advice)}${aiList("后续注意", a.follow)}${aiList("和医生意见一致的", a.agree)}${aiList("可以问问医生的", a.differ)}${aiList("下次可以问的问题", a.questions)}`;
+const aiBody = a => recAiBody(a, t, esc);   // 提示词、解析、内容的画法在 js/record-ai.js（和小月亮同一份）
 function aiSavedHTML(k, a, busy){
   return `<details class="gb-ai"><summary>✦ ${t("AI 解读")} <span class="small muted">${esc(String(a.at || "").slice(0, 10))}</span></summary><div class="gb-ai-in">${aiBody(a)}
     <div class="btns"><button type="button" class="btn sm" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="btn sm" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
@@ -534,10 +529,9 @@ async function runAi(k){
   const input = aiInput(k); if (!input) return;
   H.aiBusy = k; render(); if ($("#sheet").open && AIP) drawAiSheet(true);
   try {
-    const raw = await askText(REC_AI_SYSTEM(), JSON.stringify(input), { json: true, maxTokens: 2200 });
-    let o; try { o = JSON.parse(String(raw).replace(/^\s*```(json)?|```\s*$/g, "").trim()); } catch (e) { throw new Error(t("AI 返回的格式不对，再试一次")); }
-    const arr = x => (Array.isArray(x) ? x.map(y => String(y).slice(0, 400)).filter(Boolean).slice(0, 6) : []);
-    AIP = { k, ai: { at: new Date().toISOString(), plain: String(o.plain || "").slice(0, 1500), advice: arr(o.advice), follow: arr(o.follow), agree: arr(o.agree), differ: arr(o.differ), questions: arr(o.questions) } };
+    const ai = parseRecAi(await askText(REC_AI_SYSTEM(locale()), JSON.stringify(input), { json: true, maxTokens: 2200 }));
+    if (!ai) throw new Error(t("AI 返回的格式不对，再试一次"));
+    AIP = { k, ai };
     drawAiSheet(false); showSheet();
   } catch (e) { toast(t("分析失败：{msg}", { msg: String(e.message || e).slice(0, 100) })); }
   finally { H.aiBusy = null; render(); }

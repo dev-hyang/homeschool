@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-15.5", title: { zh: "AI 解读和小月亮通用", en: "AI explanations shared with Little Moon" }, items: [
+    { k: "better", zh: "体检、就诊的 AI 解读和小月亮用同一套：在哪边保留的，两边都能看到、重新分析或清除", en: "Checkup and visit explanations work the same in Little Moon: one kept in either app shows in both and can be redone or cleared there" }
+  ] },
   { v: "2026-11-15.4", title: { zh: "AI 录入能一次读整张表；每条体检、就诊、化验都能让 AI 解读", en: "AI entry reads whole tables; AI explains each checkup, visit and lab" }, items: [
     { k: "new", zh: "AI 录入：生长表、历次体征表按日期一行读出来，化验单每一项连参考范围一起读出来；核对后一次存成多条，化验存到化验页", en: "AI entry: growth and vitals tables are read one row per date, lab sheets item by item with reference ranges; review and save them all at once, labs go to the Labs page" },
     { k: "new", zh: "体检与就诊、化验（按日期）每条都有「✦ AI 解读」：这次结果说明、医生建议是什么意思怎么做、后续注意、下次可以问医生的问题", en: "Each checkup, visit and lab date has \"✦ AI explanation\": what the results show, what the doctor's advice means, what to watch next, questions for next time" },
