@@ -4,6 +4,7 @@
    - 繁體：先按 TW_PHRASES 换词（设置→設定、计划→計畫），再按 data/s2t.js 逐字转换，所以不需要维护第二份字典。
    - 用户自己录入的内容（任务、课时、经文卡……）不经过 t()，按输入原样显示；tc() 只给应用自带的内容（法规、介绍、课程库）做繁体转换。
    选择存在本机 localStorage，不进家庭设置：每个人可以用自己习惯的界面。 */
+import { importFresh } from "./lazy-reload.js";
 import { LS_PREFIX } from "./config.js";
 
 /* 大字典按需加载：简体（默认）不下载任何英文 / 繁体数据。
@@ -62,8 +63,8 @@ function locale(){ return cur; }
 /** 把语言 l 要用的数据加载好（简体不需要任何数据）；已加载直接返回。加载失败返回 false，界面照常用简体原文 */
 function loadLocaleData(l = cur){
   const jobs = [];
-  if (l === "en" || l === "zh-TW") jobs.push(enPack ||= import("../data/i18n-en.js").then(m => { EN = m.EN; return import("../data/content-en.js"); }).catch(() => { enPack = null; throw 0; }));
-  if (l === "zh-TW") jobs.push(twPack ||= import("../data/s2t.js").then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(() => { twPack = null; throw 0; }));
+  if (l === "en" || l === "zh-TW") jobs.push(enPack ||= importFresh(() => import("../data/i18n-en.js")).then(m => { EN = m.EN; return importFresh(() => import("../data/content-en.js")); }).catch(() => { enPack = null; throw 0; }));
+  if (l === "zh-TW") jobs.push(twPack ||= importFresh(() => import("../data/s2t.js")).then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(() => { twPack = null; throw 0; }));
   return Promise.all(jobs).then(() => { applyLang(); return true; }, () => false);
 }
 /** 切换语言：先加载数据再生效；返回 Promise，调用方 await / then 之后再重画 */

@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.1", title: { zh: "修复：发新版后旧页面切换语言偶尔失败", en: "Fix: switching language on an already-open page could fail after an update" }, items: [
+    { k: "fix", zh: "应用更新后，之前就开着的页面切换英文 / 繁體偶尔下载失败；现在会自动刷新一次换成新版，不用手动刷新", en: "After an update, a page that was already open could fail to switch to English / Traditional Chinese; it now refreshes itself once to get the new version" }
+  ] },
   { v: "2026-11-18.3", title: { zh: "打开更快：英文词典按需下载", en: "Faster to open: the English dictionary downloads only when needed" }, items: [
     { k: "better", zh: "用简体中文时不再下载英文和繁體的词典，发布日志的内容也等要看时才下载，打开更快；用英文或繁體时画面不变", en: "With the Simplified Chinese interface the English and Traditional dictionaries are no longer downloaded, and release notes load only when you view them, so the app opens faster; English and Traditional look the same as before" }
   ] },
