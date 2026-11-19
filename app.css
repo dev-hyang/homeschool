@@ -1346,7 +1346,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .clear-filters{flex:0 0 auto;min-height:40px;padding:0 6px;border:0;background:transparent;color:var(--slate);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
 .clear-filters[hidden]{display:none!important}
 .toolbar .clear-filters{order:9}
-@media (max-width:440px){.toolbar input[type=search],.toolbar select{font-size:16px}.toolbar.tb-on .tb-toggle{min-height:40px}.clear-filters{padding:0 2px}}
+@media (max-width:440px){.toolbar input[type=search],.toolbar select{font-size:16px}.toolbar.tb-on .tb-toggle{min-height:40px}.clear-filters{padding:0 2px;min-height:44px}}
 .gr-sh + .toolbar{margin-top:-2px}
 .toolbar + .gr-tags{margin:-2px 0 10px}
 .rf-bar .toolbar{margin-bottom:6px}
