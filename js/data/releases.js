@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.10", title: { zh: "手机上的筛选按钮：时间范围这类默认值不是第一项的下拉不再算进角标", en: "Phone Filters button: dropdowns whose default is not the first option no longer count in the badge" }, items: [
+    { k: "better", zh: "手机上「筛选」按钮的数字角标，不再把默认值不是第一项的下拉（例如时间范围）算成已筛选", en: "The number on the phone Filters button no longer counts dropdowns whose default is not the first option (such as a time range)" }
+  ] },
   { v: "2026-11-19.9", title: { zh: "手机上的筛选按钮，搜索框包在外框里时位置也对了", en: "The Filters button sits in the right place even when the search box is wrapped" }, items: [
     { k: "better", zh: "手机上“筛选”按钮现在总是排在搜索框后面（以前搜索框包在外框里的页面，按钮会跑到搜索框前面）", en: "On phones the Filters button now always comes after the search box (it used to land before it on pages where the search box is wrapped)" }
   ] },
