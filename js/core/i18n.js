@@ -5,8 +5,12 @@
    - 用户自己录入的内容（任务、课时、经文卡……）不经过 t()，按输入原样显示；tc() 只给应用自带的内容（法规、介绍、课程库）做繁体转换。
    选择存在本机 localStorage，不进家庭设置：每个人可以用自己习惯的界面。 */
 import { LS_PREFIX } from "./config.js";
-import { s2tChars } from "../data/s2t.js";
-import { EN } from "../data/i18n-en.js";
+
+/* 大字典按需加载：简体（默认）不下载任何英文 / 繁体数据。
+   - English：界面字典 data/i18n-en.js + 应用自带内容的英文登记 data/content-en.js（登记到下面的 CONTENT）
+   - 繁體：逐字转换表 data/s2t.js；tb() 要查 CONTENT / EN 判断哪些是模板内容，所以同样需要英文那一包
+   启动时（js/app.js）和切换语言时（setLocale）先 await loadLocaleData()，再渲染，不会先闪一下中文。 */
+let EN = {}, s2tChars = null, enPack = null, twPack = null;
 
 const LOCALES = [["zh-CN", "简体"], ["zh-TW", "繁體"], ["en", "English"]];
 const KEY = LS_PREFIX + ".locale";
@@ -28,7 +32,7 @@ function s2t(s){
   s = String(s); if (twCache.has(s)) return twCache.get(s);
   let o = s; for (const [a, b] of TW_PHRASES) if (o.includes(a)) o = o.split(a).join(b);
   o = o.replace(/周(?=[一二三四五六日数末例]|[\s）)，。、]|$)/g, "週"); // 台湾“週”：周一、周例行、36 周
-  o = s2tChars(o); twCache.set(s, o); return o;
+  if (s2tChars) o = s2tChars(o); twCache.set(s, o); return o;
 }
 
 /* t：界面文字。key 是简体原文；vars 替换 {name} 这类占位 */
@@ -55,8 +59,20 @@ const enOf = s => { const hit = CONTENT.get(s); if (hit != null) return hit; con
 const tc = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } return cur === "zh-TW" ? s2t(s) : s; };
 const tb = text => { const s = String(text ?? ""); if (cur === "en") { const e = enOf(s); return e != null ? e : s; } if (cur === "zh-TW") return CONTENT.has(s) || EN[s] != null ? s2t(s) : s; return s; };
 function locale(){ return cur; }
-function setLocale(l){ if (!LOCALES.some(x => x[0] === l)) return; cur = l; try { localStorage.setItem(KEY, l); } catch (e) {} applyLang(); }
+/** 把语言 l 要用的数据加载好（简体不需要任何数据）；已加载直接返回。加载失败返回 false，界面照常用简体原文 */
+function loadLocaleData(l = cur){
+  const jobs = [];
+  if (l === "en" || l === "zh-TW") jobs.push(enPack ||= import("../data/i18n-en.js").then(m => { EN = m.EN; return import("../data/content-en.js"); }).catch(() => { enPack = null; throw 0; }));
+  if (l === "zh-TW") jobs.push(twPack ||= import("../data/s2t.js").then(m => { s2tChars = m.s2tChars; twCache.clear(); }).catch(() => { twPack = null; throw 0; }));
+  return Promise.all(jobs).then(() => { applyLang(); return true; }, () => false);
+}
+/** 切换语言：先加载数据再生效；返回 Promise，调用方 await / then 之后再重画 */
+async function setLocale(l){
+  if (!LOCALES.some(x => x[0] === l)) return;
+  await loadLocaleData(l);
+  cur = l; try { localStorage.setItem(KEY, l); } catch (e) {} applyLang();
+}
 function applyLang(){ document.documentElement.lang = cur; document.title = t("家庭学堂") + " · " + t("在家教育"); }
 applyLang();
 
-export { LOCALES, t, tc, tb, addContent, addRules, setRefFormatter, locale, setLocale, s2t };
+export { LOCALES, t, tc, tb, addContent, addRules, setRefFormatter, locale, setLocale, loadLocaleData, s2t };

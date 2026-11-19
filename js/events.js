@@ -79,7 +79,7 @@ document.addEventListener("click", async ev => {
   if (d.plan) { await hs.choosePlan(d.plan); openSettings(); toast(t("已切换读经计划")); return; }
   if (d.state) { setLawState(d.state); render(); return; }
   if (d.subject) { S.courseSubject = d.subject; render(); return; }
-  if (d.localeSet !== undefined) { setLocale(d.localeSet); render(); openSettings(); return; }
+  if (d.localeSet !== undefined) { setLocale(d.localeSet).then(() => { render(); openSettings(); }); return; }
   if (d.rday !== undefined) { S.routineDay = d.rday === "week" ? "week" : +d.rday; render(); return; }
   if (d.member === "rename") { openForm("修改称呼", [{ k: "display", label: "在家里的称呼", type: "text", ph: "妈妈 / 爸爸 / 外婆" }], { display: memberName(d.uid) }, async f => { if (await sbRename(d.uid, f.display)) openSettings(); }); return; }
   if (d.member) { await sbMember(d.member, d.uid); return; }
@@ -302,4 +302,4 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 // 顶栏语言切换器（共用组件）选了语言
-document.addEventListener("eco-set-lang", e => { setLocale(e.detail); render(); });
+document.addEventListener("eco-set-lang", e => { setLocale(e.detail).then(() => render()); });

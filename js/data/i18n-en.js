@@ -4,6 +4,7 @@
    运行 scratchpad 里的 keys.js check 可以列出还没翻译的键。 */
 const EN = {
   // ---- 框架 ----
+  "加载中…": "Loading…",
   "家庭学堂": "Family Homeschool", "在家教育": "Homeschool", "{name}的学堂": "{name}’s School", "宝宝": "Baby",
   "回到顶部": "Back to top", "松手删除": "Release to delete", "今天": "Today", "课程": "Courses", "资源": "Resources", "日历": "Calendar", "报告": "Reports", "法规": "Laws", "我的": "Me",
   "{name} · {age}": "{name} · {age}", "还没登录": "Not signed in", "按月出勤、每科时长、敬拜、经文、课时、目标，CSV 导出": "Monthly attendance, time per subject, worship, verses, lessons, goals; CSV export",

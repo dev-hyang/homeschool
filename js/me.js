@@ -4,6 +4,7 @@ import { t, tc } from "./core/i18n.js";
 import { S, ageText, childName } from "./core/state.js";
 import { esc } from "./core/util.js";
 import { releasePageHTML } from "./releases-ui.js";
+import { loadReleases, releasesReady } from "./release-data.js";
 
 /* ============ “我的”页：把不常用的入口收到一处 ============
    报告、法规、设置、介绍、打印、姊妹应用。底部一个页签，宽窄屏一样，不再折叠。
@@ -47,6 +48,9 @@ function viewPrintHub(){
 }
 
 /* 发布日志：「我的」下的子页；页面内容、筛选和样式都在 js/releases-ui.js（四个姊妹应用共用），数据在 js/data/releases.js */
-function viewReleases(){ return releasePageHTML(); }   // 函数声明：views.js 和 me.js 互相 import，const 在 VIEWS 建表时还没初始化
+function viewReleases(){
+  if (!releasesReady()) { loadReleases(); return `<div class="empty">${t("加载中…")}</div>`; }   // 数据到了会触发 releases-ready，app.js 重画
+  return releasePageHTML();
+}   // 函数声明：views.js 和 me.js 互相 import，const 在 VIEWS 建表时还没初始化
 
 export { viewMe, viewPrintHub, viewReleases, mrow };

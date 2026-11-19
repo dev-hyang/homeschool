@@ -1,11 +1,10 @@
 /* ============ boot ============
    模块顺序：core/config → core/util → core/state → hs ↔ core/auth ↔ views ↔ sheet → events。
    跨模块调用都在函数体内，循环引用是安全的。 */
-import { locale, t } from "./core/i18n.js";
+import { loadLocaleData, locale, t } from "./core/i18n.js";
 import { initSwipeRows } from "./swipe-rows.js";
 import { initCompactFilters, watchStick } from "./compact-filters.js";
 import "./filterbar.js";
-import "./data/content-en.js";   // 应用自带内容的英文登记（英文界面下 tc / tb 用）
 import "./events.js";
 import "./attach.js";   // AI 附件区 + 会自己长高的文字框（姊妹应用同一份）
 import { initSupabase } from "./core/auth.js";
@@ -14,8 +13,7 @@ import { APP_VERSION } from "./core/config.js";
 import { S } from "./core/state.js";
 import { refreshIfNewDay } from "./hs.js";
 import { render, restoreRoute } from "./views.js";
-import { initReleases } from "./releases-ui.js";
-import { RELEASES } from "./data/releases.js";
+import { loadReleases, releaseBadgePossible } from "./release-data.js";
 
 /* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧程序文件混在一起（GitHub Pages 缓存约 10 分钟）。
    打包后真正的文件是 dist/app.js（入口，src 带 ?v= 版本号）和 dist/chunks/ 下带内容哈希的块（文件名随内容变，不会读到旧的）；
@@ -31,9 +29,12 @@ async function healStaleModules(){
 }
 
 if (!(await healStaleModules())) {
+  await loadLocaleData();   // 英文 / 繁體：字典先下载好再画第一屏（简体什么都不用下载）
+  document.documentElement.lang = locale();
   { const v = document.getElementById("appver"); if (v) v.textContent = "v" + APP_VERSION; } // 顶栏版本号：不用翻到最后一页就能对照有没有更新
   // 发布日志（js/releases-ui.js，四个姊妹应用共用）：我的 → 发布日志；新版本头几次打开时今天页顶上有提示
-  initReleases({ version: APP_VERSION, releases: RELEASES, lang: locale, accent: "var(--slate)", appId: "homeschool", open: 'data-tab="me-releases"' });
+  document.addEventListener("releases-ready", () => { if (S.tab === "today" || S.tab === "me-releases") render(); });   // 发布日志数据（js/release-data.js）按需加载，到了再重画
+  if (releaseBadgePossible()) loadReleases();   // 「新版本」提示还会出现才下载；否则进发布日志页时再下载
   initSwipeRows({ kinds: ["break"], del: () => t("删除"), release: () => t("松手删除") });   // 行记录左滑删除（js/swipe-rows.js）
   // 筛选条（js/filterbar.js）：手机上收成「搜索 + 筛选 (n)」一行，滑动时固定在路径条下面（爱家小助手 shared/compact-filters.js 同一份）
   initCompactFilters({ root: document.getElementById("main"), ui: () => ({ "zh-TW": "tw", en: "en" }[locale()] || "zh") });
