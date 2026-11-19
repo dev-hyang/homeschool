@@ -17,16 +17,16 @@ import { render, restoreRoute } from "./views.js";
 import { initReleases } from "./releases-ui.js";
 import { RELEASES } from "./data/releases.js";
 
-/* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧模块混在一起（内部 import 没有版本号）。
-   index.html 里的 meta 版本与 config.js 不一致时，强制重新抓取所有模块并刷新一次。 */
-const MODULES = ["app", "attach", "ai", "ask", "backup", "cloud-drives", "events", "views", "minibar", "swipe-rows", "sheet", "today", "course", "resources", "routines", "reports", "law", "about", "print", "me", "hs", "library", "charts",
-  "bedtime", "bedtime-play", "flows", "flows-trend", "recfilter", "principle", "songs-ui", "music", "music-lists", "data/principle", "data/emotions", "data/music", "data/content-en", "data/en-flows", "data/en-content", "data/plans", "data/seeds", "data/bedtime", "data/flows", "core/config", "core/util", "core/state", "core/auth", "core/i18n", "data/feeds", "data/subjects", "data/plans", "data/seeds", "data/law", "data/versions", "data/about", "data/curriculum", "data/bible", "data/verse-sets", "data/ideas", "releases-ui", "data/releases", "growth", "growth-body", "growth-review", "growth-review-lib", "intake-lib", "quicklog", "data/health-ref"].map(m => `js/${m}.js`);
+/* 发布后的头几分钟，浏览器可能把新的 index.html 和缓存里的旧程序文件混在一起（GitHub Pages 缓存约 10 分钟）。
+   打包后真正的文件是 dist/app.js（入口，src 带 ?v= 版本号）和 dist/chunks/ 下带内容哈希的块（文件名随内容变，不会读到旧的）；
+   所以只需要绕过缓存重新抓 index.html 和入口。index.html 里的 meta 版本与 config.js 不一致时，重新抓取后刷新一次。 */
 async function healStaleModules(){
   const want = (document.querySelector('meta[name="app-version"]') || {}).content;
   if (!want || want === APP_VERSION) return false;
   const key = "homeschool.reloaded." + want;
   try { if (sessionStorage.getItem(key)) return false; sessionStorage.setItem(key, "1"); } catch (e) { return false; }
-  await Promise.all(MODULES.map(u => fetch(u, { cache: "reload" }).catch(() => null)));
+  const entry = (document.querySelector('script[type="module"][src]') || {}).src;
+  await Promise.all([location.pathname, entry].filter(Boolean).map(u => fetch(u, { cache: "reload" }).catch(() => null)));
   location.reload(); return true;
 }
 

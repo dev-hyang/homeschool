@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-18.1", title: { zh: "打开更快：程序文件打包发布", en: "Faster to open: app files are now bundled" }, items: [
+    { k: "better", zh: "打开应用时要下载的文件从近百个合成了几个，网慢的时候更明显；页面和操作都没有变", en: "The app now downloads a handful of files instead of around ninety when it opens, which helps most on slow connections; pages and actions are unchanged" }
+  ] },
   { v: "2026-11-16.10", title: { zh: "修复：手机上滑动时，搜索 / 筛选条盖住底部页签", en: "Fix: the search / filter bar covered the bottom tabs when scrolling on phones" }, items: [
     { k: "fix", zh: "记录列表往下滑，搜索和筛选条滑过屏幕下方时不再盖住底部页签；固定在顶上时紧贴顶栏下面", en: "Scrolling a records list, the search and filter bar no longer covers the bottom tabs as it passes the bottom of the screen; when pinned it sits right under the top strip" },
     { k: "fix", zh: "点开「筛选」时，下拉面板如果会伸到底部页签下面，会先把页面往上推，推不动就向上展开", en: "When the Filters dropdown would run under the bottom tabs, the page scrolls up first, or the dropdown opens upward if it cannot" }
