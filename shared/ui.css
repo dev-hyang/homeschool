@@ -36,7 +36,8 @@
 .ui-badge[data-shape="count"]:not([data-tone]) { --b-fg: var(--out, #b42318); }
 .ui-badge[data-shape="count"][data-size="lg"] { min-width: 22px; height: 22px; font-size: 12px; line-height: 22px; }
 .ui-badge[data-shape="count"][data-size="sm"] { min-width: 16px; height: 16px; padding: 0 4px; font-size: 10px; line-height: 16px; }
-@media (prefers-color-scheme: dark) { .ui-badge[data-shape="count"] { color: var(--surface, #1b2521); } }   /* 深色模式下各色变浅，数字改深色才看得清 */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ui-badge[data-shape="count"] { color: var(--surface, #1b2521); } }
+:root[data-theme="dark"] .ui-badge[data-shape="count"] { color: var(--surface, #1b2521); }   /* 深色模式下各色变浅，数字改深色才看得清 */
 /* 浅色底数字（data-soft）：「已选 3 个」这类中性计数，不抢眼；颜色用语气的浅底 + 深字 */
 .ui-badge[data-shape="count"][data-soft] { color: var(--b-fg); background: var(--b-bg); }
 .ui-badge[hidden] { display: none; }   /* display: inline-flex 会盖掉 hidden 属性，这里补回来 */
@@ -73,7 +74,7 @@
 .ui-hint[data-tip]::after {
   content: attr(data-tip); position: absolute; z-index: 30; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
   width: max-content; max-width: min(240px, 70vw); padding: 6px 10px; border-radius: 8px; box-sizing: border-box;
-  background: var(--ink, #1e3a32); color: var(--bg, #eef3ee); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left;
+  background: var(--ink, #1e3a32); color: var(--bg, #eef3ee); font-size: 13px; font-weight: 400; line-height: 1.5; text-align: left; white-space: pre-line;
   box-shadow: 0 6px 18px rgba(0, 0, 0, .18); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s;
 }
 .ui-hint:hover::after, .ui-hint:focus::after, .ui-hint:focus-visible::after { opacity: 1; visibility: visible; }
