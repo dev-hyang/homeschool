@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-18.2", title: { zh: "应用切换器和语言切换器随应用一起发布", en: "App switcher and language switcher now ship with the app" }, items: [
+    { k: "better", zh: "右上角的应用切换和语言切换改为随本应用一起发布，不再临时从别的站点加载，更稳定；用法和外观不变", en: "The app and language switchers in the top corner now ship with this app instead of loading from another site, so they are more reliable; how they look and work is unchanged" }
+  ] },
   { v: "2026-11-18.1", title: { zh: "打开更快：程序文件打包发布", en: "Faster to open: app files are now bundled" }, items: [
     { k: "better", zh: "打开应用时要下载的文件从近百个合成了几个，网慢的时候更明显；页面和操作都没有变", en: "The app now downloads a handful of files instead of around ninety when it opens, which helps most on slow connections; pages and actions are unchanged" }
   ] },

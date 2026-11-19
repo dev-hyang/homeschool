@@ -1,5 +1,7 @@
 import { updateMiniBar } from "./minibar.js";
-import { APP_VERSION, BABY_LOG_URL, SISTER_APPS, THIS_APP } from "./core/config.js";
+import { APP_VERSION, BABY_LOG_URL, THIS_APP } from "./core/config.js";
+import * as appSwitcher from "./shared/app-switcher.js";
+import * as langSwitcher from "./shared/lang-switcher.js";
 import { viewMe, viewPrintHub, viewReleases } from "./me.js";
 import { printViewHTML } from "./print.js";
 import { LOCALES, locale, t } from "./core/i18n.js";
@@ -96,30 +98,17 @@ function renderStatus(){
   document.querySelectorAll("nav.tabs button").forEach(b => { const k = TAB_LABELS[b.dataset.tab]; if (!k) return; const txt = [...b.childNodes].find(n => n.nodeType === 3); if (txt) txt.nodeValue = t(k); else b.append(t(k)); });
 }
 // 应用切换（四个姊妹站点共用）：右上角九宫格按钮，宽屏浮层、手机底部抽屉；标题仍是切换孩子。
-// 组件放在 home-pantry/shared；首次离线加载不到时，先用原来的 ‹ 上一个 / 下一个 › 胶囊，切换不受影响。
-const SWITCHER_URL = "https://dev-hyang.github.io/home-pantry/shared/app-switcher.js";
-let switcherMod = null, switcherTried = false;
+// 组件是本应用自己的副本（js/shared/，母版在 home-pantry/shared/），随应用一起打包发布，不再从别的站点运行时加载。
 // 语言切换（四个姊妹站点共用）：地球按钮 + 列表，以后加语言只要在 LOCALES 里加一项
-const LANG_URL = "https://dev-hyang.github.io/home-pantry/shared/lang-switcher.js";
-let langMod = null, langTried = false;
 function renderLangSwitch(){
   const host = $("#langsw"); if (!host) return;
-  if (langMod) {
-    const cur = locale();
-    langMod.mountLangSwitcher({ host, current: cur, ui: cur === "en" ? "en" : cur === "zh-TW" ? "tw" : "zh", languages: LOCALES.map(([code]) => ({ code })),
-      onSelect: code => document.dispatchEvent(new CustomEvent("eco-set-lang", { detail: code })) });
-    return;
-  }
-  if (!langTried) { langTried = true; import(LANG_URL).then(m => { langMod = m; renderLangSwitch(); }).catch(() => {}); }
+  const cur = locale();
+  langSwitcher.mountLangSwitcher({ host, current: cur, ui: cur === "en" ? "en" : cur === "zh-TW" ? "tw" : "zh", languages: LOCALES.map(([code]) => ({ code })),
+    onSelect: code => document.dispatchEvent(new CustomEvent("eco-set-lang", { detail: code })) });
 }
 function renderAppSwitch(){
-  const host = $("#apps");
-  if (switcherMod) { switcherMod.mountAppSwitcher({ host, current: THIS_APP, lang: locale() }); return; }
-  const i = SISTER_APPS.findIndex(a => a.id === THIS_APP), n = SISTER_APPS.length, prev = SISTER_APPS[(i - 1 + n) % n], next = SISTER_APPS[(i + 1) % n];
-  const badge = (a, label) => `<a class="badge" href="${a.url}" title="${esc(t("切到{name}", { name: t(a.name) }))}" aria-label="${esc(t("切到{name}", { name: t(a.name) }))}">${label}</a>`;
-  host.setAttribute("aria-label", t("切换姊妹应用"));
-  host.innerHTML = badge(prev, `‹ ${esc(t(prev.short))}`) + badge(next, `${esc(t(next.short))} ›`);
-  if (!switcherTried) { switcherTried = true; import(SWITCHER_URL).then(m => { switcherMod = m; renderAppSwitch(); }).catch(() => {}); }
+  const host = $("#apps"); if (!host) return;
+  appSwitcher.mountAppSwitcher({ host, current: THIS_APP, lang: locale() });
 }
 function toggleKids(open = $("#kids").hidden){
   $("#kids").hidden = !open;
