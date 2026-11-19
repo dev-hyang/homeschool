@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.4", title: { zh: "修复：深色主题下「已选 n 个」这类浅底数字角标的字看不清", en: "Fix: soft count badges unreadable in the dark theme" }, items: [
+    { k: "fix", zh: "手动选深色主题时，「已选 n 个」这类浅底数字角标变成深字配深底、几乎看不见，现在恢复清楚", en: "With the dark theme picked manually, soft count badges (like '3 selected') showed dark text on a dark fill; they are readable again" }
+  ] },
   { v: "2026-11-19.3", title: { zh: "深色主题下的数字角标看得清了；提示文字可换行", en: "Count badges readable in the dark theme; tips can wrap lines" }, items: [
     { k: "fix", zh: "手动选了深色主题时，数字角标里的字几乎看不清，现在清楚了", en: "With the dark theme picked manually, the numbers inside count badges were nearly unreadable; they are clear now" },
     { k: "better", zh: "共用的提示气泡支持多行文字（现在的页面还没用到，外观不变）", en: "The shared tip bubble can show multi-line text (no page uses it yet, so nothing looks different)" }
