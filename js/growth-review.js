@@ -85,7 +85,7 @@ function reviewHTML(){
 const ul = (cls, mark, arr) => (arr && arr.length ? `<ul class="gr-rv-ul ${cls}">${arr.map(x => `<li><span aria-hidden="true">${mark}</span> ${esc(x)}</li>`).join("")}</ul>` : "");
 function resultHTML(a){
   const pri = a.priorities && a.priorities.length ? `<b class="gr-rv-h">${t("最值得加强的")}</b><ol class="gr-rv-pri">${a.priorities.map(p => { const [ic, l] = AREA[p.area] || AREA.mind;
-    return `<li><span class="gr-rv-ic" aria-hidden="true">${ic}</span><div><span class="gr-rv-ft"><b>${esc(p.title)}</b><span class="pill lv">${t(l)}</span></span>${p.why ? `<small class="muted">${esc(p.why)}</small>` : ""}${p.action ? `<span class="gr-rv-do">→ ${esc(p.action)}</span>` : ""}</div></li>`; }).join("")}</ol>` : "";
+    return `<li><span class="gr-rv-ic" aria-hidden="true">${ic}</span><div><span class="gr-rv-ft"><b>${esc(p.title)}</b><span class="ui-badge" data-tone="neutral">${t(l)}</span></span>${p.why ? `<small class="muted">${esc(p.why)}</small>` : ""}${p.action ? `<span class="gr-rv-do">→ ${esc(p.action)}</span>` : ""}</div></li>`; }).join("")}</ol>` : "";
   const boxes = Object.keys(AREA).map(k => { const x = a[k]; if (!x || !(x.good.length || x.improve.length || x.actions.length)) return ""; const [ic, l] = AREA[k];
     return `<div class="gr-rv-box"><b>${ic} ${t(l)}</b>${ul("good", "✓", x.good)}${ul("imp", "↗", x.improve)}${ul("do", "→", x.actions)}</div>`; }).join("");
   const extra = [a.doctor && a.doctor.length ? `<div class="gr-rv-box"><b>🩺 ${t("问儿科医生")}</b>${ul("", "•", a.doctor)}</div>` : "", a.parents && a.parents.length ? `<div class="gr-rv-box"><b>🤝 ${t("家长可以怎么配合")}</b>${ul("", "•", a.parents)}</div>` : ""].join("");

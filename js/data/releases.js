@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.6", title: { zh: "各页的小状态标签统一成共用的徽标样式", en: "Small status labels now use the shared badge style" }, items: [
+    { k: "better", zh: "“家主”“已完成”“自定义”“待办提醒”等小标签换成和其他应用一致的徽标样式（字略粗、颜色统一）", en: "Small labels such as Owner, Done, Custom and Due now use the same badge style as the other apps (slightly bolder, consistent colors)" }
+  ] },
   { v: "2026-11-19.5", title: { zh: "手机上的小按钮更好点", en: "Small buttons are easier to tap on phones" }, items: [
     { k: "better", zh: "手机上各页的小按钮和小图标按钮加高到 44px，不容易点偏；电脑上外观不变", en: "Small buttons and icon buttons are now 44px tall on phones so they are easier to hit; desktop looks the same" }
   ] },

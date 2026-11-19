@@ -76,7 +76,7 @@ function reviewHTML(){
       <div class="main"><span class="title"><b>${esc(s.ref)}</b></span><span class="verse">${esc(s.text_zh)}<span class="small muted"> ${esc(vz(s))}</span></span><span class="verse small muted">${esc(s.text_en)}${esc(ve(s))}</span><span class="meta">${meta}</span></div>
       <span class="acts">${acts}</span>${hint}</div>`; };
   const pending = plan.total - plan.done;
-  return `<h2>${t("经文背诵")} · ${esc(childName())}${pending ? ` <span class="pill ok">${t("今日 {n} 节", { n: pending })}</span>` : ""}</h2>
+  return `<h2>${t("经文背诵")} · ${esc(childName())}${pending ? ` <span class="ui-badge" data-tone="ok">${t("今日 {n} 节", { n: pending })}</span>` : ""}</h2>
   <div class="panel">
     ${pool || plan.rows.some(x => x.kind === "learn" && !x.p.last_on) ? `<div class="pool-line"><span class="small">${pool ? t("本批 {a}/{b} 节已会背", { a: pool.done, b: pool.total }) : t("在学的经文")}</span><button class="chip" data-act="batch-swap" title="${esc(t("还没背过的这批整批换掉，练过的留着"))}">${t("换一批")}</button></div>` : ""}
     ${plan.rows.length ? `<div class="seg today-filter" role="group" aria-label="${t("筛选")}"><button data-tf="all" aria-pressed="${tf === "all"}">${t("全部")} ${plan.rows.length}</button><button data-tf="new" aria-pressed="${tf === "new"}">${t("新学")} ${nNew}</button><button data-tf="review" aria-pressed="${tf === "review"}">${t("复习")} ${nRev}</button></div>

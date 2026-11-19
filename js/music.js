@@ -26,7 +26,7 @@ async function saveMusic(patch){
   catch (e) { toast(e.message || t("保存失败")); return false; }
 }
 const refresh = () => render();
-const pill = s => (s.tags || []).filter(k => SONG_TAGS[k]).map(k => `<span class="pill">${esc(t(SONG_TAGS[k]))}</span>`).join(" ");
+const pill = s => (s.tags || []).filter(k => SONG_TAGS[k]).map(k => `<span class="ui-badge" data-tone="neutral">${esc(t(SONG_TAGS[k]))}</span>`).join(" ");
 
 /* ============ 音乐页（资源 → 音乐） ============ */
 function musicEntry(){

@@ -198,7 +198,7 @@ function visitsPage(){
   const list = visitsAll(), a = list.find(v => v.annual), m = ageMonths(), gap = a ? monthsAgo(a.ts) : null, due = m != null && m >= 36 && (gap == null || gap >= 12);
   const tiles = `<div class="gr-tiles">${statTile(t("上次体检"), a ? esc(day(a.ts)) : "–", a ? t("{n} 个月前", { n: gap }) : t("还没有体检记录"), due ? "var(--honey)" : "var(--sage)")}
     ${statTile(t("就诊次数"), String(list.length), t("全部记录"), "var(--slate)")}</div>`;
-  return `${top(entryBtn("visit", "儿科体检", "录入体检 / 就诊"))}${due ? `<p class="gr-due"><span class="pill warn">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
+  return `${top(entryBtn("visit", "儿科体检", "录入体检 / 就诊"))}${due ? `<p class="gr-due"><span class="ui-badge" data-tone="caution">${t("该做年度体检了")}</span> <span class="small muted">${t("3 岁以后一般每年一次儿科体检。")}</span></p>` : ""}${tiles}
     ${recList("visits", "记录", list.map(v => ({ ts: v.ts, annual: v.annual, aiK: v.aiK, ai: v.ai, icon: v.annual ? "🩺" : "🤒", title: v.kind, meta: [v.where, v.m].filter(Boolean).join(" · "), note: v.text, edit: v.id ? `data-ix="edit" data-id="${esc(v.id)}"` : "" })),
       { subs: [["checkup", t("体检"), x => x.annual], ["sick", t("看病 / 急诊"), x => !x.annual]], foot: `${EDIT_HERE()} ${H.visits.some(v => v.subject === subj()) ? t("牧羊人里记的就诊在牧羊人里改。") : ""}` })}`;
 }

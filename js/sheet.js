@@ -91,7 +91,7 @@ function openVerseSets(){
   $("#sheetIn").innerHTML = `${head(t("成套导入经文卡"))}
   <p class="small muted">${t("只给出处，正文按设置里的译本自动抓取（已有的出处会跳过）。抓取需要联网，几十节约十几秒。")}</p>
   ${VERSE_SETS.map(s => { const n = s.refs.filter(r => parseRef(r) && !have.has(refKey(r))).length;
-    return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(s.name))}</b>${s.level ? ` <span class="pill lv">${esc(tc(s.level))}</span>` : ""}<div class="small muted">${esc(tc(s.desc))} ${t("共 {n} 节", { n: s.refs.length })}${n < s.refs.length ? `，${t("还有 {n} 节没导入", { n })}` : ""}</div></div><button class="btn ${n ? "primary" : ""}" data-act="scr-set-go" data-set="${s.id}" ${n ? "" : "disabled"}>${n ? t("生成") : t("已全部导入")}</button></div></div>`; }).join("")}
+    return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(s.name))}</b>${s.level ? ` <span class="ui-badge" data-tone="neutral">${esc(tc(s.level))}</span>` : ""}<div class="small muted">${esc(tc(s.desc))} ${t("共 {n} 节", { n: s.refs.length })}${n < s.refs.length ? `，${t("还有 {n} 节没导入", { n })}` : ""}</div></div><button class="btn ${n ? "primary" : ""}" data-act="scr-set-go" data-set="${s.id}" ${n ? "" : "disabled"}>${n ? t("生成") : t("已全部导入")}</button></div></div>`; }).join("")}
   <div class="btns"><button class="btn" data-act="scriptures">${t("返回经文卡库")}</button></div>`;
   showSheet();
 }
@@ -101,7 +101,7 @@ function openCatechismSets(){
   <p class="small muted">${t("儿童要理问答：145 问，一问一答，由浅到深，学前就能开始。英文原文是公有领域，点一下自动抓取；中文是内置的 AI 辅助翻译，不用复制粘贴。")}</p>
   <div class="alert info" style="margin:8px 0">${t("中文译文<b>还没有人核对</b>，卡片上会标「待核对」。你（或教会）看过一段、觉得没问题，就点这段的「标为已核对」，卡片上的标注会改成「已核对」。哪里不对，直接在卡上改。")}</div>
   ${CC_PARTS.map(p => { const n = ccMissing(p), total = p.to - p.from + 1, pend = ccPending(p);
-    return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(p.name))}</b> <span class="pill lv">${esc(tc(p.level))}</span><div class="small muted">${esc(tc(p.desc))} ${t("共 {n} 问", { n: total })}${n && n < total ? `，${t("还有 {n} 问没导入", { n })}` : ""}${pend ? `，${t("{n} 问待核对", { n: pend })}` : ""}</div></div>
+    return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(p.name))}</b> <span class="ui-badge" data-tone="neutral">${esc(tc(p.level))}</span><div class="small muted">${esc(tc(p.desc))} ${t("共 {n} 问", { n: total })}${n && n < total ? `，${t("还有 {n} 问没导入", { n })}` : ""}${pend ? `，${t("{n} 问待核对", { n: pend })}` : ""}</div></div>
       <div class="btns" style="margin:0"><button class="btn ${n ? "primary" : ""}" data-act="cc-go" data-part="${p.id}" ${n ? "" : "disabled"}>${n ? t("导入") : t("已全部导入")}</button>${pend ? `<button class="btn" data-act="cc-review" data-part="${p.id}">${t("标为已核对")}</button>` : ""}</div></div></div>`; }).join("")}
   <div class="btns"><button class="btn" data-act="cc-go" data-part="all">${t("全部 145 问一次导入")}</button></div>
   <p class="small muted" style="margin-top:12px">${t("想用官方中文？新城要理问答（52 问）有官方简体中文，但有版权、官网没有开放接口，只能复制官方页面粘贴导入。")} <button class="chip" data-act="ncc-import">${t("粘贴导入新城要理问答")}</button></p>

@@ -510,7 +510,7 @@ function viewSongs(){
   const list = songs(), cached = list.filter(s => s.path && S.bt.cached.has(s.id)).length, pg = paged("songs", list);
   const row = s => `<div class="song-row" data-id="${esc(s.id)}"><div class="song-bg" aria-hidden="true"><span class="sb-add">＋ ${t("加到流程")}</span><span class="sb-del">🗑 ${t("删除")}</span></div>
     <div class="song-in task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span>
-    <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="pill lv">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
+    <button class="main" data-act="bt-song-edit" data-id="${esc(s.id)}"><span class="title">${esc(s.title)}${s.lyrics_ai ? ` <span class="ui-badge" data-tone="neutral">${t("AI 补的词")}</span>` : ""}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、") || t("没有标签")}${s.duration ? ` · ${fmtDur(s.duration)}` : ""}${s.size ? ` · ${fmtSize(s.size)}` : ""}${s.path ? (S.bt.cached.has(s.id) ? ` · ${t("已下载")}` : ` · ${t("还没下载到这台设备")}`) : ` · ${t("没有音频")}`}</span></button>
     <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></span></div></div>`;
   return `${h2(t("全部歌曲"), list.length ? t("{n} 首", { n: list.length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
@@ -589,7 +589,7 @@ function viewTexts(){
   const c = cfg(), cur = currentText(c);
   const block = (k, label) => `<div class="bt-text"><div class="lab">${t(label)}</div><div class="bt-pre">${esc(tc(cur[k] || ""))}</div></div>`;
   const vrow = v => `<div class="task ${v.id === c.version ? "done" : ""}"><span class="bar" style="background:${v.id === c.version ? "var(--sage)" : "var(--line)"}"></span>
-    <button class="main" data-act="bt-ver-edit" data-id="${esc(v.id)}"><span class="title" style="text-decoration:none;color:var(--ink)">${esc(v.name)}${v.id === c.version ? ` <span class="pill ok">${t("当前")}</span>` : ""}</span><span class="meta">${v.updated_at ? t("{d} · {who} 改过", { d: v.updated_at.slice(0, 10), who: esc(v.by || t("家人")) }) : ""}</span></button>
+    <button class="main" data-act="bt-ver-edit" data-id="${esc(v.id)}"><span class="title" style="text-decoration:none;color:var(--ink)">${esc(v.name)}${v.id === c.version ? ` <span class="ui-badge" data-tone="ok">${t("当前")}</span>` : ""}</span><span class="meta">${v.updated_at ? t("{d} · {who} 改过", { d: v.updated_at.slice(0, 10), who: esc(v.by || t("家人")) }) : ""}</span></button>
     <span class="acts">${v.id === c.version ? "" : `<button class="chip" data-act="bt-ver-use" data-id="${esc(v.id)}">${t("用这版")}</button>`}</span></div>`;
   return `${h2(t("带领词"), esc(tb(cur.name)))}
   ${offlineHTML()}
@@ -609,7 +609,7 @@ function viewCases(){
   const lang = c.lang === "en" ? "en" : "zh";
   const trend = (a, b) => b == null ? "" : a > b ? `<span class="bt-up">▲ ${t("比上个 30 天多 {n}", { n: a - b })}</span>` : a < b ? `<span class="bt-down">▼ ${t("比上个 30 天少 {n}", { n: b - a })}</span>` : `<span class="muted">${t("和上个 30 天一样")}</span>`;
   const card = s => { const st = sitStats(s.id);
-    return `<div class="panel bt-sit"><div class="bt-card-row"><div><b>${esc(tc(s.when))}</b>${s.age ? ` <span class="small muted">${esc(tc(s.age))}</span>` : ""}${s.edited ? ` <span class="pill lv">${t("已改")}</span>` : s.custom ? ` <span class="pill lv">${t("自家")}</span>` : ""}</div><button class="btn primary" data-act="bt-ev-add" data-sit="${esc(s.id)}">${t("记一笔")}</button></div>
+    return `<div class="panel bt-sit"><div class="bt-card-row"><div><b>${esc(tc(s.when))}</b>${s.age ? ` <span class="small muted">${esc(tc(s.age))}</span>` : ""}${s.edited ? ` <span class="ui-badge" data-tone="neutral">${t("已改")}</span>` : s.custom ? ` <span class="ui-badge" data-tone="neutral">${t("自家")}</span>` : ""}</div><button class="btn primary" data-act="bt-ev-add" data-sit="${esc(s.id)}">${t("记一笔")}</button></div>
       <ol class="bt-steps">${(s.steps || []).map(x => `<li>${esc(tc(x))}</li>`).join("")}</ol>
       ${s.say ? `<p class="bt-say">「${esc(tc(s.say))}」</p>` : ""}
       ${s.avoid ? `<p class="small" style="color:var(--rose);margin:4px 0 0">${t("不要")}：${esc(tc(s.avoid))}</p>` : ""}
@@ -665,7 +665,7 @@ function viewReadings(){
       else { ensureVerse(r.ref, l).then(ok => { if (ok) scheduleRender(); }); parts.push(`<span class="verse muted small">${navigator.onLine ? t("正在抓取经文…") : t("离线，还没抓到这段")}</span>`); } } }
     return parts.join(""); };
   const row = r => `<div class="task ${r.ref === c.reading ? "done" : ""}"><span class="bar" style="background:${r.ref === c.reading ? "var(--sage)" : r.ref === ANCHOR_REF ? "var(--honey)" : "var(--line)"}"></span>
-    <div class="main"><span class="title" style="text-decoration:none;color:var(--ink)"><b>${esc(tc(r.ref))}</b>${r.ref === c.reading ? ` <span class="pill ok">${t("今晚")}</span>` : ""}${r.ref === ANCHOR_REF && c.anchor ? ` <span class="pill lv">${t("每晚先读")}</span>` : ""}</span>${show(r)}<span class="meta">${esc(tc(r.lead))}${r.ask ? ` · ${t("问")}：${esc(tc(r.ask))}` : ""}</span></div>
+    <div class="main"><span class="title" style="text-decoration:none;color:var(--ink)"><b>${esc(tc(r.ref))}</b>${r.ref === c.reading ? ` <span class="ui-badge" data-tone="ok">${t("今晚")}</span>` : ""}${r.ref === ANCHOR_REF && c.anchor ? ` <span class="ui-badge" data-tone="neutral">${t("每晚先读")}</span>` : ""}</span>${show(r)}<span class="meta">${esc(tc(r.lead))}${r.ask ? ` · ${t("问")}：${esc(tc(r.ask))}` : ""}</span></div>
     <span class="acts" style="flex-direction:column">${r.ref === c.reading ? "" : `<button class="chip" data-act="bt-read-use" data-ref="${esc(r.ref)}">${t("今晚读这段")}</button>`}${r.custom ? `<button class="chip" data-act="bt-read-edit" data-ref="${esc(r.ref)}">${t("编辑")}</button>` : ""}</span></div>`;
   return `${h2(t("睡前经文"), t("今晚：{ref}", { ref: esc(tc(c.reading)) }))}
   ${offlineHTML()}
