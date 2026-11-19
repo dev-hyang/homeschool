@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.8", title: { zh: "清理没用到的旧样式", en: "Cleaned up unused old styles" }, items: [
+    { k: "better", zh: "删掉了几行没有页面在用的旧样式，外观和功能不变", en: "Removed a few lines of old styles no page uses; nothing looks or works differently" }
+  ] },
   { v: "2026-11-19.7", title: { zh: "手机上筛选面板：顶上一行放“筛选”和“清除筛选”", en: "Mobile filter panel: a header row with the title and Clear filters" }, items: [
     { k: "better", zh: "手机上点开“筛选”后，“清除筛选”收进面板第一行（左边“筛选”字样、右边清除），不再单独占一行把搜索框和下拉隔开；点清除后面板保持打开，能马上看到已恢复默认", en: "On phones, Clear filters now sits in the first row of the opened filter panel (title on the left, Clear on the right) instead of a row of its own; after clearing, the panel stays open so you can see the defaults" },
     { k: "better", zh: "“清除筛选”按钮在手机上加高到 44px，更好点", en: "The Clear filters button is 44px tall on phones, easier to tap" }

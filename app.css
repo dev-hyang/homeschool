@@ -698,8 +698,6 @@ body.bt-playing{overflow:hidden}
 .bt-pill.song.none,.bt-pill.none{background:var(--honey-soft);color:var(--ink)}
 .bt-pill.dim{color:var(--muted)}
 .bt-step.skip{opacity:.55} .bt-step.skip .bt-st-name{text-decoration:line-through}
-.bt-mv{display:flex;flex-direction:column;gap:4px}
-.bt-mv .iconbtn.sm{min-width:34px;height:30px;padding:0;font-size:13px}
 .bt-add{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:8px;border:1.5px dashed var(--line);border-radius:var(--radius);color:var(--slate);font-weight:600;font-size:15px}
 .bt-add:hover{background:var(--bg)} .bt-add:focus-visible{outline:3px solid var(--slate)}
 .bt-tpl{margin-top:10px;padding:10px 14px}
