@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-19.5", title: { zh: "手机上的小按钮更好点", en: "Small buttons are easier to tap on phones" }, items: [
+    { k: "better", zh: "手机上各页的小按钮和小图标按钮加高到 44px，不容易点偏；电脑上外观不变", en: "Small buttons and icon buttons are now 44px tall on phones so they are easier to hit; desktop looks the same" }
+  ] },
   { v: "2026-11-19.4", title: { zh: "修复：深色主题下「已选 n 个」这类浅底数字角标的字看不清", en: "Fix: soft count badges unreadable in the dark theme" }, items: [
     { k: "fix", zh: "手动选深色主题时，「已选 n 个」这类浅底数字角标变成深字配深底、几乎看不见，现在恢复清楚", en: "With the dark theme picked manually, soft count badges (like '3 selected') showed dark text on a dark fill; they are readable again" }
   ] },

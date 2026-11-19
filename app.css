@@ -1441,3 +1441,5 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 /* 手机上滑动时固定的搜索 / 筛选条：层级要低于底部页签（nav.tabs 是 10），不然滑过屏幕下方时会盖住底部页签；
    固定的位置 = 顶上窄条（js/minibar.js：安全区 + 44px 内容 + 1px 边线）的下沿。共用的 js/compact-filters.js 里写的是 z-index 14，这里单独压低，不改共用文件 */
 @media (max-width:440px){#main .toolbar.tb-on{z-index:9;top:calc(env(safe-area-inset-top,0px) + 45px)}#main .toolbar.tb-on .tb-panel.tb-up{top:auto;bottom:100%}}
+/* 手机 / 触屏：小按钮和小图标按钮点按区域至少 44px（电脑上仍是紧凑的 36–38px） */
+@media (max-width:640px),(pointer:coarse){.btn.sm,.btn.primary.sm,.btn.danger.sm,.bt-card-row .btn.sm,.panel .btns .btn.primary.sm,.wk-card .btn.primary.sm,.wk-solo .btn.sm{min-height:44px}.iconbtn.sm{min-width:44px;height:44px}}
