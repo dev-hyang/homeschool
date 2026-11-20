@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-20.1", title: { zh: "修复：选了筛选后不再自动跳进搜索框、弹出键盘", en: "Fix: picking a filter no longer jumps into the search box and opens the keyboard" }, items: [
+    { k: "fix", zh: "在各页的筛选条里选了下拉选项后，页面不再自动把光标放进搜索框（手机上也不会弹出键盘）", en: "After choosing a dropdown option in a filter bar, the cursor no longer jumps into the search box (and the phone keyboard stays closed)" }
+  ] },
   { v: "2026-11-19.10", title: { zh: "手机上的筛选按钮：时间范围这类默认值不是第一项的下拉不再算进角标", en: "Phone Filters button: dropdowns whose default is not the first option no longer count in the badge" }, items: [
     { k: "better", zh: "手机上「筛选」按钮的数字角标，不再把默认值不是第一项的下拉（例如时间范围）算成已筛选", en: "The number on the phone Filters button no longer counts dropdowns whose default is not the first option (such as a time range)" }
   ] },

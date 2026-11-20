@@ -23,6 +23,7 @@ function fieldKey(el, i){
   if (el.id) return "#" + el.id;
   const f = el.form && el.form.id ? el.form.id : "";
   if (el.name) return `${f}|n:${el.name}|${el.type === "checkbox" || el.type === "radio" ? el.value : ""}`;
+  if (el.dataset.fb !== undefined) return `${f}|fb=${el.dataset.fb}:${el.dataset.fk || ""}`;   // 筛选条：搜索框和各下拉同带 data-fb，要用 data-fk 区分，否则焦点会串到搜索框
   const da = [...el.attributes].find(a => a.name.startsWith("data-"));
   if (da) return `${f}|${da.name}=${da.value}`;
   return `${el.tagName}|i:${i}`;   // 实在没有标识：按出现顺序
