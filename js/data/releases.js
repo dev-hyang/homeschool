@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-20.2", title: { zh: "筛选按钮的数字不再把默认值算进去", en: "The Filter counter no longer counts default values" }, items: [
+    { k: "fix", zh: "手机上「筛选 (n)」的数字：默认值不是下拉第一项的筛选（比如默认选「全部历史」），不再被算成已筛选", en: "On phones, the Filter (n) number no longer counts a dropdown that sits at its default value even when the default is not the first option" }
+  ] },
+
   { v: "2026-11-20.1", title: { zh: "修复：选了筛选后不再自动跳进搜索框、弹出键盘", en: "Fix: picking a filter no longer jumps into the search box and opens the keyboard" }, items: [
     { k: "fix", zh: "在各页的筛选条里选了下拉选项后，页面不再自动把光标放进搜索框（手机上也不会弹出键盘）", en: "After choosing a dropdown option in a filter bar, the cursor no longer jumps into the search box (and the phone keyboard stays closed)" }
   ] },
