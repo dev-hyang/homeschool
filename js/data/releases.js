@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-22.1", title: { zh: "AI 录入疫苗：更不容易记重", en: "AI intake: fewer duplicate vaccine records" }, items: [
+    { k: "fix", zh: "就诊小结里把以前打过的疫苗又列了一遍时，已经记过的（同一种、同一剂次，日期差几天也算）默认不勾，不会再记一份", en: "When a visit summary re-lists shots already given, vaccines you have already recorded (same vaccine and dose, even if the date is a few days off) are left unticked" },
+    { k: "better", zh: "让 AI 只读这次就诊当天打的针，跳过重新印出来的接种历史；同一张单子里重复读到的针也只留一条", en: "The AI now reads only shots given at this visit and skips the re-printed history; repeats within one page are kept once" }
+  ] },
+
   { v: "2026-11-20.2", title: { zh: "筛选按钮的数字不再把默认值算进去", en: "The Filter counter no longer counts default values" }, items: [
     { k: "fix", zh: "手机上「筛选 (n)」的数字：默认值不是下拉第一项的筛选（比如默认选「全部历史」），不再被算成已筛选", en: "On phones, the Filter (n) number no longer counts a dropdown that sits at its default value even when the default is not the first option" }
   ] },
