@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-23.1", title: { zh: "共用的小提示控件多了「右上角角标」样式", en: "Shared info-tip control gains a corner-badge style" }, items: [
+    { k: "better", zh: "共用的小 i 提示新增贴在文字右上角的小角标形态（小 / 中 / 大三种）；这个应用里现有的提示外观不变", en: "The shared info tip gains a small badge style at the top-right of text (small / medium / large); existing tips in this app look the same" },
+  ] },
   { v: "2026-11-22.1", title: { zh: "AI 录入疫苗：更不容易记重", en: "AI intake: fewer duplicate vaccine records" }, items: [
     { k: "fix", zh: "就诊小结里把以前打过的疫苗又列了一遍时，已经记过的（同一种、同一剂次，日期差几天也算）默认不勾，不会再记一份", en: "When a visit summary re-lists shots already given, vaccines you have already recorded (same vaccine and dose, even if the date is a few days off) are left unticked" },
     { k: "better", zh: "让 AI 只读这次就诊当天打的针，跳过重新印出来的接种历史；同一张单子里重复读到的针也只留一条", en: "The AI now reads only shots given at this visit and skips the re-printed history; repeats within one page are kept once" }
