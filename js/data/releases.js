@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-24.5", title: { zh: "共用样式表多了箭头、行、选项和数字框样式", en: "Shared stylesheet gains arrow, row, option and number-field styles" }, items: [
+    { k: "better", zh: "和爱家小助手同步共用样式：箭头、记录行、可选项、弹窗变量、数字框（本站暂未使用，界面不变）。", en: "Synced shared styles from Home Pantry: arrow, row, option, sheet variables, number field (not used here yet; nothing changes on screen)." },
+  ] },
   { v: "2026-11-24.4", title: { zh: "用药设置：每种药可以单独关掉顶部卡片", en: "Medicine settings: switch the top card off per medicine" }, items: [
     { k: "better", zh: "「用药设置」里每种药多了「显示 / 不显示在顶部卡片」，和小月亮妈妈用药一样；某种药好了不吃了，选「不显示」，它就不再出现在今天页的用药卡里，记录和趋势照常保留", en: "Each medicine in Medicine settings can be shown or hidden on the top card, like Baby Log mom meds; once one is finished choose Hide and it leaves the Today card while its records and trends stay" },
   ] },
