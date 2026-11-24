@@ -1437,3 +1437,20 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 @media (max-width:440px){#main .toolbar.tb-on{z-index:9;top:calc(env(safe-area-inset-top,0px) + 45px)}#main .toolbar.tb-on .tb-panel.tb-up{top:auto;bottom:100%}}
 /* 手机 / 触屏：小按钮和小图标按钮点按区域至少 44px（电脑上仍是紧凑的 36–38px） */
 @media (max-width:640px),(pointer:coarse){.btn.sm,.btn.primary.sm,.btn.danger.sm,.bt-card-row .btn.sm,.panel .btns .btn.primary.sm,.wk-card .btn.primary.sm,.wk-solo .btn.sm{min-height:44px}.iconbtn.sm{min-width:44px;height:44px}}
+/* 今天页顶部：孩子的「距上次用药」卡 */
+.kmhero{background:linear-gradient(135deg,#B44B60,#8E3A4C);flex:1;min-width:0;margin-top:0;box-sizing:border-box}
+.kmhero.wait{background:linear-gradient(135deg,#9A5B7A,#76445F)}
+.kmhero .big small{font-size:.5em;font-weight:500;margin:0 3px 0 1px}
+.kmhero .rashadv{display:inline-block;padding:3px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.55);font-size:13.5px;line-height:1.4}
+.km-others{list-style:none;margin:8px 0 0;padding:0;font-size:13.5px;display:grid;gap:2px;position:relative;z-index:1}
+.km-others li span{opacity:.85}
+.km-week{display:flex;align-items:flex-end;gap:4px;margin-top:8px;height:28px;position:relative;z-index:1}
+.km-week i{display:block;width:10px;border-radius:3px;background:rgba(255,255,255,.7)}
+.km-week small{margin-left:6px;opacity:.85;font-size:12px}
+.medact{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;position:relative;z-index:1}
+.medact .hbtn{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.16);color:#fff;border-radius:999px;min-height:44px;padding:0 16px;cursor:pointer;font-size:14px}
+.medact .hbtn:hover{background:rgba(255,255,255,.28)}
+.medact .hbtn:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.medrule{display:grid;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.medrule input,.medrule select{box-sizing:border-box;width:100%;min-width:0;min-height:48px;padding:11px 14px;font-size:16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--surface)}
+.medrule .chip{justify-self:start;min-height:44px}

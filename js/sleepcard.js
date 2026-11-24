@@ -1,5 +1,6 @@
 import { t } from "./core/i18n.js";
 import { musicCardHTML } from "./music.js";
+import { kidMedSlideHTML } from "./kidmed.js";
 import { S, ageMonths } from "./core/state.js";
 import { $, esc, toast } from "./core/util.js";
 import { sleepCardParts } from "./bedtime.js";
@@ -47,16 +48,15 @@ function heroSliderHTML(hero){
   const p = sleepCardParts(S.childId);
   ensureWeather(repaint);
   // 刚有人睡着时自动翻到睡眠卡；之后听用户自己滑
-  if (S.heroSlide == null || (p.asleep && !S.heroAsleep)) S.heroSlide = p.asleep ? 1 : 0;
+  const km = kidMedSlideHTML(), sleepIdx = km ? 2 : 1;   // 名字卡、（孩子在用药时的用药卡）、睡眠卡、音乐卡
+  if (S.heroSlide == null || (p.asleep && !S.heroAsleep)) S.heroSlide = p.asleep ? sleepIdx : 0;
   S.heroAsleep = p.asleep;
   const cur = S.heroSlide;
-  const names = [t("名字卡"), t("睡眠卡"), t("音乐卡")];
+  const names = [t("名字卡"), ...(km ? [t("用药卡")] : []), t("睡眠卡"), t("音乐卡")], n = names.length;
+  const slide = (html, i) => `<div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[i])} ${i + 1}/${n}">${html}</div>`;
+  const slides = [hero, ...(km ? [km] : []), sleepSlideHTML(p), musicCardHTML()].map(slide).join("");
   return `<div class="hero-wrap">
-    <div class="hero-slider" id="heroSlider" role="region" aria-roledescription="carousel" aria-label="${esc(t("今天：名字、睡眠与音乐"))}" tabindex="0">
-      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[0])} 1/3">${hero}</div>
-      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[1])} 2/3">${sleepSlideHTML(p)}</div>
-      <div class="hero-slide" role="group" aria-roledescription="slide" aria-label="${esc(names[2])} 3/3">${musicCardHTML()}</div>
-    </div>
+    <div class="hero-slider" id="heroSlider" role="region" aria-roledescription="carousel" aria-label="${esc(t("今天：名字、用药、睡眠与音乐"))}" tabindex="0">${slides}</div>
     ${dashesHTML(names, cur)}
   </div>`;
 }

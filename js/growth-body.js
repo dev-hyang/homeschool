@@ -8,6 +8,7 @@ import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { EXTRA, EXTRA_KEYS, INTAKE_SYSTEM, VAX_NAMES, extraParts, mergeInto, placeText, parseIntake, sameEntry, sameVisit, vaxForm } from "./intake-lib.js";
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
+import { TIMINGS, timingOf, timingText } from "./med-advice.js";
 import { VT_KEYS, bmiBand, bpLimit, flag as vtFlag, hrRange, vitalsContext, vitalsHTML } from "./vitals.js";
 import { askAbout } from "./ask.js";
 import { genderOf } from "./flows-trend.js";
@@ -278,10 +279,10 @@ const labAi = () => (((profileRow() || {}).data || {}).ai_labdays) || {};
 function historyPage(){
   const p = (profileRow() || {}).data || {}, meds = mine("bmed");
   const row = (label, v) => `<div class="gr-kv"><span class="muted">${t(label)}</span><span>${v ? esc(v) : `<span class="muted">—</span>`}</span></div>`;
-  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button>`)}
+  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button><button type="button" class="btn sm" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
     <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
     <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
-    ${recList("meds", "维生素 / 用药", meds.map(e => ({ ts: e.ts, icon: "💧", cat: e.cat || "", title: [t(e.cat || ""), e.name].filter(Boolean).join(" · "), meta: e.dose, note: e.note, edit: `data-act="gr-b-med" data-id="${esc(e.id)}"` })),
+    ${recList("meds", "维生素 / 用药", meds.map(e => ({ ts: e.ts, icon: "💧", cat: e.cat || "", title: [t(e.cat || ""), e.name].filter(Boolean).join(" · "), meta: [e.dose, timingText(timingOf(e, null), t)].filter(Boolean).join(" · "), note: e.note, edit: `data-act="gr-b-med" data-id="${esc(e.id)}"` })),
       { subs: (cs => (cs.length > 1 ? cs.map(c => [c, t(c), x => x.cat === c]) : null))([...new Set(meds.map(e => e.cat).filter(Boolean))]), foot: EDIT_HERE() })}`;
 }
 
@@ -371,11 +372,12 @@ function editMed(id){
   const e = H.rows.find(r => r.id === id); if (!e) return;
   openForm(`💧 ${t("修改维生素 / 用药")}`, [
     { k: "cat", label: "类别", type: "seg", opts: segOpts(MED_CAT) }, { k: "name", label: "名称" }, { k: "dose", label: "剂量", ph: "如 400 IU 每天一次" },
+    { k: "timing", label: "服药时机（按医嘱 / 说明书）", type: "seg", opts: TIMINGS.map(x => [x === "不限" ? "" : x, x]) }, { k: "mins", label: "饭前 / 饭后多少分钟（选填）", type: "num" },
     { k: "day", label: "日期", type: "date", past: true }, { k: "note", label: "备注", type: "area" }
-  ], { cat: e.cat || "药物", name: e.name || "", dose: e.dose || "", day: dayKey(e.ts), note: e.note || "" },
+  ], { cat: e.cat || "药物", name: e.name || "", dose: e.dose || "", timing: e.timing || "", mins: e.mins ?? null, day: dayKey(e.ts), note: e.note || "" },
   async f => {
     if (!f.name) { toast(t("填一下名称")); return; }
-    if (await putRow({ ...e, cat: f.cat || "药物", name: f.name, dose: f.dose, ts: fromDay(f.day, e.ts), note: f.note })) { closeSheet(); toast(t("已保存")); render(); }
+    if (await putRow({ ...e, cat: f.cat || "药物", name: f.name, dose: f.dose, timing: f.timing, mins: ["饭前", "饭后"].includes(f.timing) ? f.mins : null, ts: fromDay(f.day, e.ts), note: f.note })) { closeSheet(); toast(t("已保存")); render(); }
   }, async () => { if (!confirm(t("删除这一条？"))) return; if (await putRow(e, true)) { closeSheet(); toast(t("已删除")); render(); } });
 }
 /* 表单里每一块（体征、疫苗、用药、里程碑、多次测量、化验）可以点标题展开 / 折叠；折叠状态记在 X.fold，重画时保留 */

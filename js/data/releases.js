@@ -2,6 +2,11 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-24.1", title: { zh: "今天页顶部：孩子的「距上次用药」大卡片", en: "Today: a Since-last-medicine card for each child" }, items: [
+    { k: "new", zh: "孩子最近 14 天有用药记录，今天页顶部就多一张用药卡：距上次多久、哪种药、下次可服时间、服药时机和医嘱、其他药各自多久、近 7 天每天几次", en: "When a child has had a medicine in the last 14 days, Today gets a card with the time since the last dose, which medicine, when the next is allowed, how to take it, the other medicines, and doses per day for the week" },
+    { k: "new", zh: "卡片上点「记一次用药」可以指定哪天几点（补记）；「用药设置」里填每种药的最短间隔、服药时机和医嘱，也能决定哪个孩子显示这张卡", en: "Log a medicine from the card, picking the day and time to back-fill; Medicine settings holds each medicine's interval, timing and note, and which children show the card" },
+    { k: "better", zh: "康复了点「不再显示」，卡片就不再出现，随时能重新打开；成长 → 病史 · 过敏 · 用药里的修改表单也能填服药时机", en: "Tap Hide once the child has recovered; turn it back on any time. The edit form under Growth → History · Allergies · Meds can note timing too" },
+  ] },
   { v: "2026-11-23.1", title: { zh: "共用的小提示控件多了「右上角角标」样式", en: "Shared info-tip control gains a corner-badge style" }, items: [
     { k: "better", zh: "共用的小 i 提示新增贴在文字右上角的小角标形态（小 / 中 / 大三种）；这个应用里现有的提示外观不变", en: "The shared info tip gains a small badge style at the top-right of text (small / medium / large); existing tips in this app look the same" },
   ] },

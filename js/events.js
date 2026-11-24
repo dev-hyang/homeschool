@@ -24,6 +24,7 @@ import { isWakeAct, wakeAct } from "./wake.js";
 import { isQuickAct, quickAct } from "./quicklog.js";
 import { musicAct, routineOpts, routinePickOf, setRoutineList } from "./music.js";
 import { cardAct, isCardAct } from "./sleepcard.js";
+import { kmAct } from "./kidmed.js";
 import { sleepAct } from "./sleep.js";
 import { growthAct, growthChange, growthDrill } from "./growth.js";
 import { cfAct } from "./flows.js";
@@ -90,6 +91,7 @@ document.addEventListener("click", async ev => {
   if (d.act === "rf-set") { setFilter(d.key, d); render(); return; }   // 记录的日期筛选 / 列表 · 时间线（js/recfilter.js）
   if (d.act && d.act.startsWith("tr-")) { try { await trAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 趋势与分析、问咩咩咩（js/flows-trend.js）
   if (d.act && d.act.startsWith("cf-")) { try { await cfAct(d.act, btn); } catch (e) { /* 已 toast */ } return; }   // 冲突管理（js/flows.js）
+  if (d.act && d.act.startsWith("km-")) { try { await kmAct(d.act, btn.dataset); render(); } catch (e) { console.error(e); } return; }   // 孩子用药卡 / 用药设置（js/kidmed.js）
   if (d.act && isCardAct(d.act)) { await cardAct(d.act, btn); return; }   // 今天页顶上的滑动卡 / 天气（js/sleepcard.js）
   if (d.act && isQuickAct(d.act)) { try { await quickAct(d.act, btn); } catch (e) { console.error(e); } return; }   // 今天页「记一笔」（js/quicklog.js）
   if (d.act && isPlayerAct(d.act)) { try { await playerAct(d.act); } catch (e) { console.error(e); } return; }   // 音乐播放器（js/player.js）：播放 / 暂停、上下首、循环
