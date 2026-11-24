@@ -1250,5 +1250,9 @@ const EN = {
   "没设过的孩子：最近 14 天有用药记录就自动显示；康复后点「不再显示」或在这里关掉，随时能再打开。": "Children not set yet: the card shows automatically when a dose was logged in the last 14 days. Once recovered, tap Hide or turn it off here; turn it back on any time.",
   "已不再显示；在「用药设置」里能重新打开": "Hidden; turn it back on under Medicine settings",
   "今天：名字、用药、睡眠与音乐": "Today: name, meds, sleep and music",
+  "{ago}前": "{ago} ago",
+  "隐藏": "Hide",
+  "点「记一次」开始记": "Tap Log to start",
+  "康复了不用再看时点这里；在「用药设置」里能重新打开": "Recovered? Hide this card; turn it back on under Medicine settings",
 };
 export { EN };

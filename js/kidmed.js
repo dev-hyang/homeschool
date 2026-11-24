@@ -37,28 +37,28 @@ function nextPill(info){
   if (!info.next) return "";
   return info.next > Date.now() ? `<span class="side">${t("{time} 后可再服", { time: hm(info.next) })}</span>` : `<span>${t("已过医嘱间隔")}</span>`;
 }
-function otherRows(rec){
-  return rec.length ? `<ul class="km-others">${rec.map(r => `<li><b>${esc(r.name)}</b> <span>${t("{ago}前 · 24小时内 {n} 次", { ago: ago(Date.now() - r.at), n: r.count24 })}</span></li>`).join("")}</ul>` : "";
-}
 const ago = ms => { const m = Math.max(0, Math.floor(ms / 60000)), h = Math.floor(m / 60), d = Math.floor(h / 24); return d ? t("{n} 天", { n: d }) : h ? t("{n} 小时", { n: h }) : t("{n} 分钟", { n: m }); };
+/** 其他药各自多久（一行，放不下就省略号）：「其他：益生菌 5 小时前 · 维生素D 1 天前」 */
+const othersLine = rec => (rec.length ? `${t("其他")}：${rec.map(r => `${r.name} ${t("{ago}前", { ago: ago(Date.now() - r.at) })}`).join(" · ")}` : "");
+/** 近 7 天每天几次：小柱子，放在大数字右边（读屏用 aria-label 念出具体数字） */
 function weekBars(meds){
   const w = weekCounts(meds), top = Math.max(1, ...w);
-  return `<div class="km-week" role="img" aria-label="${esc(t("近 7 天每天用药次数：{v}", { v: w.join("、") }))}">${w.map(n => `<i style="height:${Math.round(4 + n / top * 20)}px" title="${n}"></i>`).join("")}<small>${t("近 7 天")}</small></div>`;
+  return `<div class="km-week" role="img" aria-label="${esc(t("近 7 天每天用药次数：{v}", { v: w.join("、") }))}">${w.map(n => `<i style="height:${Math.round(4 + n / top * 18)}px" title="${n}"></i>`).join("")}</div>`;
 }
-/** 今天页顶部的这一张；这个孩子没开（或还没读到）就是空字符串 */
+/** 今天页顶部的这一张（和名字卡差不多高：标题、大数字 + 小柱子、一行说明、一行小字、一排按钮）；这个孩子没开（或还没读到）就是空字符串 */
 function kidMedSlideHTML(){
   ensureKidMeds();
   const cid = S.childId; if (!cid || KM.key !== fid()) return "";
   const meds = myMeds(); if (!heroOn(settings(), cid, meds)) return "";
   const rec = recentMeds(meds, kidRules(settings())), top = rec[0];
   const head2 = `<div class="lbl">💊 ${esc(childName())} · ${t("距上次用药")}</div>`;
-  const acts = `<div class="medact"><button class="hbtn txt" data-act="km-add">${t("记一次用药")}</button><button class="hbtn txt" data-tab="gr-history">${t("历史记录")}</button><button class="hbtn txt" data-act="km-settings">⚙ ${t("设置")}</button><button class="hbtn txt" data-act="km-off">${t("不再显示")}</button></div>`;
-  if (!top) return `<section class="hero kmhero" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}<div class="big num">${t("还没记录")}</div><div class="meta"><span>${t("点「记一次用药」开始记")}</span></div>${acts}</section>`;
-  const how = [timingText(top.info.tm, t), top.info.note].filter(Boolean).join(" · "), e = top.entry;
+  const acts = `<div class="medact"><button class="hbtn" data-act="km-add">${t("记一次")}</button><button class="hbtn" data-tab="gr-history">${t("历史")}</button><button class="hbtn icon" data-act="km-settings" aria-label="${esc(t("用药设置"))}" title="${esc(t("用药设置"))}">⚙</button><button class="hbtn" data-act="km-off" title="${esc(t("康复了不用再看时点这里；在「用药设置」里能重新打开"))}">${t("隐藏")}</button></div>`;
+  if (!top) return `<section class="hero kmhero" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}<div class="big num">${t("还没记录")}</div><div class="meta"><span>${t("点「记一次」开始记")}</span></div>${acts}</section>`;
+  const how = [timingText(top.info.tm, t), top.info.note].filter(Boolean).join(" · "), sub = [how, othersLine(rec.slice(1))].filter(Boolean).join("　"), e = top.entry;
   return `<section class="hero kmhero${top.info.next && top.info.next <= Date.now() ? "" : top.info.next ? " wait" : ""}" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}
-    <div class="big num">${bigDur(Date.now() - top.at)}</div>
-    <div class="meta"><span>${esc(top.name)}${e.dose ? ` ${esc(e.dose)}` : ""} · ${t("上次 {time}", { time: hm(top.at) })}</span>${nextPill(top.info)}${how ? `<span class="rashadv">💊 ${esc(how)}</span>` : ""}</div>
-    ${otherRows(rec.slice(1))}${weekBars(meds)}${acts}</section>`;
+    <div class="km-row"><div class="big num">${bigDur(Date.now() - top.at)}</div>${weekBars(meds)}</div>
+    <div class="meta"><span class="km-what">${esc(top.name)}${e.dose ? ` ${esc(e.dose)}` : ""} · ${t("上次 {time}", { time: hm(top.at) })}</span>${nextPill(top.info)}</div>
+    ${sub ? `<div class="km-sub" title="${esc(sub)}">${esc(sub)}</div>` : ""}${acts}</section>`;
 }
 
 /* ---- 记一次用药（可补记哪天几点） ---- */
@@ -99,7 +99,7 @@ function drawSettings(){
   $("#sheetIn").innerHTML = `${head(esc(t("用药设置")))}
     <p class="small muted">${t("按医嘱或说明书填每种药的最短间隔、服药时机和备注。今天页的用药卡会据此显示下次可以服药的时间；没填的只显示距上次多久。")}</p>
     ${rows || `<p class="small muted">${t("还没有填任何药。")}</p>`}<div class="btns"><button type="button" class="btn" data-act="km-rule-add">＋ ${t("添加一种药")}</button></div>
-    <div class="lab" style="margin-top:14px">${t("今天页顶部显示用药卡的孩子")}</div><div class="chips" role="group">${kids}</div>
+    <div class="lab" style="margin-top:14px">${t("今天页顶部显示用药卡的孩子")}</div><div class="chips km-kids" role="group">${kids}</div>
     <p class="small muted">${t("没设过的孩子：最近 14 天有用药记录就自动显示；康复后点「不再显示」或在这里关掉，随时能再打开。")}</p>
     <div class="btns"><button class="btn primary" data-act="km-save">${t("保存")}</button></div>`;
 }
