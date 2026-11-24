@@ -38,7 +38,8 @@ test("weekCounts counts the last seven days, today last", () => {
 });
 
 test("rules: clean empty rows; names from rules and history", () => {
-  assert.deepEqual(cleanRules([{ name: " 布洛芬 ", hours: 6, timing: "饭后", mins: 30, note: " x " }, { name: "" }, null]), [{ name: "布洛芬", hours: "6", timing: "饭后", mins: "30", note: "x" }]);
+  assert.deepEqual(cleanRules([{ name: " 布洛芬 ", hours: 6, timing: "饭后", mins: 30, note: " x " }, { name: "" }, null]), [{ name: "布洛芬", hours: "6", timing: "饭后", mins: "30", note: "x", hero: "" }]);
+  assert.equal(cleanRules([{ name: "A", hero: "off" }])[0].hero, "off");
   assert.deepEqual(kidRules({}), []);
   assert.deepEqual(nameChoices([{ name: "A" }], [m("a", 1, { name: "B" }), m("b", 2, { name: "A" })]), ["A", "B"]);
 });

@@ -4,7 +4,7 @@ import { S, childName, ownerOf } from "./core/state.js";
 import { $, D, dayKey, esc, hm, newId, toast } from "./core/util.js";
 import { saveSettings } from "./hs.js";
 import { TIMINGS, timingText } from "./med-advice.js";
-import { cleanRules, heroOn, kidRules, medsOf, nameChoices, recentMeds, weekCounts } from "./kidmed-lib.js";
+import { cleanRules, heroOff, heroOn, kidRules, medsOf, nameChoices, recentMeds, weekCounts } from "./kidmed-lib.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { render } from "./views.js";
 
@@ -49,8 +49,9 @@ function weekBars(meds){
 function kidMedSlideHTML(){
   ensureKidMeds();
   const cid = S.childId; if (!cid || KM.key !== fid()) return "";
-  const meds = myMeds(); if (!heroOn(settings(), cid, meds)) return "";
-  const rec = recentMeds(meds, kidRules(settings())), top = rec[0];
+  const rules = kidRules(settings()), meds = myMeds().filter(e => !heroOff(e, rules));   // 设置里关掉顶部卡片的药（已康复 / 不吃了）不再进这张卡
+  if (!heroOn(settings(), cid, meds)) return "";
+  const rec = recentMeds(meds, rules), top = rec[0];
   const head2 = `<div class="lbl">💊 ${esc(childName())} · ${t("距上次用药")}</div>`;
   const acts = `<div class="medact"><button class="hbtn" data-act="km-add">${t("记一次")}</button><button class="hbtn" data-tab="gr-meds">${t("历史")}</button><button class="hbtn icon" data-act="km-settings" aria-label="${esc(t("用药设置"))}" title="${esc(t("用药设置"))}">⚙</button><button class="hbtn" data-act="km-off" title="${esc(t("康复了不用再看时点这里；在「用药设置」里能重新打开"))}">${t("隐藏")}</button></div>`;
   if (!top) return `<section class="hero kmhero" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}<div class="big num">${t("还没记录")}</div><div class="meta"><span>${t("点「记一次」开始记")}</span></div>${acts}</section>`;
@@ -94,6 +95,7 @@ function drawSettings(){
   const f = (i, k, label, extra) => `data-kr="${i}" data-kk="${k}" aria-label="${esc(t(label))}" ${extra}`;
   const rows = rules.map((r, i) => `<div class="medrule"><div class="row2"><input type="text" ${f(i, "name", "药名", `value="${esc(r.name || "")}" placeholder="${esc(t("药名"))}"`)}><input type="number" inputmode="decimal" ${f(i, "hours", "最短间隔（小时）", `value="${esc(r.hours || "")}" placeholder="${esc(t("间隔（小时）"))}"`)}></div>
     <div class="row2"><select ${f(i, "timing", "服药时机", "")}>${TIMINGS.map(o => `<option value="${o === "不限" ? "" : o}" ${(r.timing || "") === (o === "不限" ? "" : o) ? "selected" : ""}>${esc(t(o))}</option>`).join("")}</select><input type="number" inputmode="numeric" ${f(i, "mins", "饭前 / 饭后多少分钟", `value="${esc(r.mins || "")}" placeholder="${esc(t("饭前 / 饭后几分钟"))}"`)}></div>
+    <select ${f(i, "hero", "顶部卡片", "")}><option value="" ${r.hero === "off" ? "" : "selected"}>${esc(t("显示在顶部卡片"))}</option><option value="off" ${r.hero === "off" ? "selected" : ""}>${esc(t("不显示在顶部卡片（已康复 / 不吃了）"))}</option></select>
     <input type="text" ${f(i, "note", "医嘱备注", `value="${esc(r.note || "")}" placeholder="${esc(t("医嘱备注，如：发烧超过 38.5℃ 再吃"))}"`)}><button type="button" class="chip" data-act="km-rule-del" data-i="${i}">${t("删除这一种")}</button></div>`).join("");
   const kids = S.children.map(c => { const on = heroOn(settings(), c.id, medsOf(KM.rows, c.id, legacy())); return `<button type="button" class="chip" data-act="km-hero" data-cid="${esc(c.id)}" aria-pressed="${on}">${esc(c.name || t("宝宝"))}${on ? ` · ${t("显示中")}` : ""}</button>`; }).join("");
   $("#sheetIn").innerHTML = `${head(esc(t("用药设置")))}
@@ -113,7 +115,7 @@ async function kmAct(act, d){
     case "km-settings": openSettings(); break;
     case "km-range": S.kmRange = +d.d; break;   // 成长 → 用药记录与趋势 的 14 / 30 / 90 天（events 随后重画）
     case "km-off": await setHero(S.childId, false); toast(t("已不再显示；在「用药设置」里能重新打开")); render(); break;
-    case "km-rule-add": readRules(); (KM.draft ||= []).push({ name: "", hours: "", timing: "", mins: "", note: "" }); drawSettings(); break;
+    case "km-rule-add": readRules(); (KM.draft ||= []).push({ name: "", hours: "", timing: "", mins: "", note: "", hero: "" }); drawSettings(); break;
     case "km-rule-del": readRules(); (KM.draft ||= []).splice(+d.i, 1); drawSettings(); break;
     case "km-hero": readRules(); await setHero(d.cid, !heroOn(settings(), d.cid, medsOf(KM.rows, d.cid, legacy()))); drawSettings(); break;
     case "km-save": { readRules(); const cur = settings().kidMeds || {}; await saveSettings({ kidMeds: { ...cur, rules: cleanRules(KM.draft) } }); KM.draft = null; closeSheet(); toast(t("已保存")); break; }

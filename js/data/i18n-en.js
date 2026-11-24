@@ -1266,5 +1266,8 @@ const EN = {
   "共 {n} 次，平均每天 {a} 次": "{n} doses, {a} per day on average",
   "这段时间没有用药记录。": "No medicine records in this period.",
   "＋": "+",
+  "显示在顶部卡片": "Show on the top card",
+  "不显示在顶部卡片（已康复 / 不吃了）": "Hide from the top card (recovered / stopped)",
+  "顶部卡片": "Top card",
 };
 export { EN };
