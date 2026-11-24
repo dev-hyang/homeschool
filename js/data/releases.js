@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-24.3", title: { zh: "成长 → 用药记录与趋势", en: "Growth → Medicine records & trends" }, items: [
+    { k: "new", zh: "成长的「身体与健康」里新增「用药记录与趋势」：近 14 / 30 天每天几次、近 90 天每周几次的柱状图，按药名汇总次数和最近一次，下面是每一次（能搜索、筛类别、列表 / 时间线，点一条改或删）", en: "Growth → Body & health has a new Medicine records & trends page: bars for doses per day (14 / 30 days) or per week (90 days), totals and latest dose per medicine, and every dose below (searchable, filterable, list or timeline, tap to edit or delete)" },
+    { k: "better", zh: "今天页用药卡的「历史」直接打开这一页；「病史 · 过敏 · 用药」里的用药列表挪到这里，原处留一个入口", en: "The History button on the Today medicine card opens this page; the medicine list moved here from History · Allergies · Meds, which keeps a link" },
+  ] },
   { v: "2026-11-24.2", title: { zh: "孩子用药卡更紧凑", en: "A more compact child medicine card" }, items: [
     { k: "better", zh: "今天页的用药卡缩到和名字卡差不多高：大数字旁边放近 7 天小柱子，服药时机、医嘱和其他药各占一行（放不下就省略），四个按钮排成一排（记一次、历史、设置、隐藏）", en: "The Today medicine card is now close to the name card's height: the 7-day bars sit beside the big number, timing, note and other medicines take one line each, and the four buttons share a row (Log, History, Settings, Hide)" },
     { k: "fix", zh: "用药设置里孩子开关的按钮加高到 44px", en: "The child switches in Medicine settings are now 44 px tall" },

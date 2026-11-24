@@ -52,7 +52,7 @@ function kidMedSlideHTML(){
   const meds = myMeds(); if (!heroOn(settings(), cid, meds)) return "";
   const rec = recentMeds(meds, kidRules(settings())), top = rec[0];
   const head2 = `<div class="lbl">💊 ${esc(childName())} · ${t("距上次用药")}</div>`;
-  const acts = `<div class="medact"><button class="hbtn" data-act="km-add">${t("记一次")}</button><button class="hbtn" data-tab="gr-history">${t("历史")}</button><button class="hbtn icon" data-act="km-settings" aria-label="${esc(t("用药设置"))}" title="${esc(t("用药设置"))}">⚙</button><button class="hbtn" data-act="km-off" title="${esc(t("康复了不用再看时点这里；在「用药设置」里能重新打开"))}">${t("隐藏")}</button></div>`;
+  const acts = `<div class="medact"><button class="hbtn" data-act="km-add">${t("记一次")}</button><button class="hbtn" data-tab="gr-meds">${t("历史")}</button><button class="hbtn icon" data-act="km-settings" aria-label="${esc(t("用药设置"))}" title="${esc(t("用药设置"))}">⚙</button><button class="hbtn" data-act="km-off" title="${esc(t("康复了不用再看时点这里；在「用药设置」里能重新打开"))}">${t("隐藏")}</button></div>`;
   if (!top) return `<section class="hero kmhero" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}<div class="big num">${t("还没记录")}</div><div class="meta"><span>${t("点「记一次」开始记")}</span></div>${acts}</section>`;
   const how = [timingText(top.info.tm, t), top.info.note].filter(Boolean).join(" · "), sub = [how, othersLine(rec.slice(1))].filter(Boolean).join("　"), e = top.entry;
   return `<section class="hero kmhero${top.info.next && top.info.next <= Date.now() ? "" : top.info.next ? " wait" : ""}" aria-label="${esc(t("用药"))}"><div class="moon"></div>${head2}
@@ -111,6 +111,7 @@ async function kmAct(act, d){
   switch (act) {
     case "km-add": openAdd(); break;
     case "km-settings": openSettings(); break;
+    case "km-range": S.kmRange = +d.d; break;   // 成长 → 用药记录与趋势 的 14 / 30 / 90 天（events 随后重画）
     case "km-off": await setHero(S.childId, false); toast(t("已不再显示；在「用药设置」里能重新打开")); render(); break;
     case "km-rule-add": readRules(); (KM.draft ||= []).push({ name: "", hours: "", timing: "", mins: "", note: "" }); drawSettings(); break;
     case "km-rule-del": readRules(); (KM.draft ||= []).splice(+d.i, 1); drawSettings(); break;

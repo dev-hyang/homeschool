@@ -13,6 +13,7 @@ const TOPICS = {
   "gr-vax":     { sec: "body", icon: "💉", label: "疫苗" },
   "gr-labs":    { sec: "body", icon: "🧪", label: "化验" },
   "gr-history": { sec: "body", icon: "📋", label: "病史 · 过敏 · 用药" },
+  "gr-meds":    { sec: "body", icon: "💊", label: "用药记录与趋势" },
   sleep:        { sec: "mind", icon: "🌙", label: "睡眠", external: true },   // 原来的睡眠页（js/sleep.js），面包屑同样回到成长
   "gr-meals":   { sec: "mind", icon: "🍚", label: "吃饭", metrics: ["meals", "mealMin"], types: ["meal"], add: ["meal"] },
   "gr-play":    { sec: "mind", icon: "🌳", label: "户外与屏幕", metrics: ["outdoor", "screen", "music"], types: ["outdoor", "screen", "music"], add: ["outdoor", "screen", "music"] },

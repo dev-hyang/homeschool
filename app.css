@@ -1458,3 +1458,17 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .km-kids .chip{min-height:44px;padding:0 14px}
 .medact .hbtn.icon{min-width:44px;padding:0}
 .hero-slide > .hero{display:flex;flex-direction:column;justify-content:center}
+/* 成长 → 用药记录与趋势 */
+.gm-range{margin:10px 0}
+.gm-range .chip{min-height:44px;padding:0 16px}
+.gm-bars{display:flex;align-items:flex-end;gap:3px;height:112px}
+.gm-col{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;height:100%}
+.gm-col i{display:block;width:100%;max-width:18px;border-radius:4px 4px 0 0;background:var(--rose,#B44B60)}
+.gm-col i.zero{background:var(--line)}
+.gm-col b{font-size:11px;font-weight:600;line-height:1;min-height:11px}
+.gm-col small{font-size:10.5px;color:var(--muted);line-height:1;min-height:11px;white-space:nowrap}
+.gm-sum{margin:8px 0 0}
+.gm-rows{margin-top:8px;display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
+.gm-row{min-width:0;display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.gm-row b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gm-row span{color:var(--muted);white-space:nowrap;flex:none}

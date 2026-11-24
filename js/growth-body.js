@@ -9,6 +9,7 @@ import { EXTRA, EXTRA_KEYS, INTAKE_SYSTEM, VAX_NAMES, extraParts, mergeInto, pla
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
 import { TIMINGS, timingOf, timingText } from "./med-advice.js";
+import { trendHTML } from "./growth-meds.js";
 import { VT_KEYS, bmiBand, bpLimit, flag as vtFlag, hrRange, vitalsContext, vitalsHTML } from "./vitals.js";
 import { askAbout } from "./ask.js";
 import { genderOf } from "./flows-trend.js";
@@ -78,6 +79,7 @@ function bodyRowDesc(id){
   if (id === "gr-vax") { const v = mine("vax"); return v.length ? t("共 {n} 次 · 最近 {d}", { n: v.length, d: day(v[0].ts) }) : t("还没有接种记录"); }
   if (id === "gr-labs") { if (!H.hlOk) return t("在牧羊人里记化验"); const r = labLatest(), bad = r.filter(labFlag).length; return r.length ? t("{n} 项", { n: r.length }) + (bad ? ` · ${t("{n} 项超出范围", { n: bad })}` : ` · ${t("都在范围内")}`) : t("还没有化验"); }
   if (id === "gr-history") { const p = (profileRow() || {}).data || {}; return [p.allergies && `${t("过敏")}：${p.allergies}`, p.conditions && `${t("病史")}：${p.conditions}`].filter(Boolean).join(" · ").slice(0, 80) || t("还没有记过"); }
+  if (id === "gr-meds") { const m = mine("bmed"), e = m[0]; return e ? t("共 {n} 次 · 最近 {d} {name}", { n: m.length, d: day(e.ts), name: e.name || "" }) : t("还没有用药记录"); }
   return "";
 }
 const labFlag = x => (x.ref_high != null && +x.value > +x.ref_high ? "high" : x.ref_low != null && +x.value < +x.ref_low ? "low" : null);
@@ -176,7 +178,7 @@ function statTile(label, value, sub, color, attrs = "", on = false){
 function bodyTopicHTML(id){
   if (!fid()) return "";
   if (!ensure()) return `<p class="small muted" role="status">${H.err ? t("读取失败：{m}", { m: esc(H.err.slice(0, 80)) }) : t("正在读取…")}</p>`;
-  return ({ "gr-size": sizePage, "gr-visits": visitsPage, "gr-vax": vaxPage, "gr-labs": labsPage, "gr-history": historyPage }[id] || (() => ""))();
+  return ({ "gr-size": sizePage, "gr-visits": visitsPage, "gr-vax": vaxPage, "gr-labs": labsPage, "gr-history": historyPage, "gr-meds": medsPage }[id] || (() => ""))();
 }
 /* ---- 基本体征：卡片、走势线、同龄正常范围、给 AI 的摘要都在 js/vitals.js（和小月亮同一份） ---- */
 const vtCtx = () => ({ t, val: (dim, v) => toDisp(dim, v), unit, day, months: ts => ageMonths(S.childId, ts), sex: genderOf() || null,
@@ -282,6 +284,13 @@ function historyPage(){
   return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button><button type="button" class="btn sm" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
     <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
     <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
+    <div class="panel mlist"><button type="button" class="mrow" data-tab="gr-meds"><span class="mi" aria-hidden="true">💊</span><span class="mt"><b>${t("用药记录与趋势")}</b><small>${meds.length ? t("共 {n} 次 · 近 14 / 30 / 90 天的次数、每种药、每一次", { n: meds.length }) : t("记一次用药，这里就有次数趋势和历史")}</small></span><span class="mch" aria-hidden="true">›</span></button></div>`;
+}
+/* ---- 用药记录与趋势：次数柱状图 + 按药名汇总（js/growth-meds.js），下面是每一次（能搜索、筛类别、列表 | 时间线，点一条改 / 删） ---- */
+function medsPage(){
+  const meds = mine("bmed");
+  return `${top(`<button type="button" class="btn primary sm" data-act="km-add">＋ ${t("记一次用药")}</button><button type="button" class="btn sm" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
+    ${trendHTML(meds, S.kmRange || 30)}
     ${recList("meds", "维生素 / 用药", meds.map(e => ({ ts: e.ts, icon: "💧", cat: e.cat || "", title: [t(e.cat || ""), e.name].filter(Boolean).join(" · "), meta: [e.dose, timingText(timingOf(e, null), t)].filter(Boolean).join(" · "), note: e.note, edit: `data-act="gr-b-med" data-id="${esc(e.id)}"` })),
       { subs: (cs => (cs.length > 1 ? cs.map(c => [c, t(c), x => x.cat === c]) : null))([...new Set(meds.map(e => e.cat).filter(Boolean))]), foot: EDIT_HERE() })}`;
 }

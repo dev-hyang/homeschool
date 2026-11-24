@@ -1254,5 +1254,17 @@ const EN = {
   "隐藏": "Hide",
   "点「记一次」开始记": "Tap Log to start",
   "康复了不用再看时点这里；在「用药设置」里能重新打开": "Recovered? Hide this card; turn it back on under Medicine settings",
+  "用药记录与趋势": "Medicine records & trends",
+  "共 {n} 次 · 最近 {d} {name}": "{n} doses · latest {d} {name}",
+  "还没有用药记录": "No medicine records yet",
+  "共 {n} 次 · 近 14 / 30 / 90 天的次数、每种药、每一次": "{n} doses · counts for 14 / 30 / 90 days, each medicine, every dose",
+  "记一次用药，这里就有次数趋势和历史": "Log a medicine and its trend and history appear here",
+  "用药次数：{v}": "Doses: {v}",
+  "每根柱子是一周": "each bar is one week",
+  "每根柱子是一天": "each bar is one day",
+  "最近 {d} {time}": "latest {d} {time}",
+  "共 {n} 次，平均每天 {a} 次": "{n} doses, {a} per day on average",
+  "这段时间没有用药记录。": "No medicine records in this period.",
+  "＋": "+",
 };
 export { EN };
