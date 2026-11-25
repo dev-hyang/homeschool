@@ -116,7 +116,7 @@ function cardHTML(s, cid, day, name, pool){
     : st === "paused" ? `<button class="ui-btn" data-tone="primary" data-act="scr-resume" data-sid="${esc(s.id)}">${t("继续背")}</button><button class="chip" data-act="scr-reset" data-sid="${esc(s.id)}">${t("重新开始")}</button>`
       : `<button class="chip" data-act="scr-pause" data-sid="${esc(s.id)}">${t("先放一放")}</button><button class="chip" data-act="scr-reset" data-sid="${esc(s.id)}">${t("重新开始")}</button>`;
   return `<div class="card lib-card"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(s.ref)}</b> <span class="small muted lib-state"><i class="lib-dot" style="background:${ST[st].color}"></i>${state}${late}</span><div>${esc(s.text_zh)}<span class="small muted">${esc(vz(s))}</span></div><div class="small muted">${esc(s.text_en)}${esc(ve(s))}</div>${s.source ? `<div class="small muted">${esc(s.source)}</div>` : ""}</div></div>
-    <div class="btns" style="margin-top:8px">${acts}
+    <div class="ui-acts btns" style="margin-top:8px">${acts}
       <button class="chip" data-act="scr-week" data-sid="${esc(s.id)}" aria-pressed="${S.hs.settings.weekVerse === s.id}">${S.hs.settings.weekVerse === s.id ? t("本周经文 ✓") : t("设为本周经文")}</button>
       <button class="chip" data-act="scr-edit" data-sid="${esc(s.id)}">${t("编辑")}</button></div></div>`;
 }
@@ -175,7 +175,7 @@ function menuHTML(menu, cfg, pool, fv){
         <label>${t("问答占")} <select id="poolCat" aria-label="${t("问答占比")}">${[...new Set([0, 10, 20, 30, 40, 50, 70, 100, cfg.catShare])].sort((a, b) => a - b).map(v => opt(String(v), `${v}%`, String(cfg.catShare))).join("")}</select></label></div>
       <h3 style="margin-top:14px">${t("自动抓取经文")}</h3>
       <p class="small">${t("中文 {zh} · 英文 {en}", { zh: esc(fv.zh) + (fv.zhFallback ? t("（已回退）") : ""), en: esc(fv.en) + (fv.enFallback ? t("（{v} 需代理，已回退）", { v: esc(fv.wanted.en) }) : "") })}${S.hs.versions ? "" : `<br><span class="muted">${t("译本字段需要迁移 005")}</span>`}</p>
-      <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="fetch-settings">${t("改译本与代理")}</button></div></div>`;
+      <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="fetch-settings">${t("改译本与代理")}</button></div></div>`;
   }
   return "";
 }
@@ -214,7 +214,7 @@ function openBackfill(date){
   const mine = S.hs.progress.filter(p => p.child_id === cid && p.status !== "paused").map(p => ({ p, s: S.hs.scriptures.find(x => x.id === p.scripture_id) })).filter(x => x.s);
   const done = mine.filter(x => x.p.last_on === date), later = x => x.p.last_on && x.p.last_on >= date;
   const learn = mine.filter(x => x.p.status === "learning" && !later(x)), due = mine.filter(x => x.p.status === "learned" && x.p.next_review && x.p.next_review <= date && !later(x)).sort((a, b) => (a.p.next_review < b.p.next_review ? -1 : 1));
-  const row = (x, acts) => `<div class="card lib-card"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(x.s.ref)}</b> <span class="small muted">${x.p.status === "learning" ? t("新学") : t("已复习 {n} 次 · 原定 {d}", { n: x.p.reviews || 0, d: x.p.next_review || "—" })}</span><div class="small">${esc(x.s.text_zh)}</div></div></div><div class="btns" style="margin-top:6px">${acts}</div></div>`;
+  const row = (x, acts) => `<div class="card lib-card"><div class="row" style="align-items:flex-start"><div class="v"><b>${esc(x.s.ref)}</b> <span class="small muted">${x.p.status === "learning" ? t("新学") : t("已复习 {n} 次 · 原定 {d}", { n: x.p.reviews || 0, d: x.p.next_review || "—" })}</span><div class="small">${esc(x.s.text_zh)}</div></div></div><div class="ui-acts btns" style="margin-top:6px">${acts}</div></div>`;
   const b = (op, sid, label, cls = "") => `<button class="ui-btn" data-tone="${cls === "primary" ? "primary" : "ghost"}" data-act="bf-do" data-op="${op}" data-sid="${esc(sid)}" data-date="${esc(date)}">${label}</button>`;
   $("#sheetIn").innerHTML = `${head(t("补记背诵") + " · " + esc(date))}
   <p class="small muted">${t("给{name}补上 {d} 那天背的：复习间隔从那天算起，之后的复习日期会自动排好。", { name, d: esc(date) })}</p>

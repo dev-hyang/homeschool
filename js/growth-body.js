@@ -415,7 +415,7 @@ function draw(){
   const sc = X.scope || "all", scoped = sc !== "all", n = count(), home = X.src === "自己记录", ed = !!X.edit, upd = !ed && !home && sc !== "vax" && sameVisit(mine("baby"), dayKey(X.ts));
   const read = ed || (scoped ? X.mode !== "ai" : (home && X.read && !attachHas(ATT))) ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t(scoped ? SC_TEXT[sc].desc : "拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
     ${attachHTML(ATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t(scoped ? SC_TEXT[sc].ph : "例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来") })}
-    <div class="btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read || scoped ? "" : `<button type="button" class="ui-btn" data-tone="ghost" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
+    <div class="ui-acts btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read || scoped ? "" : `<button type="button" class="ui-btn" data-tone="ghost" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
     <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>`;
   const modeSeg = !scoped || ed ? "" : `<div class="seg ix-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-ix="mode" data-v="ai" aria-pressed="${X.mode === "ai"}">✦ ${t("AI 录入")}</button><button type="button" data-ix="mode" data-v="manual" aria-pressed="${X.mode === "manual"}">✎ ${t("手动录入")}</button></div>`;
   const form = !X.read ? "" : `
@@ -433,7 +433,7 @@ function draw(){
       <input type="number" inputmode="decimal" step="any" min="0" data-ixk="w" value="${esc(x.w)}" placeholder="${esc(t("体重") + " " + unit("weight"))}" aria-label="${esc(t("体重") + " " + unit("weight"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="l" value="${esc(x.l)}" placeholder="${esc(t("身高") + " " + unit("length"))}" aria-label="${esc(t("身高") + " " + unit("length"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="h" value="${esc(x.h)}" placeholder="${esc(t("头围") + " " + unit("head"))}" aria-label="${esc(t("头围") + " " + unit("head"))}">${Object.keys(x.ex || {}).length ? `<span class="small muted ix-note">${esc(extras(x.ex).join(" · "))}</span>` : ""}`)).join("")}</div>${secClose}`}
     ${ed || !X.labs.length || sc !== "all" ? "" : `${secOpen("labs", `🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span>`)}${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
       <input type="text" data-ixk="name" value="${esc(x.name)}" placeholder="${esc(t("项目"))}" aria-label="${esc(t("项目"))}"><input type="text" inputmode="decimal" data-ixk="value" value="${esc(x.value)}" placeholder="${esc(t("结果"))}" aria-label="${esc(t("结果"))}"><input type="text" data-ixk="unit" value="${esc(x.unit)}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}"><input type="text" inputmode="decimal" data-ixk="lo" value="${esc(x.lo)}" placeholder="${esc(t("参考下限"))}" aria-label="${esc(t("参考下限"))}"><input type="text" inputmode="decimal" data-ixk="hi" value="${esc(x.hi)}" placeholder="${esc(t("参考上限"))}" aria-label="${esc(t("参考上限"))}">`)).join("")}</div>${secClose}`}
-    <div class="btns">${ed ? `<button type="button" class="ui-btn" data-tone="primary" data-ix="save">${t("保存修改")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button><button type="button" class="ui-btn" data-tone="danger" data-ix="del">${t("删除")}</button>`
+    <div class="ui-acts btns">${ed ? `<button type="button" class="ui-btn" data-tone="primary" data-ix="save">${t("保存修改")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button><button type="button" class="ui-btn" data-tone="danger" data-ix="del">${t("删除")}</button>`
       : `<button type="button" class="ui-btn" data-tone="primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button>`}</div>`;
   $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${scoped ? SC_TEXT[sc].icon : home ? "📏" : "✦"} ${esc(t(scoped ? SC_TEXT[sc].title : home ? "量一次身高体重" : "AI 综合录入"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${modeSeg}${read}${form}
     <datalist id="ixvax">${VAX_NAMES.map(v => `<option value="${esc(t(v))}">`).join("")}</datalist>`;
@@ -606,7 +606,7 @@ let AIP = null;   // 刚分析出来、还没决定保不保留的：{ k, ai }
 const aiBody = a => recAiBody(a, t, esc);   // 提示词、解析、内容的画法在 js/record-ai.js（和小月亮同一份）
 function aiSavedHTML(k, a, busy){
   return `<details class="gb-ai"><summary>✦ ${t("AI 解读")} <span class="small muted">${esc(String(a.at || "").slice(0, 10))}</span></summary><div class="gb-ai-in">${aiBody(a)}
-    <div class="btns"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
+    <div class="ui-acts btns"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
     <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。")}</p></div></details>`;
 }
 const ageOf = ts => { const m = ageMonths(S.childId, ts); return m == null ? null : m < 24 ? `${m} months` : `${Math.floor(m / 12)} years ${m % 12} months`; };
@@ -659,7 +659,7 @@ async function runAi(k){
 function drawAiSheet(busy){
   if (!AIP) return;
   $("#sheetIn").innerHTML = `${head(`✦ ${esc(t("AI 解读"))}`)}<div class="panel gb-ai-in">${aiBody(AIP.ai)}</div>
-    <div class="btns"><button type="button" class="ui-btn" data-tone="primary" data-act="gr-b-aikeep">${t("保留")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(AIP.k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-aidrop">${t("不要")}</button></div>
+    <div class="ui-acts btns"><button type="button" class="ui-btn" data-tone="primary" data-act="gr-b-aikeep">${t("保留")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(AIP.k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-aidrop">${t("不要")}</button></div>
     <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。保留后显示在这条记录下面，可以重新分析或清除。")}</p>`;
 }
 /** 保存 / 清除一条记录的解读（ai = null 是清除） */
@@ -711,14 +711,14 @@ function drawLb(){
     <div class="seg ix-mode lb-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-lb="aitoggle" aria-pressed="${LB.aiOn}">✦ ${t("AI 录入")}</button><a href="${shep}" target="_blank" rel="noopener" title="${esc(t("在牧羊人里录入化验"))}">${t("在牧羊人里录入")} ↗</a></div>
     ${LB.aiOn ? `<div class="panel lb-ai"><p class="small muted" style="margin:0 0 8px">${t("拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。")}</p>
       ${attachHTML(LATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：LDL 104 mg/dL（参考 <100），血红蛋白 12.1 g/dL（11.5–15.5）"), forceOpen: LB.busy })}
-      <div class="btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
+      <div class="ui-acts btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
       <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>` : ""}
     <div class="field"><label for="lb_day">${t("采样日期")}</label><input id="lb_day" type="date" data-lbd="day" max="${dayKey(Date.now())}" value="${esc(LB.day)}"></div>
     <div class="field"><div class="lab" id="lb_panel">${t("套餐")}</div><div class="seg lb-seg" role="group" aria-labelledby="lb_panel">${Object.entries(LAB_GROUPS).map(([k, l]) => `<button type="button" data-lb="panel" data-v="${k}" aria-pressed="${g === k}">${esc(t(l))}${lbCount(k) ? ` · ${lbCount(k)}` : ""}</button>`).join("")}</div></div>
     <div class="lb-tbl">${rows}</div>${g === "other" ? `<button type="button" class="chip" data-lb="extra">＋ ${t("加一项（单子上别的项目）")}</button>` : ""}
     <div class="field"><label class="check"><input type="checkbox" data-lbd="fasting" ${LB.fasting ? "checked" : ""}>${t("空腹采血")}</label></div>
     <p class="small muted lb-hint">${t("参考范围以化验单为准（孩子和成人不一样，这里不预填）。")}</p>
-    <div class="btns"><button type="button" class="ui-btn" data-tone="primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
+    <div class="ui-acts btns"><button type="button" class="ui-btn" data-tone="primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
 }
 /** 改了数字之后只更新提示、套餐上的数目和保存按钮（不重画，光标不跳） */
 function lbRefresh(row){

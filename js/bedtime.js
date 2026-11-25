@@ -388,7 +388,7 @@ function drawKidPick(){
   $("#sheetIn").innerHTML = `${head(esc(t("谁参加「{flow}」？", { flow: tb(c.flowName) })))}
   <p class="small muted" style="margin-top:0">${t("先选好参加的孩子，再开始。完成时还能再改。")}</p>
   <div class="seg" role="group" aria-label="${t("谁参加了")}">${kids().map(k => `<button type="button" data-act="bt-pick-kid" data-id="${esc(k.id)}" aria-pressed="${PICK.has(k.id)}">${esc(k.name || t("宝宝"))}${asleep.includes(k.id) ? " 😴" : ""}</button>`).join("")}</div>
-  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="bt-pick-go" ${PICK.size ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(tb(c.flowName))}</button></div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="bt-pick-go" ${PICK.size ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(tb(c.flowName))}</button></div>`;
 }
 async function startFlow(ids){
   const c = cfg();
@@ -426,7 +426,7 @@ function viewBedtime(){
     <p class="small muted" style="margin:8px 0 0">${last ? (last.date === today ? t(c.flowKind === "nap" ? "今天已完成 · {n} 分钟" : "今晚已完成 · {n} 分钟", { n: last.actual_min }) : t("上次 {d} · {n} 分钟", { d: last.date, n: last.actual_min })) : t("还没做过")}${week ? ` · ${t("本周 {n} 晚", { n: week })}` : ""}</p>
   </div>
   <div class="panel" style="margin-top:10px"><b>${esc(tc(ph.g.title))}</b>${ph.day ? ` <span class="small muted">${t("第 {n} 天", { n: ph.day })}</span>` : ""}<p class="small" style="margin:4px 0 0">${esc(tc(ph.g.text))}</p>
-    ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
+    ${ph.day <= 3 && c.flowKind !== "nap" && c.flowName !== FLOW_TEMPLATES.starter.flowName ? `<div class="ui-acts btns" style="margin-top:8px"><button class="chip" data-act="bt-flow-tpl" data-tpl="starter">${t("换成起步版（约 8 分钟）")}</button></div>` : ""}</div>
   <div class="panel mlist" style="margin-top:10px">
     ${mrow('data-tab="bt-flow"', t("流程"), c.flows.length > 1 ? t("{k} 个流程：{names}", { k: c.flows.length, names: esc(c.flows.map(f => `${tb(f.name)} ${flowMin(f)}`).join(" · ")) }) : t("{n} 步 · 约 {m} 分钟", { n, m }) + (c.steps.length > n ? ` · ${t("跳过 {n}", { n: c.steps.length - n })}` : ""), "☾")}
     ${mrow('data-tab="bt-texts"', t("带领词"), c.versions.length ? t("当前：{name} · 共 {n} 版", { name: esc(tb(currentText(c).name)), n: c.versions.length }) : t("用内置模板；新建一版后可以随意改"), "✎")}
@@ -439,7 +439,7 @@ function viewBedtime(){
     <div class="lab">${t("总时长上限（分钟）")}</div><div class="seg">${[15, 20, 25, 30, 40].map(v => `<button data-act="bt-cap" data-v="${v}" aria-pressed="${c.cap === v}">${v}</button>`).join("")}</div>
     <p class="small muted" style="margin:6px 0 0">${t("超过上限时只提醒，不拦着。每一步到时也只是震一下、进度条变色，不响铃、不自动跳步；只有最后一步到时音乐淡出。")}</p>
     <div class="lab" style="margin-top:12px">${t("经文语言")}</div><div class="seg">${[["zh", "中文"], ["en", "English"], ["both", "中英都读"]].map(([v, l]) => `<button data-act="bt-lang" data-v="${v}" aria-pressed="${c.lang === v}">${t(l)}</button>`).join("")}</div>
-    <div class="btns" style="margin-top:12px"><button class="chip" data-act="bt-anchor" aria-pressed="${c.anchor}">${c.anchor ? t("每晚先读诗篇 4:8 ✓") : t("每晚先读诗篇 4:8")}</button><button class="chip" data-act="bt-mirror" aria-pressed="${c.mirror}">${c.mirror ? t("完成后回写小月亮 ✓") : t("完成后回写小月亮")}</button><button class="chip" data-act="bt-sleepsync" aria-pressed="${c.sleepSync}">${c.sleepSync ? t("完成后记下「开始睡」✓") : t("完成后记下「开始睡」")}</button></div>
+    <div class="ui-acts btns" style="margin-top:12px"><button class="chip" data-act="bt-anchor" aria-pressed="${c.anchor}">${c.anchor ? t("每晚先读诗篇 4:8 ✓") : t("每晚先读诗篇 4:8")}</button><button class="chip" data-act="bt-mirror" aria-pressed="${c.mirror}">${c.mirror ? t("完成后回写小月亮 ✓") : t("完成后回写小月亮")}</button><button class="chip" data-act="bt-sleepsync" aria-pressed="${c.sleepSync}">${c.sleepSync ? t("完成后记下「开始睡」✓") : t("完成后记下「开始睡」")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("回写 = 给每个参加的孩子在小月亮里记一条「信仰 · 家庭敬拜」（小月亮的信仰模块打开才看得到），这样睡眠记录旁边就能看到那晚做没做睡前流程。")}</p>
     <p class="small muted" style="margin:6px 0 0">${t("记下「开始睡」= 流程做完时，给每个参加的孩子在小月亮里记一条睡眠（自主入睡、还没醒）；今天页上那一行变成「在睡 + 唤醒」，醒来时点「唤醒」记下醒来时间，也可以补记、修改。")}</p>
   </div>
@@ -514,7 +514,7 @@ function viewSongs(){
     <span class="acts">${s.path ? `<button class="iconbtn" data-act="bt-song-play" data-id="${esc(s.id)}" aria-label="${t("试听")}">${previewId === s.id ? "■" : "▶"}</button>` : ""}<span class="song-handle" role="button" tabindex="0" aria-label="${t("长按拖动调整顺序；聚焦后按上下键也能移动")}" title="${t("长按拖动调整顺序")}">⋮⋮</span></span></div></div>`;
   return `${h2(t("全部歌曲"), list.length ? t("{n} 首", { n: list.length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="ui-btn" data-tone="ghost" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-song-add" ${online() && !S.bt.missing ? "" : "disabled"}>＋ ${t("添加歌曲（MP3）")}</button>${list.some(s => s.path && !S.bt.cached.has(s.id)) ? `<button class="ui-btn" data-tone="ghost" data-act="bt-cache-all">${t("全部下载到这台设备")}</button>` : ""}</div>
   ${songBudgetHTML()}
   <p class="small muted" style="margin-top:8px">${t("音频存在家庭共用的云端桶里（单首 20 MB 以内），每台设备第一次播时下载一次、之后离线也能放。")}${t("这台设备已下载 {k}/{n}。", { k: cached, n: list.filter(s => s.path).length })}</p>
   <p class="small muted" style="margin:0 0 8px">${t("想用来唤醒孩子（午睡醒来 / 早上）：点开歌，用在哪一段里勾上「轻柔唤醒」，然后在今天页「在睡」那一行点 ♪ 一键放。")}</p>
@@ -537,9 +537,9 @@ function drawSongForm(){
   <div class="field"><label for="btFile">${f.id ? t("换音频文件（可空；MP3 / M4A，20 MB 以内）") : t("音频文件（MP3 / M4A，20 MB 以内）")}</label><input id="btFile" type="file" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav">${f.file ? `<p class="small muted" style="margin:6px 0 0">${esc(f.file.name)} · ${fmtSize(f.file.size)}</p>` : f.oldPath ? `<p class="small muted" style="margin:6px 0 0">${t("已有音频")}</p>` : ""}</div>
   <div class="field"><label for="btLyrics">${t("歌词（可空；父母跟唱用，播放页默认不显示）")}</label><textarea id="btLyrics" style="min-height:160px" placeholder="${esc(t("一行一句。没有就点下面「让 AI 补词」"))}">${esc(d.lyrics)}</textarea>
     ${d.lyrics_ai ? `<div class="alert info" style="margin-top:6px">${t("这段歌词是 AI 补的，可能和原唱有出入（公共领域的老诗歌较准，近年的歌常记错）。核对过就勾掉：")} <label class="check" style="margin-left:6px"><input type="checkbox" id="btAiOk">${t("核对过了")}</label></div>` : ""}
-    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="bt-song-ai">${t("让 AI 补词")}</button></div>
+    <div class="ui-acts btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="bt-song-ai">${t("让 AI 补词")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("用咩咩咩里填的 API key（只存本机）。AI 只按歌名和演唱者回忆歌词，当草稿用，父母改完再保存。")}</p></div>
-  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="ui-btn" data-tone="ghost" data-act="bt-song-addto">${t("加到流程…")}</button><button class="ui-btn" data-tone="ghost" data-act="mu-song-addto" data-id="${esc(f.id)}">${t("加到歌单…")}</button><button class="ui-btn" data-tone="danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="ui-btn" data-tone="ghost" data-act="bt-song-addto">${t("加到流程…")}</button><button class="ui-btn" data-tone="ghost" data-act="mu-song-addto" data-id="${esc(f.id)}">${t("加到歌单…")}</button><button class="ui-btn" data-tone="danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
 }
 function readSongForm(){ const d = songForm.draft; d.title = ($("#btTitle") || {}).value?.trim() || ""; d.artist = ($("#btArtist") || {}).value?.trim() || ""; d.lyrics = ($("#btLyrics") || {}).value?.trim() || ""; const ok = $("#btAiOk"); if (ok && ok.checked) d.lyrics_ai = false; }
 async function aiLyrics(){
@@ -593,12 +593,12 @@ function viewTexts(){
     <span class="acts">${v.id === c.version ? "" : `<button class="chip" data-act="bt-ver-use" data-id="${esc(v.id)}">${t("用这版")}</button>`}</span></div>`;
   return `${h2(t("带领词"), esc(tb(cur.name)))}
   ${offlineHTML()}
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-ver-new">＋ ${t("新建版本（从模板）")}</button>${c.versions.length ? `<button class="ui-btn" data-tone="ghost" data-act="bt-ver-copy">${t("复制当前版")}</button>` : ""}</div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-ver-new">＋ ${t("新建版本（从模板）")}</button>${c.versions.length ? `<button class="ui-btn" data-tone="ghost" data-act="bt-ver-copy">${t("复制当前版")}</button>` : ""}</div>
   <p class="small muted" style="margin-top:8px">${t("先有一份家庭通用版；孩子长大、换带领人，就另存一版（幼儿版 / 学龄版 / 英文版…），播放前选今晚用哪版。每版都能恢复成模板。尽量每天用同样的话，让孩子熟悉这个节奏。")}</p>
   ${c.versions.length ? `<div class="panel"><div class="tasks">${c.versions.map(vrow).join("")}</div></div>` : `<div class="panel"><p class="muted" style="margin:0">${t("现在用的是内置模板。点「新建版本」生成一份自家的，就可以改了。")}</p></div>`}
   <h2>${esc(tb(cur.name))}</h2>
   <div class="panel">${block("open", "开场带领词（拥抱与敬拜）")}${block("reading", "读经引导")}${block("prayer", "祷告词")}${block("close", "结束的话（音乐与安睡）")}
-    ${cur.builtin ? "" : `<div class="btns"><button class="ui-btn" data-tone="ghost" data-act="bt-ver-edit" data-id="${esc(cur.id)}">${t("修改这版")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-ver-reset" data-id="${esc(cur.id)}">${t("恢复成模板")}</button>${c.versions.length > 1 ? `<button class="ui-btn" data-tone="danger" data-act="bt-ver-del" data-id="${esc(cur.id)}">${t("删除这版")}</button>` : ""}</div>`}</div>
+    ${cur.builtin ? "" : `<div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="bt-ver-edit" data-id="${esc(cur.id)}">${t("修改这版")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-ver-reset" data-id="${esc(cur.id)}">${t("恢复成模板")}</button>${c.versions.length > 1 ? `<button class="ui-btn" data-tone="danger" data-act="bt-ver-del" data-id="${esc(cur.id)}">${t("删除这版")}</button>` : ""}</div>`}</div>
   <div class="panel mlist" style="margin-top:10px">${mrow('data-tab="bt-cases"', t("状况与应对"), t("不肯睡、打人、自责、父母发脾气……怎么说、怎么做、怎么记"), "⚑")}</div>`;
 }
 
@@ -616,7 +616,7 @@ function viewCases(){
       ${s.verse ? `<p class="small muted" style="margin:4px 0 0">${t("经文")}：${esc(tc(s.verse))}</p>` : ""}
       <div class="bt-trend small">${st.cur ? `${t("近 30 天 {n} 次", { n: st.cur })} ${trend(st.cur, st.prev)}${st.calmRate != null ? ` · ${t("平静下来 {p}%", { p: st.calmRate })}` : ""}${st.avgMin != null ? ` · ${t("平均 {n} 分钟", { n: st.avgMin })}` : ""}` : st.total ? t("近 30 天没发生（共记过 {n} 次）", { n: st.total }) : `<span class="muted">${t("还没记过")}</span>`}</div>
       ${st.keep.length ? `<div class="bt-keep"><b class="small">${t("我们家验证过的做法")}</b>${st.keep.map(e => `<div class="small">✓ ${esc(e.approach)} <span class="muted">· ${e.date}</span></div>`).join("")}</div>` : ""}
-      <div class="btns" style="margin-top:8px"><button class="chip" data-act="bt-sit-edit" data-id="${esc(s.id)}">${t("改模板")}</button>${s.edited ? `<button class="chip" data-act="bt-sit-reset" data-id="${esc(s.id)}">${t("恢复内置")}</button>` : ""}</div></div>`; };
+      <div class="ui-acts btns" style="margin-top:8px"><button class="chip" data-act="bt-sit-edit" data-id="${esc(s.id)}">${t("改模板")}</button>${s.edited ? `<button class="chip" data-act="bt-sit-reset" data-id="${esc(s.id)}">${t("恢复内置")}</button>` : ""}</div></div>`; };
   const evRow = e => `<div class="task"><span class="bar" style="background:${e.outcome === "calm" ? "var(--sage)" : e.outcome === "worse" ? "var(--rose)" : "var(--honey)"}"></span>
     <button class="main" data-act="bt-ev-edit" data-id="${esc(e.id)}"><span class="title">${esc(e.date)} · ${esc(tc(sitName(e, c)))}${e.keep ? " ★" : ""}</span><span class="meta">${(e.children || []).map(kidName).join("、")}${e.outcome ? ` · ${outcomeLabel(e.outcome)}` : ""}${sidesLine(e)}${e.minutes != null ? ` · ${t("{n} 分钟", { n: e.minutes })}` : ""}${e.approach ? `<br>${esc(e.approach)}` : ""}${e.note ? `<br><span class="muted">${esc(e.note)}</span>` : ""}</span></button><span class="acts"><button class="chip" data-act="bt-ev-keep" data-id="${esc(e.id)}" aria-pressed="${!!e.keep}">${e.keep ? t("值得继续 ★") : t("值得继续")}</button></span></div>`;
   return `${h2(t("状况与应对"))}
@@ -627,7 +627,7 @@ function viewCases(){
     <p class="small">${esc(tc(PRINCIPLES.boundary))}</p><p class="small muted" style="margin-bottom:0">${esc(tc(PRINCIPLES.notEvery))}</p></div>
   <div class="panel" style="margin-top:10px"><div class="stats"><div class="stat"><div class="k">${t("近 30 天")}</div><div class="v num">${cur.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("上个 30 天")}</div><div class="v num">${prev.length}<small>${t("次")}</small></div></div><div class="stat"><div class="k">${t("平静下来")}</div><div class="v num">${cur.length ? Math.round(calm / cur.length * 100) : 0}<small>%</small></div></div><div class="stat"><div class="k">${t("值得继续的做法")}</div><div class="v num">${btEvents().filter(e => e.keep).length}</div></div></div>
     <p class="small muted" style="margin:8px 0 0">${t("每次状况记一笔：怎么处理的、花了多久、结果如何。过几周回头看：哪种状况在减少、哪些做法值得继续用；标了「值得继续」的会列在那种状况的卡上，给后来的晚上、也给后来的父母。")}</p>
-    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="bt-ev-add">＋ ${t("记一笔 / 补记")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-sit-add">＋ ${t("加一种状况")}</button></div></div>
+    <div class="ui-acts btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="bt-ev-add">＋ ${t("记一笔 / 补记")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-sit-add">＋ ${t("加一种状况")}</button></div></div>
   <h2>${t("常见状况")}</h2>
   ${list.map(card).join("")}
   <h2>${t("最近的记录")}</h2>
@@ -669,7 +669,7 @@ function viewReadings(){
     <span class="acts" style="flex-direction:column">${r.ref === c.reading ? "" : `<button class="chip" data-act="bt-read-use" data-ref="${esc(r.ref)}">${t("今晚读这段")}</button>`}${r.custom ? `<button class="chip" data-act="bt-read-edit" data-ref="${esc(r.ref)}">${t("编辑")}</button>` : ""}</span></div>`;
   return `${h2(t("睡前经文"), t("今晚：{ref}", { ref: esc(tc(c.reading)) }))}
   ${offlineHTML()}
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-read-add">＋ ${t("加一段")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-read-prefetch">${t("把全部经文抓到这台设备")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-read-next">${t("换下一段")}</button></div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="bt-read-add">＋ ${t("加一段")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-read-prefetch">${t("把全部经文抓到这台设备")}</button><button class="ui-btn" data-tone="ghost" data-act="bt-read-next">${t("换下一段")}</button></div>
   <p class="small muted" style="margin-top:8px">${t("爸爸妈妈读给孩子听。诗篇 4:8 是每晚的锚点（可在设置里关掉），下面再选一段今晚的。正文按设置里的抓取译本取（中文 {zh}、英文 {en}），抓过一次就存在这台设备上。", { zh: esc(fetchVersions().zh), en: esc(fetchVersions().en) })}</p>
   <div class="panel"><div class="tasks">${list.map(row).join("")}</div></div>`;
 }
@@ -686,7 +686,7 @@ function viewLogs(){
   ${S.bt.missing ? migrateHTML() : ""}
   <div class="panel"><div class="stats"><div class="stat"><div class="v">${week.length}<small>/7</small></div><div class="k">${t("本周")}</div></div><div class="stat"><div class="v">${month.length}<small>/30</small></div><div class="k">${t("近 30 天")}</div></div><div class="stat"><div class="v">${avg(month)}<small>${t("分")}</small></div><div class="k">${t("平均时长")}</div></div><div class="stat"><div class="v">${over}</div><div class="k">${t("拖长的晚上")}</div></div></div>
     <p class="small muted" style="margin:8px 0 0">${t("看的不只是有没有做：睡前争执是否减少、孩子是否更愿意认错、被纠正后能否重新连接。入睡时间在小月亮的睡眠记录里对照。")}</p></div>
-  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="bt-log-add">＋ ${t("补记一晚")}</button></div>
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="bt-log-add">＋ ${t("补记一晚")}</button></div>
   ${recordsHTML("bt-log", S.bt.logs, row, null, t("还没有记录。做完一次睡前流程，这里就有了。"))}
   ${S.bt.pending.length ? `<p class="small muted" style="margin-top:8px">${t("还有 {n} 条离线记录等着联网补传。", { n: S.bt.pending.length })}</p>` : ""}`;
 }
@@ -811,7 +811,7 @@ function openAddToFlow(songId){
     <div class="seg" style="margin-top:6px">${f.steps.map(st => { const other = st.songs.filter(x => x !== songId), cur = other.length ? songLabel(other[0]) + (other.length > 1 ? " +" + (other.length - 1) : "") : ""; return `<button type="button" data-act="bt-pick-step" data-song="${esc(songId)}" data-flow="${esc(f.id)}" data-step="${esc(st.id)}" aria-pressed="${st.songs.includes(songId)}">${esc(tb(st.name))}${cur ? ` <small class="muted">♪${esc(cur)}</small>` : ""}</button>`; }).join("") || `<span class="small muted">${t("这个流程还没有步骤")}</span>`}</div></div>`).join("")}
   <h2>${t("冲突管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "cf").map(btn).join("")}</div>
   <h2>${t("情绪管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "em").map(btn).join("")}</div>
-  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
   showSheet();
 }
 /* 反过来：从话题卡上选歌 */
@@ -820,7 +820,7 @@ function openPickSongsForTopic(topicId, name){
   $("#sheetIn").innerHTML = `${head(esc(t("推荐歌曲")))}
   <p class="small"><b>${esc(tc(name))}</b><br><span class="muted">${t("点一下加进这个话题的推荐歌曲，再点一下取消。")}</span></p>
   ${list.length ? `<div class="seg" style="flex-direction:column;align-items:stretch">${list.map(s => `<button type="button" data-act="bt-pin-song" data-topic="${esc(topicId)}" data-song="${esc(s.id)}" aria-pressed="${(c.topicSongs[topicId] || []).includes(s.id)}">♪ ${esc(s.title)} <small class="muted">${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、")}</small></button>`).join("")}</div>` : `<div class="empty">${t("歌单里还没有歌。先到「睡前安然 → 歌单」添加。")}</div>`}
-  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
   showSheet();
 }
 const previewing = id => previewId === id;

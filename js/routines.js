@@ -53,7 +53,7 @@ function monthHTML(){
         : `<span class="cal-acts"><button class="chip" data-act="task-undo" data-tid="${esc(x.id)}">${t("撤销")}</button></span>`) : ""}</div>`).join("") : `<p class="small muted" style="margin-top:4px">${t("这一天没有任务。")}</p>`}
       ${verseDone.length ? `<div class="small" style="margin-top:8px"><b>${t("背诵")}</b> ${verseDone.map(v => `${esc(v.s.ref)} ${v.p.last_result === "ok" ? "✓" : "↻"}`).join("、")}</div>` : ""}
       ${(md.bedtime || []).filter(l => l.date === S.calDay).map(l => `<div class="small" style="margin-top:8px"><b>🌙 ${t("睡前安然")}</b> ${t("{n} 分钟", { n: l.actual_min })}${l.led_by ? ` · ${esc(l.led_by)}` : ""}${l.passage ? ` · ${esc(l.passage)}` : ""}${l.note ? ` · ${esc(l.note)}` : ""}</div>`).join("")}
-      <div class="btns" style="margin-top:8px">${canFix && missing ? `<button class="chip" data-act="cal-gen" data-date="${S.calDay}">${t("按周例行补出这天的任务（{n} 条）", { n: missing })}</button>` : ""}${canFix ? `<button class="chip" data-act="bf-open" data-date="${S.calDay}">${t("补记背诵")}</button>` : ""}<button class="chip" data-act="dayoff-toggle" data-date="${S.calDay}">${off.has(S.calDay) ? t("取消休息日") : t("设为休息日（不生成任务）")}</button></div></div>` : `<p class="small muted" style="margin-top:8px">${t("点一天看任务，或把它设为休息日。教会年历预留在这里，暂未启用。")}</p>`}
+      <div class="ui-acts btns" style="margin-top:8px">${canFix && missing ? `<button class="chip" data-act="cal-gen" data-date="${S.calDay}">${t("按周例行补出这天的任务（{n} 条）", { n: missing })}</button>` : ""}${canFix ? `<button class="chip" data-act="bf-open" data-date="${S.calDay}">${t("补记背诵")}</button>` : ""}<button class="chip" data-act="dayoff-toggle" data-date="${S.calDay}">${off.has(S.calDay) ? t("取消休息日") : t("设为休息日（不生成任务）")}</button></div></div>` : `<p class="small muted" style="margin-top:8px">${t("点一天看任务，或把它设为休息日。教会年历预留在这里，暂未启用。")}</p>`}
   </div>`;
 }
 
@@ -72,7 +72,7 @@ function routinesHTML(){
   const total = rs => rs.reduce((a, r) => a + (r.active ? +r.minutes || 0 : 0), 0);
   // 操作置顶：添加 / 套用放底下的话要滚过整周才看得到
   return `<h2>${t("周例行")} · ${esc(childName())}</h2>
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="ui-btn" data-tone="ghost" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="ui-btn" data-tone="ghost" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("每天早上按这张表自动生成今日任务（休息日除外）。全家项（如家庭敬拜）对每个孩子都显示。")}${t("模板套用到当前孩子（{name}），全家项只加一次，重复套用不会重复。", { name: esc(childName()) })}</p>
   ${dailySleepRow()}
   ${mine.length ? `

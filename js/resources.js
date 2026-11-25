@@ -64,7 +64,7 @@ function viewIdeas(){
     { k: "cat", label: t("类别"), opts: Object.entries(CATS).map(([k, c]) => [k, `${c.icon} ${t(c.name)}`]), v: f.cat }],
     changed: differs({ ...f, band: f.band === auto.id ? "" : f.band, mode: feed ? "feed" : "list" }, IDEA_DEF) })}
   <div class="panel">${feed ? feedHTML(f, band.id, color) : `${f.cat === "chore" ? `<p class="small muted" style="margin-top:0">${t("家务按年龄逐级加码：前一档会做的继续做，这里只列本档新加的。先一起做，再放手。")}</p>` : ""}${shown.map(item).join("")}`}
-    <div class="btns" style="margin-top:8px">${feed ? `<button class="ui-btn" data-tone="ghost" data-act="idea-shuffle">${t("换一批")}</button>` : f.all ? `<button class="ui-btn" data-tone="ghost" data-act="idea-less">${t("只看几条")}</button>` : `<button class="ui-btn" data-tone="ghost" data-act="idea-shuffle">${t("换一批")}</button><button class="ui-btn" data-tone="ghost" data-act="idea-all">${t("看全部 {n} 条", { n: list.length })}</button>`}<button class="ui-btn" data-tone="ghost" data-act="idea-sources">${t("参考来源")}</button></div></div>`;
+    <div class="ui-acts btns" style="margin-top:8px">${feed ? `<button class="ui-btn" data-tone="ghost" data-act="idea-shuffle">${t("换一批")}</button>` : f.all ? `<button class="ui-btn" data-tone="ghost" data-act="idea-less">${t("只看几条")}</button>` : `<button class="ui-btn" data-tone="ghost" data-act="idea-shuffle">${t("换一批")}</button><button class="ui-btn" data-tone="ghost" data-act="idea-all">${t("看全部 {n} 条", { n: list.length })}</button>`}<button class="ui-btn" data-tone="ghost" data-act="idea-sources">${t("参考来源")}</button></div></div>`;
 }
 const ideaSourcesHTML = () => `<p class="small muted">${t("<b>每日新鲜</b>直接读下面博客的 WordPress 公开接口（和经文抓取用 getBible 一个道理：无密钥、浏览器直取），每条都链接到原文；<b>精选清单</b>是内置的固定清单，每条带一个“搜详情”。年龄只是参考，以自己孩子的能力为准。微信公众号和 Facebook 没有公开接口，抓不到，看到好的可以手动加进资源库。")}</p>
   <h2>${t("每日新鲜读的博客")}</h2>
@@ -125,7 +125,7 @@ function viewLibrary(){
     { k: "lang", label: t("语言"), opts: [["", t("所有语言")], ...Object.entries(LANGS).map(([k, l]) => [k, t(l)])], v: f.lang },
     { k: "type", label: t("类型"), opts: [["", t("所有类型")], ...Object.entries(TYPES).map(([k, l]) => [k, t(l)])], v: f.type }], changed: differs(f, RES_DEF) }) : ""}
   <div class="panel">${list.length ? pg.rows.map(row).join("") + pg.more : `<p class="muted">${S.hs.resources.length ? t("没有符合筛选的资源。") : t("资源库是空的。导入起步资源（设计方案里核对过的中英文清单），或者添加你们自己的。")}</p>`}
-    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="res-add">＋ ${t("资源")}</button><button class="ui-btn" data-tone="ghost" data-act="seed-resources">${S.hs.resources.length ? t("补充导入起步资源") : t("导入起步资源")}</button></div></div>
+    <div class="ui-acts btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="res-add">＋ ${t("资源")}</button><button class="ui-btn" data-tone="ghost" data-act="seed-resources">${S.hs.resources.length ? t("补充导入起步资源") : t("导入起步资源")}</button></div></div>
   <p class="small muted" style="margin-top:8px">${t("资源属于全家。链接随时会失效，发现了就点编辑改掉。")}</p>`;
 }
 

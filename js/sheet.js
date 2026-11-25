@@ -70,7 +70,7 @@ function drawForm(){
   }).join("");
   const extra = fields.some(f => f.k === "ref") && fields.some(f => f.k === "text_zh") ? `<button class="ui-btn" data-tone="ghost" data-act="form-fetch">${t("按出处抓取经文")}</button>` : "";
   $("#sheetIn").innerHTML = `${head(esc(t(title)))}${html}
-    <div class="btns"><button class="ui-btn" data-tone="primary" data-act="form-save">${t("保存")}</button>${extra}${onDelete ? `<button class="ui-btn" data-tone="danger" data-act="form-delete">${t("删除")}</button>` : ""}</div>`;
+    <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="form-save">${t("保存")}</button>${extra}${onDelete ? `<button class="ui-btn" data-tone="danger" data-act="form-delete">${t("删除")}</button>` : ""}</div>`;
 }
 function readForm(){
   $("#sheetIn").querySelectorAll("[data-f]").forEach(el => {
@@ -92,7 +92,7 @@ function openVerseSets(){
   <p class="small muted">${t("只给出处，正文按设置里的译本自动抓取（已有的出处会跳过）。抓取需要联网，几十节约十几秒。")}</p>
   ${VERSE_SETS.map(s => { const n = s.refs.filter(r => parseRef(r) && !have.has(refKey(r))).length;
     return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(s.name))}</b>${s.level ? ` <span class="ui-badge" data-tone="neutral">${esc(tc(s.level))}</span>` : ""}<div class="small muted">${esc(tc(s.desc))} ${t("共 {n} 节", { n: s.refs.length })}${n < s.refs.length ? `，${t("还有 {n} 节没导入", { n })}` : ""}</div></div><button class="ui-btn" data-tone="${n ? "primary" : "ghost"}" data-act="scr-set-go" data-set="${s.id}" ${n ? "" : "disabled"}>${n ? t("生成") : t("已全部导入")}</button></div></div>`; }).join("")}
-  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("返回经文卡库")}</button></div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("返回经文卡库")}</button></div>`;
   showSheet();
 }
 // 要理问答成套导入：一段一段点，自动抓取，不用粘贴；中文译文内置，标“待核对”，核对完一段一段标“已核对”
@@ -102,10 +102,10 @@ function openCatechismSets(){
   <div class="alert info" style="margin:8px 0">${t("中文译文<b>还没有人核对</b>，卡片上会标「待核对」。你（或教会）看过一段、觉得没问题，就点这段的「标为已核对」，卡片上的标注会改成「已核对」。哪里不对，直接在卡上改。")}</div>
   ${CC_PARTS.map(p => { const n = ccMissing(p), total = p.to - p.from + 1, pend = ccPending(p);
     return `<div class="panel" style="margin-top:10px"><div class="row"><div class="v"><b>${esc(tc(p.name))}</b> <span class="ui-badge" data-tone="neutral">${esc(tc(p.level))}</span><div class="small muted">${esc(tc(p.desc))} ${t("共 {n} 问", { n: total })}${n && n < total ? `，${t("还有 {n} 问没导入", { n })}` : ""}${pend ? `，${t("{n} 问待核对", { n: pend })}` : ""}</div></div>
-      <div class="btns" style="margin:0"><button class="ui-btn" data-tone="${n ? "primary" : "ghost"}" data-act="cc-go" data-part="${p.id}" ${n ? "" : "disabled"}>${n ? t("导入") : t("已全部导入")}</button>${pend ? `<button class="ui-btn" data-tone="ghost" data-act="cc-review" data-part="${p.id}">${t("标为已核对")}</button>` : ""}</div></div></div>`; }).join("")}
-  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="cc-go" data-part="all">${t("全部 145 问一次导入")}</button></div>
+      <div class="ui-acts btns" style="margin:0"><button class="ui-btn" data-tone="${n ? "primary" : "ghost"}" data-act="cc-go" data-part="${p.id}" ${n ? "" : "disabled"}>${n ? t("导入") : t("已全部导入")}</button>${pend ? `<button class="ui-btn" data-tone="ghost" data-act="cc-review" data-part="${p.id}">${t("标为已核对")}</button>` : ""}</div></div></div>`; }).join("")}
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="cc-go" data-part="all">${t("全部 145 问一次导入")}</button></div>
   <p class="small muted" style="margin-top:12px">${t("想用官方中文？新城要理问答（52 问）有官方简体中文，但有版权、官网没有开放接口，只能复制官方页面粘贴导入。")} <button class="chip" data-act="ncc-import">${t("粘贴导入新城要理问答")}</button></p>
-  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("返回经文卡库")}</button></div>`;
+  <div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("返回经文卡库")}</button></div>`;
   showSheet();
 }
 // 只读的说明页
@@ -154,7 +154,7 @@ function planHTML(){
   const opts = [...PLANS.map(p => [p.id, tc(p.name)]), ...(custom && custom.items && custom.items.length ? [["custom", custom.name || t("自定义计划")]] : [])];
   return `<div class="seg" role="group" aria-label="${t("读经计划")}">${opts.map(([id, name]) => `<button data-plan="${esc(id)}" aria-pressed="${st.id === id}">${esc(name)}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${esc(tc(cur.desc || ""))} ${t("进度 {a}/{b}，换计划时各自的进度分开保存。", { a: (st.progress[cur.id] || 0) % Math.max(1, cur.items.length) + 1, b: cur.items.length })}</p>
-  <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="plan-import">${t("导入自己的计划")}</button><button class="ui-btn" data-tone="ghost" data-act="plan-restart">${t("本计划从头开始")}</button></div>`;
+  <div class="ui-acts btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="plan-import">${t("导入自己的计划")}</button><button class="ui-btn" data-tone="ghost" data-act="plan-restart">${t("本计划从头开始")}</button></div>`;
 }
 
 /* ---- 学年（设置页里） ---- */
@@ -162,7 +162,7 @@ function yearHTML(){
   const yi = yearInfo(), y = S.hs.settings.year || {};
   const breaks = (y.breaks || []).map((b, i) => `<div class="medrow" data-swipe-del="break"><span>${esc(b.name || t("假期"))} <span class="small muted">${esc(b.from)} ${t("到")} ${esc(b.to)}</span></span><button class="chip swipe-src" data-act="break-del" data-i="${i}">${t("删除")}</button></div>`).join("");
   return `${yi ? `<p>${t("开学 <b>{start}</b>，共 <b>{weeks}</b> 周，每学期 {tw} 周，预计 {end} 结束。", { start: esc(yi.start), weeks: yi.weeks, tw: yi.termWeeks, end: yi.endOn })}${yi.before ? t("还没开学。") : yi.ended ? t("学年已结束。") : t("现在是第 {w} 周、第 {term} 学期。", { w: yi.week, term: yi.term })}</p>` : `<p class="muted">${t("还没设置学年。填了开学日期和周数，课程页和报告页才能判断“按计划 / 快 / 慢”。美国惯例 36 周、3 个学期各 12 周。")}</p>`}
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="${yi ? "ghost" : "primary"}" data-act="year-edit">${yi ? t("修改学年") : t("设置学年")}</button><button class="ui-btn" data-tone="ghost" data-act="break-add">＋ ${t("假期")}</button></div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="${yi ? "ghost" : "primary"}" data-act="year-edit">${yi ? t("修改学年") : t("设置学年")}</button><button class="ui-btn" data-tone="ghost" data-act="break-add">＋ ${t("假期")}</button></div>
   ${breaks ? `<div style="margin-top:8px">${breaks}</div>` : ""}
   <p class="small muted" style="margin-top:8px">${t("假期期间不生成任务，报告里的“计划”也不计这些天。单日休息在日历页点那一天设置。")}</p>`;
 }
@@ -180,17 +180,17 @@ function openSettings(){
   ${familyHTML()}
 
   ${S.hs.loaded ? `<h2>${t("读经计划")}</h2><div class="panel">${planHTML()}</div>
-  <h2>${t("本月诗歌")}</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">${t("还没填")}</span>`}</p><div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="devo-hymn">${t("修改")}</button><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("经文卡库")}</button></div></div>
+  <h2>${t("本月诗歌")}</h2><div class="panel"><p>${S.hs.settings.hymn ? esc(S.hs.settings.hymn) : `<span class="muted">${t("还没填")}</span>`}</p><div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="devo-hymn">${t("修改")}</button><button class="ui-btn" data-tone="ghost" data-act="scriptures">${t("经文卡库")}</button></div></div>
   <h2>${t("经文背诵")}</h2><div class="panel"><p class="small">${S.hs.settings.autoVerse === false ? t("已关闭：") : t("已开启：")}${t("不用点“开始背”：每天 8 点，哪个孩子没有在学的经文，就自动从卡库拉一批（每批节数、问答占比在经文卡库里调；问答按顺序、经文随机）；本批全部会背后马上拉下一批。卡库背完了，自动从成套经文里按顺序抓 5 节。每天封顶按年龄：幼儿 1+1、学前 1+2、学龄 2+3。")}</p>
-    <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="${S.hs.settings.autoVerse === false ? "primary" : "ghost"}" data-act="autoverse-toggle">${S.hs.settings.autoVerse === false ? t("开启自动安排") : t("关闭自动安排")}</button></div></div>
+    <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="${S.hs.settings.autoVerse === false ? "primary" : "ghost"}" data-act="autoverse-toggle">${S.hs.settings.autoVerse === false ? t("开启自动安排") : t("关闭自动安排")}</button></div></div>
   <h2>${t("打印")}</h2><div class="panel"><p class="small">${t("不想一直看手机：打一张贴在冰箱上。今日页竖版一页（敬拜、背诵经文全文、任务、备注）；本周横版一张表，每格一个勾；本月一张月历加周例行。晚上或周末再把勾补回手机。")}</p>
-    <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-tab="me-print">${t("去打印")}</button></div></div>
+    <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-tab="me-print">${t("去打印")}</button></div></div>
   <h2>${t("经文译本")}</h2><div class="panel"><p>${t("手写卡的默认标注：中文 <b>{zh}</b>，英文 <b>{en}</b>。", { zh: esc(defaultVersions().zh), en: esc(defaultVersions().en) })}</p>
     <p class="small">${t("自动抓取用：中文 <b>{zh}</b>，英文 <b>{en}</b>{fb}。免费直取：和合本、新译本、当代译本；BSB、NLT、WEB、KJV、ASV。有版权的 ESV、NASB、NIV、CSB、NKJV 要经一个 Supabase Edge Function 代理（持 Crossway / API.Bible 的免费非商业密钥），在这里填地址。", { zh: esc(fetchVersions().zh), en: esc(fetchVersions().en), fb: fetchVersions().enFallback ? t("（{v} 需要代理，暂时回退到公有领域的 BSB）", { v: esc(fetchVersions().wanted.en) }) : "" })}</p>
-    <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="versions-edit">${t("手写卡默认译本")}</button><button class="ui-btn" data-tone="ghost" data-act="fetch-settings">${t("抓取译本与代理")}</button></div></div>
+    <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="versions-edit">${t("手写卡默认译本")}</button><button class="ui-btn" data-tone="ghost" data-act="fetch-settings">${t("抓取译本与代理")}</button></div></div>
   <h2>${t("学年与假期")}</h2><div class="panel">${yearHTML()}</div>
   <h2>${t("回写小月亮")}</h2><div class="panel"><p class="small">${S.hs.settings.mirror ? t("已开启：") : t("未开启：")}${t("完成带分钟数的任务时，阅读与语言记为小月亮的“阅读”，艺术与音乐记为“音乐运动”，标题含“户外”记为“户外”，其余不回写。这样成长页的趋势图仍然完整。")}</p>
-    <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="${S.hs.settings.mirror ? "ghost" : "primary"}" data-act="mirror-toggle">${S.hs.settings.mirror ? t("关闭回写") : t("开启回写")}</button></div></div>` : ""}
+    <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="${S.hs.settings.mirror ? "ghost" : "primary"}" data-act="mirror-toggle">${S.hs.settings.mirror ? t("关闭回写") : t("开启回写")}</button></div></div>` : ""}
 
   <h2>${t("孩子")}</h2>
   <div class="panel">

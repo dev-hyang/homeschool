@@ -60,7 +60,7 @@ function viewReports(){
   </div>
 
   <h2>${t("每科")}</h2>
-  <div class="panel"><div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="report-csv">${t("导出本月 CSV")}</button></div>
+  <div class="panel"><div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-tone="ghost" data-act="report-csv">${t("导出本月 CSV")}</button></div>
     <p class="small muted" style="margin-top:8px">${t("出勤天数 = 有完成任务或参加了家庭敬拜的天数。伊利诺伊州不要求上报，但如果有人问起，这一页加上课程页的记录就是证据；北卡、田纳西等州的出勤要求见法规页。")}</p></div>`;
 }
 const nav = ym => { const [y, m] = ym.split("-").map(Number);

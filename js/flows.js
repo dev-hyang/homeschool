@@ -76,7 +76,7 @@ function musicBlock(s){
     ${rec.ideas.length ? `<p class="small muted" style="margin:2px 0">${t("可以找")}：${rec.ideas.map(i => esc(tc(i))).join("；")}</p>` : ""}
     ${pinned.map(x => row(x, true)).join("")}${auto.map(x => row(x, false)).join("")}
     ${!pinned.length && !auto.length ? `<p class="small muted" style="margin:4px 0">${t("歌单里还没有这一类的歌。到「睡前安然 → 歌单」添加；在歌单里把歌向左滑，也能加到这里。")}</p>` : ""}
-    <div class="btns" style="margin-top:6px"><button class="chip" data-act="cf-song-add" data-id="${esc(s.id)}" data-name="${esc(s.when)}">＋ ${t("从歌单加")}</button></div></div>`;
+    <div class="ui-acts btns" style="margin-top:6px"><button class="chip" data-act="cf-song-add" data-id="${esc(s.id)}" data-name="${esc(s.when)}">＋ ${t("从歌单加")}</button></div></div>`;
 }
 const tableHTML = tb => `<div class="scroll-x" style="margin-top:8px"><table class="cf-table"><thead><tr>${tb.head.map(h => `<th>${esc(tc(h))}</th>`).join("")}</tr></thead><tbody>${tb.rows.map(r => `<tr>${r.map((c, i) => `<td${i === 0 ? " class=\"cf-k\"" : ""}>${esc(tc(c))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 
@@ -102,7 +102,7 @@ function topicCard(s, band){
     ${x.flag ? `<details class="cf-others"><summary class="small muted">${t("什么时候要找专业人员")}</summary><p class="small">${esc(tc(x.flag))}</p></details>` : ""}
     ${blLine || mine.cur || mine.total ? `<div class="bt-trend small">${blLine}${mine.cur || mine.total ? `${blLine ? "<br>" : ""}<b>${t("这里")}</b>：${mine.cur ? t("近 30 天记了 {n} 次", { n: mine.cur }) + ` ${trendText(mine.cur, mine.prev)}` : t("近 30 天没记")}${mine.calmRate != null ? ` · ${t("平静下来 {p}%", { p: mine.calmRate })}` : ""}${mine.avgMin != null ? ` · ${t("平均 {n} 分钟", { n: mine.avgMin })}` : ""}` : ""}</div>` : ""}
     ${keep.length ? `<div class="bt-keep"><b class="small">${t("我们家验证过的做法")}</b>${keep.map(e => `<div class="small">✓ ${esc(e.approach)} <span class="muted">· ${e.date}</span></div>`).join("")}</div>` : ""}
-    <div class="btns" style="margin-top:8px"><button class="chip ask-chip" data-act="cf-ask" data-id="${esc(s.id)}">${t("🐑 不管用？问一问咩咩咩")}</button>${s.custom ? `<button class="chip" data-act="cf-sit-edit" data-id="${esc(s.id)}">${t("编辑")}</button>` : ""}</div></div>`;
+    <div class="ui-acts btns" style="margin-top:8px"><button class="chip ask-chip" data-act="cf-ask" data-id="${esc(s.id)}">${t("🐑 不管用？问一问咩咩咩")}</button>${s.custom ? `<button class="chip" data-act="cf-sit-edit" data-id="${esc(s.id)}">${t("编辑")}</button>` : ""}</div></div>`;
 }
 /** 这个年龄段常见的在前，较少见的（以及性别不符的）折叠在后 */
 function groupedCards(list, band){
@@ -136,7 +136,7 @@ function viewConflict(){
       : rows.length ? `<div class="scroll-x"><table><thead><tr><th>${t("情绪行为")}</th><th class="num">${t("近 30 天")}</th><th class="num">${t("上个 30 天")}</th></tr></thead><tbody>${counts.map(x => `<tr><td>${esc(t(x.k))}</td><td class="num">${x.cur}</td><td class="num">${x.prev}</td></tr>`).join("")}</tbody></table></div>
         <p class="small" style="margin:8px 0 0">${top ? t("按小月亮的记录，最近最常出现的是「{s}」（近 30 天 {n} 次）。先从它开始看下面的做法。", { s: tc(top.s.when), n: top.st.cur }) : t("这个孩子近 30 天在小月亮里没有相关的情绪行为记录。")}</p>`
       : `<p class="small muted" style="margin:0">${t("小月亮里近 60 天还没有这个孩子的「情绪行为 / 社交」记录。在这里记一笔会自动同步过去，也可以去小月亮手动记。")}</p>`}
-    <div class="btns" style="margin-top:8px">${pullButtonHTML()}<button class="chip" data-tab="flow-trend" data-from="flow-conflict">${t("看趋势图")}</button></div>
+    <div class="ui-acts btns" style="margin-top:8px">${pullButtonHTML()}<button class="chip" data-tab="flow-trend" data-from="flow-conflict">${t("看趋势图")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("打开这一页时会自动在后台从小月亮拉一次；停在这里、小月亮那边又有新记录时，点按钮再拉。")}</p></div>
 
   <h2>${t("记录怎么回填")}</h2>
@@ -144,10 +144,10 @@ function viewConflict(){
     <p class="small" style="margin-top:0"><b>${t("在这里记一笔 → 自动写进小月亮")}</b><br>${t("每笔、每个孩子写一条「情绪行为」（起因、怎么处理的、持续几分钟）。在这里改这笔，小月亮那条跟着改；删了，那条也删，不会重复。不用再到小月亮手动记一遍。自己加的状况按你选的类别写。")}</p>
     <p class="small"><b>${t("小月亮里已有的记录 → 这里只读")}</b><br>${t("你在小月亮手动记的，这里下次打开就能看到，用来显示次数、趋势和家里用过的办法。这里读到的不会再写回去，也不会复制一份。")}</p>
     <p class="small" style="margin-bottom:0"><b>${t("补记")}</b>：${t("过去的日子也能补，小月亮那条的时间落在那天中午。")}</p>
-    <div class="btns"><button class="chip" data-act="cf-mirror" aria-pressed="${c.mirrorConflict}">${c.mirrorConflict ? t("记一笔时同步到小月亮 ✓") : t("记一笔时同步到小月亮")}</button></div></div>
+    <div class="ui-acts btns"><button class="chip" data-act="cf-mirror" aria-pressed="${c.mirrorConflict}">${c.mirrorConflict ? t("记一笔时同步到小月亮 ✓") : t("记一笔时同步到小月亮")}</button></div></div>
 
   <h2>${t("常见状况")}</h2>
-  <div class="btns" style="margin-top:0"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="cf-sit-add">＋ ${t("自定义状况")}</button></div>
+  <div class="ui-acts btns" style="margin-top:0"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="cf-sit-add">＋ ${t("自定义状况")}</button></div>
   <p class="small muted" style="margin:8px 0 0">${t("没有你要的？自己写个名字，让咩咩咩补全：为什么、怎么做、怎么说，并选好写进小月亮「情绪行为」的哪一类。")}</p>
   ${groupedCards(list, band)}
 

@@ -135,7 +135,7 @@ body.sheet-open .wrap,body.sheet-open nav.tabs{display:none}
 :root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#131921}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#131921}}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.btns{margin-top:16px}
 
 .alert{border-radius:var(--radius);padding:12px 14px;margin-top:10px;font-size:14px;border:1px solid}
 .alert.info{background:var(--slate-soft);border-color:transparent}

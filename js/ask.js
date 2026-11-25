@@ -149,7 +149,7 @@ function cfgHTML(){
     <label class="small muted" for="askKey">API key</label><input id="askKey" type="password" autocomplete="off" value="${esc(d.key || "")}" placeholder="${t("只存在这台设备的浏览器里")}">
     <label class="small muted" for="askModel">${t("模型（留空用默认 {m}）", { m: p.model || "" })}</label><input id="askModel" type="text" autocomplete="off" value="${esc(d.model || "")}">
     ${p.id === "custom" ? `<label class="small muted" for="askBase">${t("接口地址（到 /v1 为止）")}</label><input id="askBase" type="url" autocomplete="off" value="${esc(d.base || "")}" placeholder="https://…/v1">` : ""}
-    <div class="btns"><button type="button" class="ui-btn" data-tone="primary" data-act="ask-save">${t("保存")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="ask-test">${t("测试连接")}</button>${own ? `<button type="button" class="ui-btn" data-tone="ghost" data-act="ask-clear">${t("清除 key")}</button>` : ""}<button type="button" class="ui-btn" data-tone="ghost" data-act="ask-cfg">${t("收起")}</button></div></div>`;
+    <div class="ui-acts btns"><button type="button" class="ui-btn" data-tone="primary" data-act="ask-save">${t("保存")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="ask-test">${t("测试连接")}</button>${own ? `<button type="button" class="ui-btn" data-tone="ghost" data-act="ask-clear">${t("清除 key")}</button>` : ""}<button type="button" class="ui-btn" data-tone="ghost" data-act="ask-cfg">${t("收起")}</button></div></div>`;
 }
 function viewAsk(){
   const a = st(), ready = aiReady();
@@ -164,7 +164,7 @@ function viewAsk(){
     <textarea name="q" data-autosize rows="3" maxlength="1000" placeholder="${t("例如：数学连续两周都没做完，是不是排多了？")}">${esc(a.q)}</textarea>
     <div class="ask-att">${attachHTML(ATT_ASK, { t, esc, noText: true, hint: t("可以拍几张照片或选文件一起问（体检单、作业、孩子的画、药盒说明、冰箱里的菜…），也能选 PDF。照片不保存。") })}</div>
     <label class="chk" ${loaded() ? "" : "hidden"}><input type="checkbox" name="ctx" ${a.withContext ? "checked" : ""}> <span class="small">${a.extra ? t("附带孩子最近的情况和上面的记录摘要（含你写的处理办法，不含姓名和备注）") : t("附带孩子最近的学习情况（只有统计和计划，不含姓名和备注）")}</span></label>
-    <div class="btns">${ready ? `<button type="submit" class="ui-btn" data-tone="primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
+    <div class="ui-acts btns">${ready ? `<button type="submit" class="ui-btn" data-tone="primary" data-act="ask-send" ${a.busy ? "disabled" : ""}>${a.busy ? t("思考中…") : t("发送")}</button>` : ""}
       <button type="button" class="ui-btn" data-tone="${ready ? "ghost" : "primary"}" data-act="ask-copy">${t("复制提示词")}</button>
       <button type="button" class="ui-btn" data-tone="ghost" data-act="ask-cfg">${ready ? t("换模型") : t("填 API key")}</button></div>
     ${a.error ? `<p class="small" role="alert" style="color:var(--rose);margin:8px 0 0">${esc(a.error)}</p>` : ""}

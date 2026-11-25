@@ -2,6 +2,7 @@ import { updateMiniBar } from "./minibar.js";
 import { APP_VERSION, BABY_LOG_URL, THIS_APP } from "./core/config.js";
 import * as appSwitcher from "./shared/app-switcher.js";
 import * as langSwitcher from "./shared/lang-switcher.js";
+import { watchActs } from "./shared/ui-acts.js"; watchActs();   // 按钮条：取消靠前、主按钮靠后（shared/ui.css 的 ui-acts）
 import { viewMe, viewPrintHub, viewReleases } from "./me.js";
 import { printViewHTML } from "./print.js";
 import { LOCALES, locale, t } from "./core/i18n.js";
