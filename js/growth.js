@@ -89,7 +89,7 @@ function viewGrowth(){
   return `<h2 class="gr-title">${esc(t("{n}的成长", { n: childName() }))} <span class="small muted">${esc(ageText())}</span></h2>
     ${reviewHTML()}${status}${SECTIONS.map(sec).join("")}<p class="small muted gr-foot">${pullButtonHTML()}</p>`;
 }
-const hubRow = (attr, icon, title, desc) => `<button type="button" class="mrow" ${attr}><span class="mi" aria-hidden="true">${icon}</span><span class="mt"><b>${title}</b>${desc ? `<small>${desc}</small>` : ""}</span><span class="ui-chev" aria-hidden="true">›</span></button>`;
+const hubRow = (attr, icon, title, desc) => `<button type="button" class="ui-row mrow" ${attr}><span class="mi" aria-hidden="true">${icon}</span><span class="mt"><b>${title}</b>${desc ? `<small>${desc}</small>` : ""}</span><span class="ui-chev" aria-hidden="true">›</span></button>`;
 function topicHasData(id){ const x = TOPICS[id]; if (!x.metrics) return false; const p = periods(30); return x.metrics.some(k => hasData(k, ...p.cur) || hasData(k, ...p.prev)); }
 /** 首页每一行的一句话：近 14 天主要指标和前 14 天比 */
 function rowDesc(id, x){
@@ -165,7 +165,7 @@ function classBlock(days){
   const from = periods(days).cur[0], by = new Map();
   for (const e of mineRows().filter(e => e.type === "activity" && e.kind === "课外班" && +e.ts >= from).sort((a, b) => b.ts - a.ts)) { const k = (e.what || t("课外班")).trim(), v = by.get(k) || { n: 0, min: 0, last: e }; v.n++; v.min += +e.minutes || 0; by.set(k, v); }
   if (!by.size) return "";
-  return `<section class="gr-sec"><h2 class="gr-sh2">${t("每门课")}</h2><div class="panel mlist">${[...by].map(([k, v]) => `<div class="mrow gr-static"><span class="mi" aria-hidden="true">🎹</span><span class="mt"><b>${esc(k)}</b><small>${t("{n} 次", { n: v.n })}${v.min ? ` · ${t("{n} 分钟", { n: v.min })}` : ""}${v.last.progress ? ` · ${esc(v.last.progress)}` : ""}</small></span></div>`).join("")}</div></section>`;
+  return `<section class="gr-sec"><h2 class="gr-sh2">${t("每门课")}</h2><div class="panel mlist">${[...by].map(([k, v]) => `<div class="ui-row mrow gr-static"><span class="mi" aria-hidden="true">🎹</span><span class="mt"><b>${esc(k)}</b><small>${t("{n} 次", { n: v.n })}${v.min ? ` · ${t("{n} 分钟", { n: v.min })}` : ""}${v.last.progress ? ` · ${esc(v.last.progress)}` : ""}</small></span></div>`).join("")}</div></section>`;
 }
 const sumOf = e => (e.type === "behavior" ? [e.kind, e.trigger && t("起因：{s}", { s: e.trigger }), e.how && t("处理：{s}", { s: e.how })].filter(Boolean).map(x => t(x)).join(" · ") : summary(asRec(e)));
 function rowHTML(e, { time = false } = {}){

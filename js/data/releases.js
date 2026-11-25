@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-24.12", title: { zh: "菜单行换成共用的行控件", en: "Menu rows use the shared row control" }, items: [
+    { k: "better", zh: "「我的」和化验列表等菜单行换成和爱家小助手同一个行控件：同样的最小高度和分隔线（界面几乎不变）。", en: "Menu rows such as Me and the lab list now use the same row control as Home Pantry: same minimum height and dividers (nearly no visible change)." },
+  ] },
   { v: "2026-11-24.11", title: { zh: "箭头统一成共用控件", en: "Arrows now use the shared arrow control" }, items: [
     { k: "better", zh: "菜单行右边的箭头、顶部孩子名字旁的小三角、发布日志的箭头，换成和爱家小助手同一个箭头控件（界面几乎不变）。", en: "The arrows on menu rows, the little caret next to the child's name and the release-notes arrow now use the same control as Home Pantry (nearly no visible change)." },
   ] },
