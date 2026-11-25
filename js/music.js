@@ -43,13 +43,13 @@ function viewMusic(){
   const all = lists(), cid = S.childId, pick = L.tilePickOf(music(), cid, all), custom = all.filter(l => l.kind === "custom");
   return `${h2(t("音乐"), songs().length ? t("{n} 首", { n: songs().length }) : "")}
   ${offlineHTML()}${S.bt.missing ? migrateHTML() : ""}
-  ${PLY.hasTrack() ? `<h2>${t("正在播放")}</h2><div class="panel">${PLY.playerControlsHTML("page")}<div class="btns" style="margin-top:6px;justify-content:center"><button class="btn sm" data-act="mu-show-player">${t("歌词与歌单")}</button></div></div>` : ""}
+  ${PLY.hasTrack() ? `<h2>${t("正在播放")}</h2><div class="panel">${PLY.playerControlsHTML("page")}<div class="btns" style="margin-top:6px;justify-content:center"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="mu-show-player">${t("歌词与歌单")}</button></div></div>` : ""}
   <p class="small muted">${t("先在「全部歌曲」里上传歌，再建歌单、学歌。睡前、冲突、情绪、唤醒的流程也用这里的歌。")}</p>
   <div class="panel mlist">${mrow('data-tab="bt-songs"', t("全部歌曲"), songs().length ? t("添加 / 编辑歌曲、标签、歌词、下载到本机") : t("还没有歌：点进去添加 MP3"), "♬")}</div>
   <h2>${t("歌单")}</h2>
   <div class="panel"><p class="small muted" style="margin-top:0">${t("默认歌单按歌的标签自动分类；自己建的歌单可以随意加歌、删歌、调顺序。点歌单看里面的歌，▶ 从头播。")}</p>
     ${all.length > 1 || songs().length ? `<div class="tasks">${all.map(listRow).join("")}</div>` : `<div class="empty">${t("还没有歌。")}</div>`}
-    <div class="btns" style="margin-top:8px"><button class="btn primary" data-act="mu-new">＋ ${t("新建歌单")}</button></div>
+    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="mu-new">＋ ${t("新建歌单")}</button></div>
     ${custom.length ? "" : `<p class="small muted" style="margin:8px 0 0">${t("例如「早晨唱的歌」「本月赞美诗」「睡前轻音乐」。")}</p>`}</div>
   ${cid ? `<h2>${t("今天页的「音乐」格")}</h2><div class="panel"><p class="small" style="margin-top:0">${t("给 {n}：点今天页的「🎵 音乐」格，打开这个歌单。", { n: esc(childName()) })}</p>
     <div class="seg" role="group" aria-label="${esc(t("今天页的「音乐」格"))}" style="flex-direction:column;align-items:stretch">${all.map(l => `<button type="button" data-act="mu-tile-pick" data-id="${esc(l.id)}" aria-pressed="${l.id === pick}">${esc(listName(l))} · ${t("{n} 首", { n: l.songs.length })}</button>`).join("")}</div>
@@ -67,11 +67,11 @@ function drawList(){
       ${custom ? `<button class="iconbtn" data-act="mu-up" data-sid="${esc(s.id)}" aria-label="${esc(t("上移"))}" ${i ? "" : "disabled"}>↑</button><button class="iconbtn" data-act="mu-down" data-sid="${esc(s.id)}" aria-label="${esc(t("下移"))}" ${i < l.songs.length - 1 ? "" : "disabled"}>↓</button><button class="iconbtn redo" data-act="mu-rm" data-sid="${esc(s.id)}" aria-label="${esc(t("从歌单里去掉"))}">✕</button>` : ""}</span></div>`;
   $("#sheetIn").innerHTML = `${head(esc(listName(l)))}
   <p class="small muted">${t("{n} 首", { n: l.songs.length })}${l.kind === "tag" ? ` · ${t("默认歌单：按标签自动分类，到歌曲里改标签就会变")}` : l.kind === "all" ? ` · ${t("所有歌曲")}` : ""}</p>
-  <div class="btns" style="margin-top:0">${play ? `<button class="btn primary" data-act="mu-play-all" data-id="${esc(l.id)}">▶ ${t("播放 / 学歌")}</button>` : ""}
-    ${custom ? `<button class="btn" data-act="mu-add" data-id="${esc(l.id)}">＋ ${t("添加歌曲")}</button><button class="btn" data-act="mu-rename" data-id="${esc(l.id)}">${t("改名")}</button>` : ""}
-    <button class="btn" data-act="mu-tile-pick" data-id="${esc(l.id)}" data-keep="1">🎵 ${t("设为今天页「音乐」格")}</button></div>
+  <div class="btns" style="margin-top:0">${play ? `<button class="ui-btn" data-tone="primary" data-act="mu-play-all" data-id="${esc(l.id)}">▶ ${t("播放 / 学歌")}</button>` : ""}
+    ${custom ? `<button class="ui-btn" data-tone="ghost" data-act="mu-add" data-id="${esc(l.id)}">＋ ${t("添加歌曲")}</button><button class="ui-btn" data-tone="ghost" data-act="mu-rename" data-id="${esc(l.id)}">${t("改名")}</button>` : ""}
+    <button class="ui-btn" data-tone="ghost" data-act="mu-tile-pick" data-id="${esc(l.id)}" data-keep="1">🎵 ${t("设为今天页「音乐」格")}</button></div>
   <div class="panel">${l.songs.length ? `<div class="tasks">${l.songs.map(row).join("")}</div>` : `<div class="empty">${custom ? t("还是空的：点「＋ 添加歌曲」挑几首。") : t("这个歌单里还没有歌。")}</div>`}</div>
-  ${custom ? `<div class="btns"><button class="btn danger" data-act="mu-delete" data-id="${esc(l.id)}">${t("删除歌单")}</button></div><p class="small muted">${t("删歌单不会删歌曲，歌曲还在「全部歌曲」里。")}</p>` : ""}`;
+  ${custom ? `<div class="btns"><button class="ui-btn" data-tone="danger" data-act="mu-delete" data-id="${esc(l.id)}">${t("删除歌单")}</button></div><p class="small muted">${t("删歌单不会删歌曲，歌曲还在「全部歌曲」里。")}</p>` : ""}`;
   showSheet();
 }
 const openList = id => { cur = id; drawList(); };
@@ -82,7 +82,7 @@ function drawPicker(id){
   $("#sheetIn").innerHTML = `${head(esc(t("添加歌曲")))}
   <p class="small muted">${t("点一下加进「{n}」，再点一下去掉。", { n: esc(l ? l.name : "") })}</p>
   <div class="panel">${songs().length ? `<div class="tasks">${songs().map(s => `<button type="button" class="task pick-row" data-act="mu-pick" data-id="${esc(id)}" data-sid="${esc(s.id)}" aria-pressed="${mine.has(s.id)}" style="width:100%;text-align:left"><span class="bar" style="background:${mine.has(s.id) ? "var(--sage)" : "var(--line)"}"></span><span class="main"><span class="title">${mine.has(s.id) ? "✓ " : ""}${esc(s.title)}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${pill(s)}</span></span></button>`).join("")}</div>` : `<div class="empty">${t("还没有歌：先到「全部歌曲」添加。")}</div>`}</div>
-  <div class="btns"><button class="btn primary" data-act="mu-pick-done" data-id="${esc(id)}">${t("完成")}</button></div>`;
+  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="mu-pick-done" data-id="${esc(id)}">${t("完成")}</button></div>`;
   showSheet();
 }
 
@@ -93,9 +93,9 @@ function drawAddTo(songId){
   $("#sheetIn").innerHTML = `${head(esc(t("加到歌单")))}
   <p class="small muted">${esc(s.title)}</p>
   <div class="panel">${pls.length ? `<div class="seg" role="group" style="flex-direction:column;align-items:stretch">${pls.map(p => `<button type="button" data-act="mu-addto-toggle" data-id="${esc(p.id)}" data-sid="${esc(songId)}" aria-pressed="${L.inList(pls, p.id, songId)}">${L.inList(pls, p.id, songId) ? "✓ " : ""}${esc(p.name)}</button>`).join("")}</div>` : `<p class="muted">${t("还没有自建歌单。")}</p>`}
-    <div class="btns"><button class="btn" data-act="mu-addto-new" data-sid="${esc(songId)}">＋ ${t("新建歌单并加入")}</button></div>
+    <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="mu-addto-new" data-sid="${esc(songId)}">＋ ${t("新建歌单并加入")}</button></div>
     <p class="small muted">${t("按标签的默认歌单是自动的：改歌的标签就行。")}</p></div>
-  <div class="btns"><button class="btn primary" data-act="mu-addto-done">${t("完成")}</button></div>`;
+  <div class="btns"><button class="ui-btn" data-tone="primary" data-act="mu-addto-done">${t("完成")}</button></div>`;
   showSheet();
 }
 const nameForm = (title, initial, onSave) => openForm(title, [{ k: "name", label: "歌单名称", type: "text", ph: "早晨唱的歌" }], { name: initial }, async f => {
@@ -124,7 +124,7 @@ function musicCardHTML(){
   const listId = playing && P.listId ? P.listId : (cardList && L.findList(all, cardList) ? cardList : L.tilePickOf(music(), S.childId, all));
   const l = L.findList(all, listId), q = L.playable(l ? l.songs : []);
   if (!songs().length) return `<section class="musiccard is-idle" aria-label="${esc(t("音乐卡"))}"><div class="mc-head"><span class="mc-ico" aria-hidden="true">🎵</span><b>${t("音乐")}</b></div>
-    <div class="mc-empty"><span class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</span><button class="btn sm" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div></section>`;
+    <div class="mc-empty"><span class="pl-sub">${t("还没有歌：先在「全部歌曲」里加几首 MP3")}</span><button class="ui-btn" data-size="sm" data-tone="ghost" data-tab="bt-songs" data-from="today">${t("去添加")}</button></div></section>`;
   const cur = playing ? PLY.current() : null;
   // 第一行：🎵 + 歌单选择 + 歌单 ›；第二行：选歌（就是歌名）+ 演唱者 · 第几首；下面进度和控件
   const plSel = `<select class="mc-plsel" data-mcpl aria-label="${esc(t("选歌单"))}">${all.map((x) => `<option value="${esc(x.id)}" ${x.id === listId ? "selected" : ""}>${esc(listName(x))}（${L.playable(x.songs).length}）</option>`).join("")}</select>`;
@@ -151,10 +151,10 @@ function drawPlayer(){
   const P = PLY.player(), s = PLY.current(), lines = String(s?.lyrics || "").split(/\r?\n/);
   $("#sheetIn").innerHTML = `${head(esc(t(P.tid ? "学歌" : "播放")))}
   ${PLY.playerControlsHTML("sheet")}
-  <div class="btns" style="justify-content:center;margin-top:4px"><button class="btn" data-act="mu-lyrics" aria-pressed="${SH.lyrics}">${t("歌词")}</button></div>
+  <div class="btns" style="justify-content:center;margin-top:4px"><button class="ui-btn" data-tone="ghost" data-act="mu-lyrics" aria-pressed="${SH.lyrics}">${t("歌词")}</button></div>
   ${SH.lyrics ? (s?.lyrics ? `<div class="panel" style="font-size:1.25em;line-height:1.9;text-align:center;max-height:38vh;overflow:auto">${lines.map(x => x.trim() ? `<div>${esc(x)}</div>` : `<div style="height:.8em"></div>`).join("")}</div>` : `<p class="small muted" style="text-align:center">${t("这首歌还没有歌词。")}</p>`) : ""}
   <details style="margin-top:8px"><summary>${t("歌单里的歌")}</summary><div class="tasks">${P.queue.map((x, i) => `<button type="button" class="task" data-act="mu-jump" data-i="${i}" style="width:100%;text-align:left"><span class="bar" style="background:${i === P.i ? "var(--honey)" : "var(--line)"}"></span><span class="main"><span class="title">${esc(x.title)}</span></span></button>`).join("")}</div></details>
-  <div class="btns"><button class="btn" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button>${P.tid ? `<button class="btn primary" data-act="mu-finish">${t("学完了 ✓ 完成这项任务")}</button>` : ""}<button class="btn" data-act="pl-stop">${t("停止播放")}</button></div>`;
+  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button>${P.tid ? `<button class="ui-btn" data-tone="primary" data-act="mu-finish">${t("学完了 ✓ 完成这项任务")}</button>` : ""}<button class="ui-btn" data-tone="ghost" data-act="pl-stop">${t("停止播放")}</button></div>`;
   showSheet();
 }
 $("#sheet")?.addEventListener("close", () => { SH.open = false; });   // 关弹层不停音乐（今天页音乐卡、音乐页上还能控制）
@@ -164,10 +164,10 @@ function openMusicTile(){
   const all = lists(), id = L.tilePickOf(music(), S.childId, all), l = L.findList(all, id), play = L.playable(l ? l.songs : []).length;
   $("#sheetIn").innerHTML = `${head(esc(`🎵 ${t("音乐")} · ${childName()}`))}
   ${songs().length ? `<p class="small" style="margin-top:0">${t("选好的歌单：")}<b>${esc(l ? listName(l) : "")}</b> · ${t("{n} 首", { n: l ? l.songs.length : 0 })}</p>
-    <div class="btns" style="margin-top:0">${play ? `<button class="btn primary" data-act="mu-play-all" data-id="${esc(id)}">▶ ${t("开始")}</button>` : ""}<button class="btn" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button><button class="btn" data-tab="res-music">${t("打开音乐页")}</button></div>
+    <div class="btns" style="margin-top:0">${play ? `<button class="ui-btn" data-tone="primary" data-act="mu-play-all" data-id="${esc(id)}">▶ ${t("开始")}</button>` : ""}<button class="ui-btn" data-tone="ghost" data-act="ql-new" data-id="music" data-form="1">＋ ${t("记一笔")}</button><button class="ui-btn" data-tone="ghost" data-tab="res-music">${t("打开音乐页")}</button></div>
     <div class="field"><div class="lab">${t("换一个歌单（只对 {n} 的音乐格生效）", { n: esc(childName()) })}</div><div class="seg" style="flex-direction:column;align-items:stretch">${all.map(x => `<button type="button" data-act="mu-tile-pick" data-id="${esc(x.id)}" data-sheet="tile" aria-pressed="${x.id === id}">${esc(listName(x))} · ${t("{n} 首", { n: x.songs.length })}</button>`).join("")}</div></div>
     ${l && l.songs.length ? `<div class="tasks">${l.songs.slice(0, 8).map((s, i) => `<div class="task"><span class="bar" style="background:${s.path ? "var(--sage)" : "var(--line)"}"></span><button class="main" data-act="mu-play" data-id="${esc(id)}" data-i="${i}" ${s.path ? "" : "disabled"}><span class="title">${esc(s.title)}</span><span class="meta">${s.artist ? esc(s.artist) : ""}</span></button></div>`).join("")}</div>` : ""}`
-    : `<div class="empty">${t("还没有歌。")}</div><div class="btns"><button class="btn primary" data-tab="bt-songs">${t("去添加歌曲")}</button><button class="btn" data-act="ql-new" data-id="music" data-form="1">＋ ${t("只记一笔")}</button></div>`}`;
+    : `<div class="empty">${t("还没有歌。")}</div><div class="btns"><button class="ui-btn" data-tone="primary" data-tab="bt-songs">${t("去添加歌曲")}</button><button class="ui-btn" data-tone="ghost" data-act="ql-new" data-id="music" data-form="1">＋ ${t("只记一笔")}</button></div>`}`;
   showSheet();
 }
 

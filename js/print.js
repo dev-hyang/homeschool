@@ -134,7 +134,7 @@ function printViewHTML(){
   const { kind, ym, back } = S.printView;
   const name = { day: t("今日页"), week: t("本周"), month: t("本月") }[kind] || t("今日页");
   return `${crumbHTML(back || "me-print", name)}
-  <div class="pbar"><button class="btn" data-act="print-back">‹ ${t("返回")}</button><button class="btn primary" data-act="print-now">${t("打印")}</button><span class="small muted">${t("这一页就是要打印的纸。没有弹出打印窗口就点“打印”；打印完会自动返回。")}</span></div>
+  <div class="pbar"><button class="ui-btn" data-tone="ghost" data-act="print-back">‹ ${t("返回")}</button><button class="ui-btn" data-tone="primary" data-act="print-now">${t("打印")}</button><span class="small muted">${t("这一页就是要打印的纸。没有弹出打印窗口就点“打印”；打印完会自动返回。")}</span></div>
   <div id="print" lang="${document.documentElement.lang}">${renderPrint(kind, ym)}</div>`;
 }
 

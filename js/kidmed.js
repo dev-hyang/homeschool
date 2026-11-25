@@ -100,10 +100,10 @@ function drawSettings(){
   const kids = S.children.map(c => { const on = heroOn(settings(), c.id, medsOf(KM.rows, c.id, legacy())); return `<button type="button" class="chip" data-act="km-hero" data-cid="${esc(c.id)}" aria-pressed="${on}">${esc(c.name || t("宝宝"))}${on ? ` · ${t("显示中")}` : ""}</button>`; }).join("");
   $("#sheetIn").innerHTML = `${head(esc(t("用药设置")))}
     <p class="small muted">${t("按医嘱或说明书填每种药的最短间隔、服药时机和备注。今天页的用药卡会据此显示下次可以服药的时间；没填的只显示距上次多久。")}</p>
-    ${rows || `<p class="small muted">${t("还没有填任何药。")}</p>`}<div class="btns"><button type="button" class="btn" data-act="km-rule-add">＋ ${t("添加一种药")}</button></div>
+    ${rows || `<p class="small muted">${t("还没有填任何药。")}</p>`}<div class="btns"><button type="button" class="ui-btn" data-tone="ghost" data-act="km-rule-add">＋ ${t("添加一种药")}</button></div>
     <div class="lab" style="margin-top:14px">${t("今天页顶部显示用药卡的孩子")}</div><div class="chips km-kids" role="group">${kids}</div>
     <p class="small muted">${t("没设过的孩子：最近 14 天有用药记录就自动显示；康复后点「不再显示」或在这里关掉，随时能再打开。")}</p>
-    <div class="btns"><button class="btn primary" data-act="km-save">${t("保存")}</button></div>`;
+    <div class="btns"><button class="ui-btn" data-tone="primary" data-act="km-save">${t("保存")}</button></div>`;
 }
 const openSettings = () => { KM.draft = null; drawSettings(); showSheet(); ensureKidMeds(); };
 const setHero = async (cid, on) => { const cur = settings().kidMeds || {}; await saveSettings({ kidMeds: { ...cur, hero: { ...(cur.hero || {}), [cid]: on } } }); };

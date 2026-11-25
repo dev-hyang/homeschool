@@ -151,7 +151,7 @@ function openQuickSettings(){
   $("#sheetIn").innerHTML = `${head(esc(t("自定义「记一笔」")))}
   <p class="small muted">${t("给 {n} 选今天页要放的格子。年龄不同常用的不一样：小的记如厕、吃饭，大的记情绪、阅读、屏幕。已经记过的不受影响。", { n: esc(childName()) })}</p>
   <div class="ql-pool">${TILES.map(x => `<button type="button" class="ql-opt" data-act="ql-toggle" data-id="${x.id}" aria-pressed="${on.has(x.id)}"><span class="ql-ico" aria-hidden="true">${x.icon}</span><span class="ql-opt-t"><b>${esc(t(x.label))}</b>${recommended(x, m) ? ` <span class="ui-badge" data-tone="neutral">${t("推荐")}</span>` : ""}<small>${esc(t(x.desc))} · ${esc(ageRange(x))}</small></span><span class="ql-chk" aria-hidden="true">${on.has(x.id) ? "✓" : ""}</span></button>`).join("")}</div>
-  <div class="btns"><button class="btn" data-act="ql-reset">${t("恢复推荐")}</button><button class="btn primary" data-act="ql-done">${t("完成")}</button></div>`;
+  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="ql-reset">${t("恢复推荐")}</button><button class="ui-btn" data-tone="primary" data-act="ql-done">${t("完成")}</button></div>`;
   showSheet();
 }
 async function setTiles(ids){

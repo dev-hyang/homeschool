@@ -117,7 +117,7 @@ function viewTopic(id){
   if (G.spanTopic !== id) { G.span = null; G.spanTopic = id; G.rq = ""; G.rtype = "all"; }
   const days = daysNow();
   const range = `<div class="seg gr-days" role="group" aria-label="${esc(t("时间范围"))}">${DAYS.map(d => `<button type="button" data-act="gr-days" data-v="${d}" aria-pressed="${d === days}">${t("近 {n} 天", { n: d })}</button>`).join("")}</div>`;
-  const adds = (x.add || []).map(tileById).filter(Boolean).map((tl, i) => `<button type="button" class="btn ${i ? "" : "primary"} sm" data-act="ql-new" data-id="${tl.id}">＋ ${t(tl.label)}</button>`).join("");
+  const adds = (x.add || []).map(tileById).filter(Boolean).map((tl, i) => `<button type="button" class="ui-btn" data-size="sm" data-tone="${i ? "ghost" : "primary"}" data-act="ql-new" data-id="${tl.id}">＋ ${t(tl.label)}</button>`).join("");
   const extra = id === "gr-night" ? nightBlock(days) : id === "gr-class" ? classBlock(days) : "";
   return `<div class="gr-top">${range}<div class="gr-adds">${adds}</div></div>
     ${trendSection(id, x, days)}${extra}${recordsSection(id, x, days)}<p class="small muted gr-foot">${pullButtonHTML()}</p>`;
@@ -127,8 +127,8 @@ const siblings = id => Object.keys(TOPICS).filter(k => TOPICS[k].sec === (TOPICS
 function topicPager(id){
   const list = siblings(id), i = list.indexOf(id); if (i < 0 || list.length < 2) return "";
   const prev = list[(i - 1 + list.length) % list.length], next = list[(i + 1) % list.length];
-  return `<nav class="gr-pager" aria-label="${esc(t("同一块里的其他主题"))}"><button type="button" class="btn sm" data-tab="${prev}">‹ ${TOPICS[prev].icon} ${t(TOPICS[prev].label)}</button>
-    <span class="small muted gr-pager-hint">${t("手机上左右滑动也能换")}</span><button type="button" class="btn sm" data-tab="${next}">${TOPICS[next].icon} ${t(TOPICS[next].label)} ›</button></nav>`;
+  return `<nav class="gr-pager" aria-label="${esc(t("同一块里的其他主题"))}"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tab="${prev}">‹ ${TOPICS[prev].icon} ${t(TOPICS[prev].label)}</button>
+    <span class="small muted gr-pager-hint">${t("手机上左右滑动也能换")}</span><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-tab="${next}">${TOPICS[next].icon} ${t(TOPICS[next].label)} ›</button></nav>`;
 }
 let sx = null;
 document.addEventListener("touchstart", e => { const tch = e.touches[0]; sx = TOPICS[S.tab] && !e.target.closest(".scroll-x, input, textarea, select, .gr-chart, #sheet") ? { x: tch.clientX, y: tch.clientY } : null; }, { passive: true });

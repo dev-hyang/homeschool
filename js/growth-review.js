@@ -74,7 +74,7 @@ function reviewHTML(){
   const open = R.open == null ? !a : R.open;
   const seg = `<div class="seg mini gr-rv-modes" role="group" aria-label="${esc(t("分析范围"))}">${MODES.map(([k, l, ic]) => `<button type="button" data-act="gr-rv-mode" data-v="${k}" aria-pressed="${m === k}"><span aria-hidden="true">${ic}</span> ${t(l)}</button>`).join("")}</div>`;
   const scope = { whole: t("看：身体与健康的全部记录、近 30 天的日常（和前 30 天比）、学习与培训、敬拜和背经。"), recent: t("看：近 14 天和前 14 天比，加上最近两个月的体检 / 就诊。"), watch: t("只看挑出来要留意的：变差的趋势、超出范围的化验、该做的体检、过敏病史、低落的情绪、停下来的课程。") }[m];
-  const btn = `<button type="button" class="btn ${a ? "" : "primary"}" data-act="gr-rv-run" ${busy || !aiReady() ? "disabled" : ""}>${busy ? t("分析中…") : a ? t("重新分析") : t("开始分析")}</button>`;
+  const btn = `<button type="button" class="ui-btn" data-tone="${a ? "ghost" : "primary"}" data-act="gr-rv-run" ${busy || !aiReady() ? "disabled" : ""}>${busy ? t("分析中…") : a ? t("重新分析") : t("开始分析")}</button>`;
   return `<details class="panel gr-rv" ${open ? "open" : ""}><summary><b>✦ ${t("AI 身心灵分析")}</b>${a ? ` <small class="muted">${t("{d} 分析", { d: String(a.at).slice(0, 10).replace(/-/g, "/") })}</small>` : ` <small class="muted">${t("身体、情绪、属灵、学习一起看，给下一步建议")}</small>`}</summary>
     ${seg}<p class="small muted gr-rv-scope">${esc(scope)}</p>
     ${attachHTML("hs-review", { t, esc, collapsible: true, summary: t("补充信息（可选）：自己写几句、拍照或上传文件"), textLabel: t("补充说明"), ph: t("例：最近晚上总说怕黑；老师说上课坐不住；医生建议多吃含铁的食物…"), hint: t("会和记录一起发给 AI 参考，比如成绩单、医生的单子、孩子的画、你观察到的变化。照片不保存。") })}

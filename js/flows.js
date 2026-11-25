@@ -88,7 +88,7 @@ function topicCard(s, band){
     ? (s.bl.minutes ? (bl.cur || bl.prev ? `<b>${t("小月亮里")}</b>：${t("近 30 天屏幕共 {a} 分钟，日均 {b} 分钟", { a: bl.sumMin, b: bl.dayAvg })} ${trendText(bl.sumMin, bl.prevSum)}` : `<span class="muted">${t("小月亮里近 60 天没有屏幕记录（在小月亮「活动 → 屏幕」记）")}</span>`)
       : (bl.cur || bl.prev ? `<b>${t("小月亮里")}</b>：${s.bl.good ? t("近 30 天记了 {n} 次分享合作", { n: bl.cur }) : t("近 30 天 {n} 次", { n: bl.cur })} ${trendText(bl.cur, bl.prev)}${bl.avgMin != null ? ` · ${t("平均 {n} 分钟", { n: bl.avgMin })}` : ""}${bl.how.length ? `<br>${t("家里记过的处理办法")}：${esc(bl.how.join("；"))}` : ""}` : `<span class="muted">${t("小月亮里近 60 天没有相关记录")}</span>`))
     : `<span class="muted">${B.loading ? t("正在同步小月亮…") : B.err ? t("读不到小月亮的记录") : ""}</span>`;
-  return `<div class="panel bt-sit"><div class="bt-card-row"><div><b>${esc(tc(s.when))}</b>${s.only && !g ? ` <span class="ui-badge" data-tone="neutral">${s.only === "f" ? t("女孩") : t("男孩")}</span>` : ""}${s.custom ? ` <span class="ui-badge" data-tone="neutral">${t("自家")}</span>` : ""}<div class="small muted">${esc(tc(s.short || ""))}</div></div><button class="btn primary sm" data-act="cf-ev-add" data-kind="${em ? "em" : "cf"}" data-sit="${esc(s.id)}">${t("记一笔")}</button></div>
+  return `<div class="panel bt-sit"><div class="bt-card-row"><div><b>${esc(tc(s.when))}</b>${s.only && !g ? ` <span class="ui-badge" data-tone="neutral">${s.only === "f" ? t("女孩") : t("男孩")}</span>` : ""}${s.custom ? ` <span class="ui-badge" data-tone="neutral">${t("自家")}</span>` : ""}<div class="small muted">${esc(tc(s.short || ""))}</div></div><button class="ui-btn" data-size="sm" data-tone="primary" data-act="cf-ev-add" data-kind="${em ? "em" : "cf"}" data-sit="${esc(s.id)}">${t("记一笔")}</button></div>
     ${x.why ? `<p class="cf-why"><b>${esc(childName())} · ${esc(ageText())}（${esc(t(BAND_NAME[band]))}）</b><br>${esc(tc(x.why))}</p>` : ""}
     ${gtext ? `<p class="small" style="margin:4px 0"><b>${genderName(g)}</b>：${esc(tc(gtext))}</p>` : ""}
     ${others.length ? `<details class="cf-others"><summary class="small muted">${t("其他年龄段怎么看")}</summary>${others.map(k => `<p class="small"><b>${esc(t(BAND_NAME[k]))}</b>　${esc(tc(s.why[k]))}</p>`).join("")}</details>` : ""}
@@ -147,7 +147,7 @@ function viewConflict(){
     <div class="btns"><button class="chip" data-act="cf-mirror" aria-pressed="${c.mirrorConflict}">${c.mirrorConflict ? t("记一笔时同步到小月亮 ✓") : t("记一笔时同步到小月亮")}</button></div></div>
 
   <h2>${t("常见状况")}</h2>
-  <div class="btns" style="margin-top:0"><button class="btn sm" data-act="cf-sit-add">＋ ${t("自定义状况")}</button></div>
+  <div class="btns" style="margin-top:0"><button class="ui-btn" data-size="sm" data-tone="ghost" data-act="cf-sit-add">＋ ${t("自定义状况")}</button></div>
   <p class="small muted" style="margin:8px 0 0">${t("没有你要的？自己写个名字，让咩咩咩补全：为什么、怎么做、怎么说，并选好写进小月亮「情绪行为」的哪一类。")}</p>
   ${groupedCards(list, band)}
 
@@ -187,7 +187,7 @@ const toRow = f => ({ situation: f.situation, title: f.title || "", date: f.date
 
 /* ---- 自定义状况：表单顶上一个「让咩咩咩补全」，补出来的都能改 ---- */
 const sitFields = () => [
-  { k: "_ai", type: "html", html: () => `<div class="alert info"><b>${t("让咩咩咩补全")}</b><p class="small" style="margin:4px 0 8px">${t("先写状况名称和一句话描述，再点补全：会按孩子现在的年龄段写出为什么、怎么做、怎么说、不要、经文、何时找专业人员，并选好写进小月亮的类别。补出来的都能改，保存前请核对。用的是咩咩咩里填的 API key。")}</p><button type="button" class="btn sm" data-act="cf-ai-fill">${t("让咩咩咩补全")}</button></div>` },
+  { k: "_ai", type: "html", html: () => `<div class="alert info"><b>${t("让咩咩咩补全")}</b><p class="small" style="margin:4px 0 8px">${t("先写状况名称和一句话描述，再点补全：会按孩子现在的年龄段写出为什么、怎么做、怎么说、不要、经文、何时找专业人员，并选好写进小月亮的类别。补出来的都能改，保存前请核对。用的是咩咩咩里填的 API key。")}</p><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="cf-ai-fill">${t("让咩咩咩补全")}</button></div>` },
   { k: "when", label: "状况名称", type: "text", ph: "不肯刷牙、吃饭要人追着喂、关电视就大哭…" },
   { k: "short", label: "一句话描述（咩咩咩据此补全）", type: "text", ph: "每晚刷牙都哭闹拖延，要大人按着才肯" },
   { k: "whyText", label: "为什么（针对孩子现在的年龄段）", type: "area", rows: 4 },

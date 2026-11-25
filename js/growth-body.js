@@ -132,7 +132,7 @@ function labBar(x){
 /** 动作按钮一排（和主题页的「＋ 记一笔」同一个位置、同一个样式） */
 const top = (btns, cls = "") => `<div class="gr-top"><div class="gr-adds ${cls}">${btns}</div></div>`;
 /** 各个子页面自己的录入入口：只带这一页相关的那几块（scope），默认 AI 录入，可以切换成手动录入。综合录入（scope = all）只在成长首页 */
-const entryBtn = (scope, src, label, primary = true) => `<button type="button" class="btn ${primary ? "primary" : ""} sm" data-ix="open" data-scope="${scope}" data-src="${src}">＋ ${t(label)}</button>`;
+const entryBtn = (scope, src, label, primary = true) => `<button type="button" class="ui-btn" data-size="sm" data-tone="${primary ? "primary" : "ghost"}" data-ix="open" data-scope="${scope}" data-src="${src}">＋ ${t(label)}</button>`;
 const rec = (icon, title, when, meta, note) => `<div class="task"><span class="bar" style="background:var(--slate)"></span><div class="main" style="cursor:default"><span class="title">${icon} <b>${esc(title)}</b> <span class="small muted num">${esc(when)}</span></span>${meta ? `<span class="meta">${esc(meta)}</span>` : ""}${note ? `<span class="meta gr-note">${esc(note)}</span>` : ""}</div><span class="acts"></span></div>`;
 const recs = (title, rows, foot) => `<section class="gr-sec"><div class="gr-sh"><h2>${t(title)} <span class="small muted gr-n">${t("{n} 条", { n: rows.length })}</span></h2></div>
   <div class="panel">${rows.length ? `<div class="tasks">${rows.join("")}</div>` : `<div class="empty">${t("还没有记录。")}</div>`}</div>${foot ? `<p class="small muted gr-foot">${foot}</p>` : ""}</section>`;
@@ -185,7 +185,7 @@ const vtCtx = () => ({ t, val: (dim, v) => toDisp(dim, v), unit, day, months: ts
   src: e => t(e.src && e.src !== "自己记录" ? e.src : "在家量") });
 function sizePage(){
   const rows = mine("baby").filter(e => VT_KEYS.some(k => e[k] != null && e[k] !== ""));
-  return `${top(`${entryBtn("size", "自己记录", "录入基本体征")}<button type="button" class="btn sm" data-act="gr-vt-ask">✦ ${t("问 AI 这些体征")}</button>`)}
+  return `${top(`${entryBtn("size", "自己记录", "录入基本体征")}<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-vt-ask">✦ ${t("问 AI 这些体征")}</button>`)}
     ${vitalsHTML(rows, vtCtx())}
     ${recList("size", "记录", rows.map(e => ({ ts: e.ts, icon: "📏", home: !e.src || e.src === "自己记录", title: [e.weight && show("weight", e.weight), e.length && show("length", e.length)].filter(Boolean).join(" · ") || t("体征"),
       meta: [t(e.src && e.src !== "自己记录" ? e.src : "在家量"), ...extras(e)].join(" · "), note: e.note, edit: `data-ix="edit" data-id="${esc(e.id)}"` })),
@@ -215,7 +215,7 @@ function vaxPage(){
       { subs: vaxSubs(list), foot: `${EDIT_HERE()} ${t("正式凭证以接种本、医院或学校要求的官方记录为准。")}` })}`;
 }
 function labsPage(){
-  const btn = `${H.hlOk ? `<button type="button" class="btn primary sm" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}`;   // 牧羊人的入口放在录入表的抬头里（和「AI 录入」并排），页面上只留这一个按钮，免得点错
+  const btn = `${H.hlOk ? `<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="gr-lab-batch">＋ ${t("录入化验")}</button>` : ""}`;   // 牧羊人的入口放在录入表的抬头里（和「AI 录入」并排），页面上只留这一个按钮，免得点错
   if (!H.hlOk) return `<div class="panel gr-empty"><p class="small muted" style="margin:0">${t("化验在牧羊人里记；数据库还没有牧羊人的健康表（迁移 026）。")}</p></div>`;
   const groups = labGroups(), latest = labLatest(), bad = latest.filter(labFlag).length;
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
@@ -235,13 +235,13 @@ function labsPage(){
 function labItemView(){
   if (!ensure()) return `<div class="empty">${t("正在读取…")}</div>`;
   const k = H.labKey, rows = k ? labRows(k) : [];
-  if (!rows.length) return `<div class="empty">${t("这一项还没有记录。")}<br><button type="button" class="btn" data-tab="gr-labs">${t("回到化验")}</button></div>`;
+  if (!rows.length) return `<div class="empty">${t("这一项还没有记录。")}<br><button type="button" class="ui-btn" data-tone="ghost" data-tab="gr-labs">${t("回到化验")}</button></div>`;
   const last = rows[rows.length - 1], f = labFlag(last), desc = rows.slice().reverse();
   const g = LABS[k] ? LAB_GROUPS[LABS[k].group] : LAB_GROUPS.other;
   const rec = (x, i) => { const p = desc[i + 1], d = p ? labNum(+x.value - +p.value) : null, fx = labFlag(x);
     return `<button type="button" class="mrow" data-act="gr-lab-edit" data-id="${esc(x.id)}"><span class="mi ${fx ? "lab-bad" : ""}" aria-hidden="true">${fx ? "!" : "✓"}</span><span class="mt"><b>${esc(labDay(x.day))} · <span class="num">${labNum(x.value)}</span> <small class="muted">${esc(x.unit || "")}</small>${fx ? ` ${flagTxt(fx)}` : ""}${d ? ` <small class="muted">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</small>` : ""}</b>
       <small>${esc([labRange(x) && t("参考 {r}", { r: labRange(x) }), x.notes, x.ai_used ? "AI" : ""].filter(Boolean).join(" · "))}</small></span><span class="mch" aria-hidden="true">›</span></button>`; };
-  return `${top(`<button type="button" class="btn primary sm" data-act="gr-lab-add" data-k="${esc(k)}">＋ ${t("再记一次这一项")}</button>`)}
+  return `${top(`<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="gr-lab-add" data-k="${esc(k)}">＋ ${t("再记一次这一项")}</button>`)}
     <div class="panel lab-head ${f ? "flag-" + f : ""}"><p class="small muted" style="margin:0 0 2px">${esc(t(g))}</p><h2 style="margin:0">${esc(labTitle(k, last))}</h2>
       <div class="lab-big"><b class="num">${labNum(last.value)}</b> <span class="muted">${esc(last.unit || "")}</span> ${f ? flagTxt(f) : `<span class="lab-flag ok">${t("在范围内")}</span>`}</div>
       <p class="small muted" style="margin:2px 0 8px">${esc([t("参考 {r}", { r: labRange(last) || "—" }), t("最近 {d}", { d: labDay(last.day) }), t("{n} 次", { n: rows.length })].join(" · "))}</p>${labBar(last)}</div>
@@ -281,7 +281,7 @@ const labAi = () => (((profileRow() || {}).data || {}).ai_labdays) || {};
 function historyPage(){
   const p = (profileRow() || {}).data || {}, meds = mine("bmed");
   const row = (label, v) => `<div class="gr-kv"><span class="muted">${t(label)}</span><span>${v ? esc(v) : `<span class="muted">—</span>`}</span></div>`;
-  return `${top(`<button type="button" class="btn primary sm" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button><button type="button" class="btn sm" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
+  return `${top(`<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
     <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
     <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
     <div class="panel mlist"><button type="button" class="mrow" data-tab="gr-meds"><span class="mi" aria-hidden="true">💊</span><span class="mt"><b>${t("用药记录与趋势")}</b><small>${meds.length ? t("共 {n} 次 · 近 14 / 30 / 90 天的次数、每种药、每一次", { n: meds.length }) : t("记一次用药，这里就有次数趋势和历史")}</small></span><span class="mch" aria-hidden="true">›</span></button></div>`;
@@ -289,7 +289,7 @@ function historyPage(){
 /* ---- 用药记录与趋势：次数柱状图 + 按药名汇总（js/growth-meds.js），下面是每一次（能搜索、筛类别、列表 | 时间线，点一条改 / 删） ---- */
 function medsPage(){
   const meds = mine("bmed");
-  return `${top(`<button type="button" class="btn primary sm" data-act="km-add">＋ ${t("记一次用药")}</button><button type="button" class="btn sm" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
+  return `${top(`<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="km-add">＋ ${t("记一次用药")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
     ${trendHTML(meds, S.kmRange || 30)}
     ${recList("meds", "维生素 / 用药", meds.map(e => ({ ts: e.ts, icon: "💧", cat: e.cat || "", title: [t(e.cat || ""), e.name].filter(Boolean).join(" · "), meta: [e.dose, timingText(timingOf(e, null), t)].filter(Boolean).join(" · "), note: e.note, edit: `data-act="gr-b-med" data-id="${esc(e.id)}"` })),
       { subs: (cs => (cs.length > 1 ? cs.map(c => [c, t(c), x => x.cat === c]) : null))([...new Set(meds.map(e => e.cat).filter(Boolean))]), foot: EDIT_HERE() })}`;
@@ -415,7 +415,7 @@ function draw(){
   const sc = X.scope || "all", scoped = sc !== "all", n = count(), home = X.src === "自己记录", ed = !!X.edit, upd = !ed && !home && sc !== "vax" && sameVisit(mine("baby"), dayKey(X.ts));
   const read = ed || (scoped ? X.mode !== "ai" : (home && X.read && !attachHas(ATT))) ? "" : `<div class="panel ix-read"><p class="small muted" style="margin:0 0 8px">${t(scoped ? SC_TEXT[sc].desc : "拍就诊小结、体检单或疫苗本（可多张），或者打 / 粘贴一段话：量了多少、打了什么针、医生说了什么。AI 读出来后在下面核对，一次保存成几条记录。")}</p>
     ${attachHTML(ATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t(scoped ? SC_TEXT[sc].ph : "例：体重 20 kg，身高 112 cm，打了流感疫苗（左上臂），医生说发育正常，注意少吃甜食、每天户外 1 小时，明年再来") })}
-    <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read || scoped ? "" : `<button type="button" class="btn" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
+    <div class="btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-ix="read" ${X.busy ? "disabled" : ""}>${X.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button>${X.read || scoped ? "" : `<button type="button" class="ui-btn" data-tone="ghost" data-ix="manual">${t("不用 AI，直接填")}</button>`}</div>
     <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>`;
   const modeSeg = !scoped || ed ? "" : `<div class="seg ix-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-ix="mode" data-v="ai" aria-pressed="${X.mode === "ai"}">✦ ${t("AI 录入")}</button><button type="button" data-ix="mode" data-v="manual" aria-pressed="${X.mode === "manual"}">✎ ${t("手动录入")}</button></div>`;
   const form = !X.read ? "" : `
@@ -433,8 +433,8 @@ function draw(){
       <input type="number" inputmode="decimal" step="any" min="0" data-ixk="w" value="${esc(x.w)}" placeholder="${esc(t("体重") + " " + unit("weight"))}" aria-label="${esc(t("体重") + " " + unit("weight"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="l" value="${esc(x.l)}" placeholder="${esc(t("身高") + " " + unit("length"))}" aria-label="${esc(t("身高") + " " + unit("length"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="h" value="${esc(x.h)}" placeholder="${esc(t("头围") + " " + unit("head"))}" aria-label="${esc(t("头围") + " " + unit("head"))}">${Object.keys(x.ex || {}).length ? `<span class="small muted ix-note">${esc(extras(x.ex).join(" · "))}</span>` : ""}`)).join("")}</div>${secClose}`}
     ${ed || !X.labs.length || sc !== "all" ? "" : `${secOpen("labs", `🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span>`)}${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
       <input type="text" data-ixk="name" value="${esc(x.name)}" placeholder="${esc(t("项目"))}" aria-label="${esc(t("项目"))}"><input type="text" inputmode="decimal" data-ixk="value" value="${esc(x.value)}" placeholder="${esc(t("结果"))}" aria-label="${esc(t("结果"))}"><input type="text" data-ixk="unit" value="${esc(x.unit)}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}"><input type="text" inputmode="decimal" data-ixk="lo" value="${esc(x.lo)}" placeholder="${esc(t("参考下限"))}" aria-label="${esc(t("参考下限"))}"><input type="text" inputmode="decimal" data-ixk="hi" value="${esc(x.hi)}" placeholder="${esc(t("参考上限"))}" aria-label="${esc(t("参考上限"))}">`)).join("")}</div>${secClose}`}
-    <div class="btns">${ed ? `<button type="button" class="btn primary" data-ix="save">${t("保存修改")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button><button type="button" class="btn danger" data-ix="del">${t("删除")}</button>`
-      : `<button type="button" class="btn primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="btn" data-ix="close">${t("取消")}</button>`}</div>`;
+    <div class="btns">${ed ? `<button type="button" class="ui-btn" data-tone="primary" data-ix="save">${t("保存修改")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button><button type="button" class="ui-btn" data-tone="danger" data-ix="del">${t("删除")}</button>`
+      : `<button type="button" class="ui-btn" data-tone="primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button>`}</div>`;
   $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${scoped ? SC_TEXT[sc].icon : home ? "📏" : "✦"} ${esc(t(scoped ? SC_TEXT[sc].title : home ? "量一次身高体重" : "AI 综合录入"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${modeSeg}${read}${form}
     <datalist id="ixvax">${VAX_NAMES.map(v => `<option value="${esc(t(v))}">`).join("")}</datalist>`;
 }
@@ -606,7 +606,7 @@ let AIP = null;   // 刚分析出来、还没决定保不保留的：{ k, ai }
 const aiBody = a => recAiBody(a, t, esc);   // 提示词、解析、内容的画法在 js/record-ai.js（和小月亮同一份）
 function aiSavedHTML(k, a, busy){
   return `<details class="gb-ai"><summary>✦ ${t("AI 解读")} <span class="small muted">${esc(String(a.at || "").slice(0, 10))}</span></summary><div class="gb-ai-in">${aiBody(a)}
-    <div class="btns"><button type="button" class="btn sm" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="btn sm" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
+    <div class="btns"><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="gr-b-aiclr" data-k="${esc(k)}">${t("清除")}</button></div>
     <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。")}</p></div></details>`;
 }
 const ageOf = ts => { const m = ageMonths(S.childId, ts); return m == null ? null : m < 24 ? `${m} months` : `${Math.floor(m / 12)} years ${m % 12} months`; };
@@ -659,7 +659,7 @@ async function runAi(k){
 function drawAiSheet(busy){
   if (!AIP) return;
   $("#sheetIn").innerHTML = `${head(`✦ ${esc(t("AI 解读"))}`)}<div class="panel gb-ai-in">${aiBody(AIP.ai)}</div>
-    <div class="btns"><button type="button" class="btn primary" data-act="gr-b-aikeep">${t("保留")}</button><button type="button" class="btn" data-act="gr-b-ai" data-k="${esc(AIP.k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="btn" data-act="gr-b-aidrop">${t("不要")}</button></div>
+    <div class="btns"><button type="button" class="ui-btn" data-tone="primary" data-act="gr-b-aikeep">${t("保留")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-ai" data-k="${esc(AIP.k)}" ${busy ? "disabled" : ""}>${busy ? t("分析中…") : t("重新分析")}</button><button type="button" class="ui-btn" data-tone="ghost" data-act="gr-b-aidrop">${t("不要")}</button></div>
     <p class="small muted">${t("AI 不是医生：意见不同时以医生为准，把它当成复诊时要问的问题。保留后显示在这条记录下面，可以重新分析或清除。")}</p>`;
 }
 /** 保存 / 清除一条记录的解读（ai = null 是清除） */
@@ -711,14 +711,14 @@ function drawLb(){
     <div class="seg ix-mode lb-mode" role="group" aria-label="${esc(t("录入方式"))}"><button type="button" data-lb="aitoggle" aria-pressed="${LB.aiOn}">✦ ${t("AI 录入")}</button><a href="${shep}" target="_blank" rel="noopener" title="${esc(t("在牧羊人里录入化验"))}">${t("在牧羊人里录入")} ↗</a></div>
     ${LB.aiOn ? `<div class="panel lb-ai"><p class="small muted" style="margin:0 0 8px">${t("拍化验单或门户网站的截图（可多张），或者粘贴文字，AI 把下面的表填好，你核对后保存。也可以不用 AI，直接填表。")}</p>
       ${attachHTML(LATT, { t, esc, textLabel: t("或者打字 / 粘贴"), ph: t("例：LDL 104 mg/dL（参考 <100），血红蛋白 12.1 g/dL（11.5–15.5）"), forceOpen: LB.busy })}
-      <div class="btns" style="margin-top:0"><button type="button" class="btn primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
+      <div class="btns" style="margin-top:0"><button type="button" class="ui-btn" data-tone="primary" data-lb="read" ${LB.busy ? "disabled" : ""}>${LB.busy ? t("正在读取…") : `✦ ${t("让 AI 读出来")}`}</button></div>
       <p class="small muted" style="margin:6px 0 0">${aiReady() ? t("照片只在浏览器里压缩后发给你自己设置的 AI，不保存；不发孩子的名字。读出来的内容请核对。") : t("还没填 API key：在 我的 → 咩咩咩 里设置")}</p></div>` : ""}
     <div class="field"><label for="lb_day">${t("采样日期")}</label><input id="lb_day" type="date" data-lbd="day" max="${dayKey(Date.now())}" value="${esc(LB.day)}"></div>
     <div class="field"><div class="lab" id="lb_panel">${t("套餐")}</div><div class="seg lb-seg" role="group" aria-labelledby="lb_panel">${Object.entries(LAB_GROUPS).map(([k, l]) => `<button type="button" data-lb="panel" data-v="${k}" aria-pressed="${g === k}">${esc(t(l))}${lbCount(k) ? ` · ${lbCount(k)}` : ""}</button>`).join("")}</div></div>
     <div class="lb-tbl">${rows}</div>${g === "other" ? `<button type="button" class="chip" data-lb="extra">＋ ${t("加一项（单子上别的项目）")}</button>` : ""}
     <div class="field"><label class="check"><input type="checkbox" data-lbd="fasting" ${LB.fasting ? "checked" : ""}>${t("空腹采血")}</label></div>
     <p class="small muted lb-hint">${t("参考范围以化验单为准（孩子和成人不一样，这里不预填）。")}</p>
-    <div class="btns"><button type="button" class="btn primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
+    <div class="btns"><button type="button" class="ui-btn" data-tone="primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
 }
 /** 改了数字之后只更新提示、套餐上的数目和保存按钮（不重画，光标不跳） */
 function lbRefresh(row){

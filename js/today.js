@@ -48,8 +48,8 @@ function devotionHTML(){
     <div class="row"><span class="k">${t("祷告")}</span><div class="v">${d.prayer ? esc(d.prayer) : `<span class="muted">${t("今天为谁、为什么祷告")}</span>`}</div><button class="chip" data-act="devo-prayer">${t("写")}</button></div>
     <div class="row"><span class="k">${t("参加")}</span><div class="v chips" style="margin:0">${S.children.map(c => `<button class="chip" data-devochild="${esc(c.id)}" aria-pressed="${joined.has(c.id)}">${esc(c.name || t("宝宝"))}</button>`).join("")}</div></div>
     <div class="btns">${d.done
-      ? `<button class="btn" data-act="devo-undo">${t("今天敬拜过了 ✓ · 点击撤销")}</button>`
-      : `<button class="btn primary" data-act="devo-done">${t("完成今日敬拜")}</button>`}</div>
+      ? `<button class="ui-btn" data-tone="ghost" data-act="devo-undo">${t("今天敬拜过了 ✓ · 点击撤销")}</button>`
+      : `<button class="ui-btn" data-tone="primary" data-act="devo-done">${t("完成今日敬拜")}</button>`}</div>
   </div>`;
 }
 
@@ -84,8 +84,8 @@ function reviewHTML(){
       <p class="small muted" style="margin-top:8px">${t("今天 {a}/{b}", { a: plan.done, b: plan.total })}${plan.later ? ` · ${t("还有 {n} 节排在后面，明天继续", { n: plan.later })}` : ""} · ${t("已会背 {n} 节", { n: learned })}。${t("会背后按 3、7、30、90、180 天自动安排复习，到期的会自动出现在这里。")}</p>`
       : `<p class="muted">${learned ? t("今天没有到期的复习，已会背 {n} 节。", { n: learned }) : t("还没有开始背诵。")}</p>`}
     ${plan.backlog ? `<div class="small" style="margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--slate-soft)">${t("复习排队了 {n} 节，最久的已拖 {d} 天。可以周末多复习几节，也可以今天先多做几节。", { n: plan.backlog.queued, d: plan.backlog.oldest })} <button class="chip" data-act="review-more">${t("今天多复习 3 节")}</button></div>` : ""}
-    ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="btn primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="btn" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`
-      : `<div class="btns" style="margin-top:8px"><button class="btn" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`}
+    ${!plan.rows.some(x => x.kind === "learn") && next ? `<div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="primary" data-act="scr-start-next" data-sid="${esc(next.id)}">${t("开始下一节：{ref}", { ref: esc(next.ref) })}</button><button class="ui-btn" data-tone="ghost" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`
+      : `<div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="scriptures" data-from="today">${t("经文卡库")}</button></div>`}
     ${S.hs.settings.autoVerse === false ? "" : `<p class="small muted" style="margin-top:8px">${t("不用点“开始背”：每天 8 点（或本批全部会背后）自动从卡库拉一批，每批节数和问答占比在经文卡库里调；不合适点“换一个”或“换一批”。可在设置里关闭。")}</p>`}
   </div>`;
 }
@@ -106,7 +106,7 @@ function tasksHTML(day){
   <div class="panel">
     ${list.length ? `<div class="tasks">${list.map(row).join("")}</div><p class="small muted" style="margin-top:8px">${t("完成 {a}/{b}", { a: done.length, b: list.length })}${mins ? ` · ${t("约 {n} 分钟", { n: mins })}` : ""}。${t("全家项对每个孩子都显示，勾一次即可。")}</p>`
       : `<p class="muted">${t("今天没有任务。")}${S.hs.routines.length ? t("今天的周例行没有安排，或者都已顺延。") : t("先在“日历”里设置周例行，每天会自动生成任务。")}</p>`}
-    <div class="btns" style="margin-top:8px"><button class="btn" data-act="task-add">＋ ${t("临时任务")}</button>${S.hs.routines.length ? "" : `<button class="btn primary" data-tab="calendar">${t("设置周例行")}</button>`}</div>
+    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="task-add">＋ ${t("临时任务")}</button>${S.hs.routines.length ? "" : `<button class="ui-btn" data-tone="primary" data-tab="calendar">${t("设置周例行")}</button>`}</div>
   </div>`;
 }
 

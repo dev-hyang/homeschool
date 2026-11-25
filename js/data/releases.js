@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-24.9", title: { zh: "所有按钮换成统一的按钮控件", en: "All buttons now use the shared button control" }, items: [
+    { k: "better", zh: "全站按钮换成和爱家小助手同一个按钮控件：默认 40px、小号 34px，手机上点按区域仍不小于 44px（以前 38 到 46px 不等）。", en: "Every button now uses the same control as Home Pantry: 40 px default, 34 px small, with a tap area still at least 44 px on phones (it used to range from 38 to 46 px)." },
+    { k: "fix", zh: "如果哪个页面的按钮看起来不对（颜色、大小、位置），请告诉我，这次是整体替换。", en: "If a button looks wrong on any page (colour, size, position), please tell me; this was a wholesale replacement." },
+  ] },
   { v: "2026-11-24.8", title: { zh: "共用样式表多了按钮变量", en: "Shared stylesheet gains button variables" }, items: [
     { k: "better", zh: "同步共用按钮样式，并设置本站主按钮用墨色底（界面不变，下一版起按钮换成共用控件）。", en: "Synced the shared button style and set this app's primary button to the ink colour (no visible change; buttons move to the shared control next)." },
   ] },

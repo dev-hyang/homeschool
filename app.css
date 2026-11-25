@@ -136,9 +136,6 @@ body.sheet-open .wrap,body.sheet-open nav.tabs{display:none}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#131921}}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .btns{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
-.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:11px 18px;cursor:pointer;font-weight:500;min-height:46px}
-.btn.primary{background:var(--ink);color:var(--surface);border-color:var(--ink);flex:1}
-.btn.danger{color:var(--rose);border-color:var(--rose)}
 
 .alert{border-radius:var(--radius);padding:12px 14px;margin-top:10px;font-size:14px;border:1px solid}
 .alert.info{background:var(--slate-soft);border-color:transparent}
@@ -182,7 +179,7 @@ code{font-size:13px;background:var(--slate-soft);padding:1px 5px;border-radius:4
 body.printview header.top,body.printview nav.tabs{display:none}
 body.printview .wrap{padding-bottom:40px}
 .pbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0 6px;position:sticky;top:0;background:var(--bg);z-index:2}
-.pbar .btn{flex:none}
+.pbar .ui-btn{flex:none}
 body.printview #print{border-radius:var(--radius);padding:16px;margin-top:6px;box-shadow:0 6px 20px rgba(21,36,58,.10)}
 @media print{
   @page{margin:12mm}
@@ -465,7 +462,7 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 .bk-card .bk-sub{display:grid;gap:6px;margin-top:8px}.bk-card .bk-sub em{font-style:normal;color:var(--muted,#6b7280);font-size:12px}.bk-card .bk-warn{color:#b4506a}
 .bk-pill{display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:var(--line);font-size:12.5px;max-width:100%;overflow-wrap:anywhere}.bk-pill.ok{background:#e4f2e8}
 .bk-sql{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--honey-soft,#fff6d6);font-size:13px}.bk-sql b{display:block}.bk-sql small{display:block;color:var(--muted,#6b7280);font-size:12.5px;margin:2px 0 8px;line-height:1.4}
-@media (max-width:520px){.bk-status{flex-direction:column;align-items:stretch}.bk-status .bk-row .btn{flex:1 1 0}}
+@media (max-width:520px){.bk-status{flex-direction:column;align-items:stretch}.bk-status .bk-row .ui-btn{flex:1 1 0}}
 @media (min-width:760px){.bk-cards{grid-template-columns:1fr 1fr}.bk-cards .bk-card:first-child{grid-column:1/-1}}
 .bk-path{width:100%}.bk-path label{flex:none}.bk-path input{flex:1 1 160px;min-height:34px;min-width:0}
 .bk-card.off{opacity:.6}
@@ -473,12 +470,12 @@ body.sheet-open .minibar,body.printview .minibar{display:none}
 
 .bk-more{margin-top:6px}.bk-more>summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--ink);padding:6px 0;list-style:none}
 .bk-more>summary::before{content:"▸ ";}.bk-more[open]>summary::before{content:"▾ ";}
-.bk-err{margin:6px 0;color:#b4506a;font-size:13px}.bk-err .btn,.bk-err .chip{margin-left:6px}
+.bk-err{margin:6px 0;color:#b4506a;font-size:13px}.bk-err .ui-btn,.bk-err .chip{margin-left:6px}
 
 /* ============ 睡前安然（js/bedtime.js、js/bedtime-play.js） ============ */
 .bt-card-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .bt-card-row > div{flex:1;min-width:0}
-.bt-card-row .btn.primary{flex:none}
+.bt-card-row .ui-btn[data-tone="primary"]{flex:none}
 .bt-hero{border-color:var(--slate)}
 .bt-verse{font-family:var(--f-head);font-size:19px;line-height:1.5;margin:0 0 12px}
 .bt-text{margin:10px 0}
@@ -606,9 +603,7 @@ body.bt-playing{overflow:hidden}
 .btp-anger{font-size:14px;line-height:1.6;color:#d9a9b3;border-left:3px solid #8E4A5A;padding-left:10px;margin:0 0 12px}
 
 /* 按钮同步状态、小按钮、话题卡里的折叠与表格 */
-.chip:disabled,.btn:disabled,.pull-btn:disabled{opacity:.5;cursor:default;filter:grayscale(.6)}
-.btn.sm{min-height:38px;padding:7px 14px;font-size:14px;flex:none}
-.btn.primary.sm{flex:none}
+.chip:disabled,.ui-btn:disabled,.pull-btn:disabled{opacity:.5;cursor:default;filter:grayscale(.6)}
 .cf-rare{margin-top:12px}
 .cf-rare > summary{cursor:pointer;padding:6px 2px}
 .cf-gender{align-items:center;margin:10px 0 0}
@@ -622,9 +617,8 @@ body.bt-playing{overflow:hidden}
 .bt-ask{padding:12px 14px}
 .bt-ask .chips{gap:6px;margin:8px 0 0}
 .bt-ask .chip,.bt-sit .chip.ask-chip{min-height:32px;padding:4px 11px;font-size:13px}
-.bt-card-row .btn.sm,.panel .btns .btn.primary.sm{min-height:36px;padding:6px 14px;font-size:14px}
 .bt-sit .bt-card-row{align-items:flex-start}
-@media (max-width:520px){.bt-ask .small{font-size:12.5px}.bt-sit .bt-card-row .btn.sm{padding:5px 12px}.btns .btn.primary.sm{flex:none}}
+@media (max-width:520px){.bt-ask .small{font-size:12.5px}.btns .ui-btn[data-tone="primary"][data-size="sm"]{flex:none}}
 
 /* ============ 歌单行手势（js/songs-ui.js）、多流程选择、话题的推荐歌曲 ============ */
 .song-list{display:flex;flex-direction:column}
@@ -649,7 +643,6 @@ body.bt-playing{overflow:hidden}
 .bt-flows .chip{min-height:34px;padding:5px 12px}
 .devo .v .bt-flows{margin:6px 0 0}
 .devo .v .bt-flows .chip{min-height:30px;padding:3px 10px;font-size:13px}
-.btn.danger.sm{color:var(--rose);border-color:var(--rose)}
 .cf-music{margin:10px 0 0;padding:8px 10px;border-radius:var(--radius-sm);background:var(--sage-soft)}
 .cf-song{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line);font-size:14px}
 .cf-song-t{min-width:0;overflow-wrap:anywhere}
@@ -710,14 +703,14 @@ body.bt-playing{overflow:hidden}
 .bt-tpl-row:first-of-type{margin-top:8px}
 .bt-tpl-row:hover{background:var(--bg)} .bt-tpl-row:focus-visible{outline:3px solid var(--slate);outline-offset:-3px}
 .bt-flowcard .bt-flows .chip,.bt-flows .chip[aria-pressed="true"]{white-space:nowrap}
-.bt-card-acts .btn.primary.sm.bt-go{flex:1;min-height:42px;font-size:15px}
+.bt-card-acts .ui-btn[data-tone="primary"][data-size="sm"].bt-go{flex:1}
 
 /* 今天页「睡前」：一行 = 流程下拉框 + 小的「开始」；下面一行小字 */
 .bt-pick{display:flex;align-items:center;gap:8px}
 .bt-sel{flex:1;min-width:0;box-sizing:border-box;appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:10px;min-height:38px;padding:6px 30px 6px 12px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3;background:var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238a95a5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 11px center}
 .bt-sel.solo{display:flex;align-items:center;background-image:none;padding-right:12px}
 .bt-sel:focus-visible{outline:3px solid var(--slate);outline-offset:1px}
-.bt-pick .btn.primary.sm.bt-go{flex:none;min-height:36px;padding:6px 16px;font-size:14px}
+.bt-pick .ui-btn[data-tone="primary"][data-size="sm"].bt-go{flex:none}
 /* 睡前 → 在睡：😴 + 唤醒 */
 .wk-list{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
 .wk-card{display:flex;flex-direction:column;gap:8px;padding:8px 10px;border-radius:10px;background:var(--slate-soft)}
@@ -726,7 +719,7 @@ body.bt-playing{overflow:hidden}
 .wk-now .wk-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-ic{font-size:26px;line-height:1}
 .wk-t{flex:1;min-width:0;display:flex;flex-direction:column}
-.wk-card .btn.primary.sm{flex:none;min-height:36px;padding:6px 16px;font-size:14px}
+.wk-card .ui-btn[data-tone="primary"][data-size="sm"]{flex:none}
 .wk-woke{display:block;line-height:1.5}
 .wk-line{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .wk-ideas{margin-top:8px}
@@ -852,7 +845,6 @@ body.bt-playing{overflow:hidden}
   .hero-dot::after{transition:none}
 }
 .wk-solo{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
-.wk-solo .btn.sm{min-height:38px;padding:6px 16px;font-size:14px}
 .sc-ctl .bt-card-foot{justify-content:space-between}
 .sc-ctl .bt-card-foot .sc-wx{display:contents}
 /* 面包屑最前面的「‹ 返回」：回到刚才来的那一页（没有就退一层）；后面的路径按层级跳 */
@@ -1189,9 +1181,9 @@ p.ql-night{display:block}
 .gr-card-big{margin:0;font-size:24px}
 .gr-card p{margin:0}
 .gb-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 12px}
-.gb-acts .btn{flex:none;min-height:44px;padding:8px 12px;font-size:15px;line-height:1.25;white-space:normal}
-.gb-acts .btn.primary{grid-column:1 / -1}
-@media (min-width:720px){.gb-acts{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}.gb-acts .btn.primary{grid-column:auto}}
+.gb-acts .ui-btn{flex:none;line-height:1.25;white-space:normal}
+.gb-acts .ui-btn[data-tone="primary"]{grid-column:1 / -1}
+@media (min-width:720px){.gb-acts{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}.gb-acts .ui-btn[data-tone="primary"]{grid-column:auto}}
 /* AI 身心灵分析：标题一行，范围三格等宽，按钮正常大小靠左 */
 .gr-rv{padding:12px 16px}
 .gr-rv > summary{min-height:44px;font-size:16px}
@@ -1200,7 +1192,7 @@ p.ql-night{display:block}
 .gr-rv-modes button{min-height:38px;padding:6px 6px;font-size:14px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:999px}
 .gr-rv-scope{font-size:13.5px}
 .gr-rv .btns{margin-top:8px}
-.gr-rv .btns .btn{flex:none;min-height:40px;padding:8px 22px;font-size:15px}
+.gr-rv .btns .ui-btn{flex:none}
 .gr-rv > p.small:last-child{font-size:12.5px;line-height:1.5}
 .gr-rv-sum{font-size:15.5px}
 .gr-rv-pri li{padding:10px 12px}
@@ -1224,8 +1216,8 @@ p.ql-night{display:block}
 .gr-days{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;flex:0 1 330px}
 .gr-days button{min-height:38px;padding:6px 8px;font-size:14px;border-radius:999px;white-space:nowrap}
 .gr-adds{display:flex;flex-wrap:wrap;gap:8px}
-.gr-adds .btn{flex:none;min-height:40px;padding:8px 16px;font-size:14.5px;text-decoration:none;display:inline-flex;align-items:center}
-@media (max-width:640px){.gr-top{flex-direction:column;align-items:stretch}.gr-days{flex:none}.gr-adds{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.gr-adds .btn{justify-content:center}}
+.gr-adds .ui-btn{flex:none;text-decoration:none;display:inline-flex;align-items:center}
+@media (max-width:640px){.gr-top{flex-direction:column;align-items:stretch}.gr-days{flex:none}.gr-adds{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}.gr-adds .ui-btn{justify-content:center}}
 .gr-tiles{margin:0 0 10px}
 .gr-tile.static{cursor:default}
 .gr-tile.static:hover{border-color:var(--line)}
@@ -1239,9 +1231,9 @@ p.ql-night{display:block}
 .gr-kv{display:grid;grid-template-columns:6em minmax(0,1fr);gap:10px;overflow-wrap:anywhere}
 .mrow.gr-static{cursor:default}
 .gr-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:22px 0 4px;padding-top:12px;border-top:1px solid var(--line)}
-.gr-pager .btn{flex:0 1 auto;min-width:0;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gr-pager .ui-btn{flex:0 1 auto;min-width:0;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gr-pager-hint{display:none}
-@media (max-width:640px){.gr-pager-hint{display:inline;text-align:center;flex:1}.gr-pager .btn{max-width:36%;padding:6px 10px;font-size:13.5px}}
+@media (max-width:640px){.gr-pager-hint{display:inline;text-align:center;flex:1}.gr-pager .ui-btn{max-width:36%}}
 /* 成长主题页：走势图在宽屏上不放大到很高（数字跟着变大）；指标卡铺满一行 */
 .gr-chart .lib-chart svg{display:block;width:100%;max-height:200px}
 .gr-tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
@@ -1252,7 +1244,7 @@ p.ql-night{display:block}
 /* 成长主题页（手机）：几个「＋」按钮一行排下，和时间范围按钮一样高 */
 @media (max-width:640px){
   .gr-adds{grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px}
-  .gr-adds .btn{height:40px;min-height:40px;padding:0 10px;font-size:14px;line-height:1;white-space:nowrap}
+  .gr-adds .ui-btn{line-height:1;white-space:nowrap}
   .gr-tiles{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
   .gr-tile{padding:9px 10px 8px 13px}
 }
@@ -1285,8 +1277,8 @@ p.ql-night{display:block}
 .att-body{display:flex;flex-direction:column;gap:10px}
 textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 /* 成长主题页的「＋」按钮：再小一号，和时间范围按钮一样高（电脑 36px、手机 38px） */
-.gr-adds .btn{min-height:36px;height:36px;padding:0 14px;font-size:14px;font-weight:600}
-@media (max-width:640px){.gr-adds .btn{height:38px;min-height:38px;padding:0 8px;font-size:13.5px}.gr-adds{grid-auto-rows:38px}}
+.gr-adds .ui-btn{font-weight:600}
+@media (max-width:640px){.gr-adds{grid-auto-rows:38px}}
 .gr-days button{min-height:36px}
 /* AI 身心灵分析里的「补充信息」：和范围按钮、说明文字之间留一样的距离 */
 .gr-rv .att-opt{margin:0 0 8px}
@@ -1374,7 +1366,6 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
 .ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="name"]{flex:1 1 100%}
 .ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="value"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="unit"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="lo"],.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="hi"]{flex:1 1 56px;min-width:0}
 @media (min-width:640px){.ix-list[data-ixlist="rows"] .ix-cells input[type=date],.ix-list[data-ixlist="labs"] .ix-cells input[type=date]{flex:0 1 170px}.ix-list[data-ixlist="labs"] .ix-cells input[data-ixk="name"]{flex:1 1 160px}}
-.gb-ai-in .btns .btn{min-height:40px;height:auto;padding:6px 16px;font-size:14px;border-radius:999px}
 
 /* ===== 化验：按套餐分组的列表、单项页（走势图、范围条）。和牧羊人的化验页同一个思路 ===== */
 .lab-row{align-items:center}
@@ -1437,7 +1428,7 @@ textarea[data-autosize]{resize:none;transition:height .08s ease-out}
    固定的位置 = 顶上窄条（js/minibar.js：安全区 + 44px 内容 + 1px 边线）的下沿。共用的 js/compact-filters.js 里写的是 z-index 14，这里单独压低，不改共用文件 */
 @media (max-width:440px){#main .toolbar.tb-on{z-index:9;top:calc(env(safe-area-inset-top,0px) + 45px)}#main .toolbar.tb-on .tb-panel.tb-up{top:auto;bottom:100%}}
 /* 手机 / 触屏：小按钮和小图标按钮点按区域至少 44px（电脑上仍是紧凑的 36–38px） */
-@media (max-width:640px),(pointer:coarse){.btn.sm,.btn.primary.sm,.btn.danger.sm,.bt-card-row .btn.sm,.panel .btns .btn.primary.sm,.wk-card .btn.primary.sm,.wk-solo .btn.sm{min-height:44px}.iconbtn.sm{min-width:44px;height:44px}}
+@media (max-width:640px),(pointer:coarse){.iconbtn.sm{min-width:44px;height:44px}}
 /* 今天页顶部：孩子的「距上次用药」卡 */
 .kmhero{background:linear-gradient(135deg,#B44B60,#8E3A4C);flex:1;min-width:0;margin-top:0;box-sizing:border-box}
 .kmhero.wait{background:linear-gradient(135deg,#9A5B7A,#76445F)}

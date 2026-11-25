@@ -22,7 +22,7 @@ function paged(key, list){
   const n = shownOf(key), rows = list.slice(0, n);
   return { rows, more: list.length > n ? moreHTML(key) : "" };
 }
-const moreHTML = key => `<div class="btns pg-more" style="margin-top:8px;justify-content:center"><button type="button" class="btn" data-pg-more="${esc(key)}">${t("继续加载")}</button></div>`;
+const moreHTML = key => `<div class="btns pg-more" style="margin-top:8px;justify-content:center"><button type="button" class="ui-btn" data-tone="ghost" data-pg-more="${esc(key)}">${t("继续加载")}</button></div>`;
 /** 设置里的「每页显示」选择（样式同界面语言 / 外观的 seg） */
 const pageSizeHTML = () => `<div class="seg" role="group" aria-label="${t("每页显示")}" style="margin-top:8px">${PAGE_SIZES.map(n => `<button data-page-size="${n}" aria-pressed="${pageSize() === n}">${t("{n} 条", { n })}</button>`).join("")}</div>`;
 

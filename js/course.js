@@ -41,7 +41,7 @@ function nextHTML(sj, cid, units){
   if (!c.next) return `<div class="panel" style="margin-top:10px"><p class="small">${t("{st} 阶段「{s}」的 {n} 个单元都已生成", { st: stageName, s: label, n: c.total })}${allDone ? t("并完成") : ""}。${c.stage === "school" ? t("K 以后的内容来自你们选的教材，用“粘贴教材目录”继续。") : t("孩子进入下一阶段后这里会换成新的单元链；也可以用“粘贴教材目录”加自己的。")}</p></div>`;
   const row = tr => { const n = tr.next; if (!n) return `<div class="row" style="margin-top:6px"><div class="v small muted">${t("{track}轨道的 {n} 个单元都已生成。", { track: tc(tr.track), n: tr.total })}</div></div>`;
     return `<div class="row" style="margin-top:6px"><div class="v"><span class="small muted">${stageName} · ${label}${tr.track ? ` · ${tc(tr.track)}` : ""} · ${t("第 {i}/{n} 单元", { i: n.index + 1, n: c.total })}</span><div><b>${t("下一单元：")}${tb(n.title)}</b></div><div class="small muted">${n.weeks ? t("建议 {w} 周", { w: n.weeks }) : ""}${n.lessons.length ? ` · ${t("{n} 节课时", { n: n.lessons.length })}` : ` · ${t("骨架单元，课时用“粘贴教材目录”填")}`}</div></div>
-      <button class="btn ${allDone || !units.length ? "primary" : ""}" data-act="gen-next" data-sj="${sj}" data-track="${esc(tr.track)}">${t("生成")}</button></div>`; };
+      <button class="ui-btn" data-tone="${allDone || !units.length ? "primary" : "ghost"}" data-act="gen-next" data-sj="${sj}" data-track="${esc(tr.track)}">${t("生成")}</button></div>`; };
   return `<div class="panel ${allDone ? "next-hot" : ""}" style="margin-top:10px">${allDone ? `<div class="small muted">${t("当前单元已完成")}</div>` : ""}${c.tracks.map(row).join("")}</div>`;
 }
 
@@ -60,7 +60,7 @@ function viewCourse(){
     ${mrow('data-tab="calendar"', t("日历与周例行"), t("月历上看每天完成了什么；周例行每天自动生成任务"), "▦")}
     ${mrow('data-tab="course-goals"', t("学习目标"), goals.length ? t("达成 {a}/{b}", { a: goals.filter(g => g.achieved_on).length, b: goals.length }) : t("还没有目标"), "✓")}
   </div>
-  ${mine.length ? "" : `<div class="btns"><button class="btn primary" data-act="gen-round">${t("生成本阶段第一轮（七个领域各一个单元）")}</button></div>`}`;
+  ${mine.length ? "" : `<div class="btns"><button class="ui-btn" data-tone="primary" data-act="gen-round">${t("生成本阶段第一轮（七个领域各一个单元）")}</button></div>`}`;
 }
 
 /* 子页：单元与课时 */
@@ -90,7 +90,7 @@ function viewUnits(){
   ${subjectChips(mine, sj)}
   ${units.length ? units.map(unitCard).join("") : `<div class="empty">${t("「{s}」还没有单元。", { s: SUBJECTS[sj].label })}</div>`}
   ${nextHTML(sj, cid, units)}
-  <div class="btns"><button class="btn" data-act="unit-add">＋ ${t("自己写单元")}</button><button class="btn" data-act="outline-import">${t("粘贴教材目录")}</button>${mine.length ? "" : `<button class="btn primary" data-act="gen-round">${t("生成本阶段第一轮（七个领域各一个单元）")}</button>`}</div>
+  <div class="btns"><button class="ui-btn" data-tone="ghost" data-act="unit-add">＋ ${t("自己写单元")}</button><button class="ui-btn" data-tone="ghost" data-act="outline-import">${t("粘贴教材目录")}</button>${mine.length ? "" : `<button class="ui-btn" data-tone="primary" data-act="gen-round">${t("生成本阶段第一轮（七个领域各一个单元）")}</button>`}</div>
   <p class="small muted" style="margin-top:8px">${t("每课时的“信仰连接”是一句话，提醒这一课和圣经的关联。“排到今天”会生成一条今日任务，勾完任务课时自动完成。给单元填“预计几周”后会按周例行推算应完成多少。")}</p>`;
 }
 
@@ -116,7 +116,7 @@ function viewGoals(){
       <button class="main" data-act="goal-edit" data-gid="${esc(g.id)}"><span class="title">${esc(tb(g.title))}</span><span class="meta">${esc(subject(g.area).short)}${g.achieved_on ? ` · ${t("达成于 {d}", { d: esc(g.achieved_on) })}` : g.target_on ? ` · ${t("目标 {d}", { d: esc(g.target_on) })}` : ""}${g.evidence ? ` · ${esc(tb(g.evidence))}` : ""}</span></button>
       <span class="acts"><button class="iconbtn ${g.achieved_on ? "" : "ok"}" data-act="goal-toggle" data-gid="${esc(g.id)}" aria-label="${g.achieved_on ? t("撤销达成") : t("标记达成")}">${g.achieved_on ? "↺" : "✓"}</button></span></div>`).join("") + pg.more
       : `<p class="muted">${t("还没有目标。学前阶段用清单而不是考试。")}</p>`}
-    <div class="btns" style="margin-top:8px"><button class="btn" data-act="goal-add">＋ ${t("目标")}</button>${goals.length ? "" : Object.entries(GOAL_TEMPLATES).map(([k, g]) => `<button class="btn" data-act="goal-template" data-tpl="${k}">${t("套用：")}${tc(g.name)}</button>`).join("")}</div>
+    <div class="btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="goal-add">＋ ${t("目标")}</button>${goals.length ? "" : Object.entries(GOAL_TEMPLATES).map(([k, g]) => `<button class="ui-btn" data-tone="ghost" data-act="goal-template" data-tpl="${k}">${t("套用：")}${tc(g.name)}</button>`).join("")}</div>
   </div>`;
 }
 

@@ -72,7 +72,7 @@ function routinesHTML(){
   const total = rs => rs.reduce((a, r) => a + (r.active ? +r.minutes || 0 : 0), 0);
   // 操作置顶：添加 / 套用放底下的话要滚过整周才看得到
   return `<h2>${t("周例行")} · ${esc(childName())}</h2>
-  <div class="btns" style="margin-top:0"><button class="btn primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="btn" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
+  <div class="btns" style="margin-top:0"><button class="ui-btn" data-tone="primary" data-act="routine-add">＋ ${t("添加例行")}</button>${Object.entries(ROUTINE_TEMPLATES).map(([k, tp]) => `<button class="ui-btn" data-tone="ghost" data-act="template-apply" data-tpl="${k}">${t("套用：")}${tc(tp.name)}</button>`).join("")}</div>
   <p class="small muted" style="margin-top:8px">${t("每天早上按这张表自动生成今日任务（休息日除外）。全家项（如家庭敬拜）对每个孩子都显示。")}${t("模板套用到当前孩子（{name}），全家项只加一次，重复套用不会重复。", { name: esc(childName()) })}</p>
   ${dailySleepRow()}
   ${mine.length ? `

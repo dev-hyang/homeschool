@@ -129,8 +129,8 @@ function listHTML(){
     const list = groups[k].sort((a, b) => a.ts - b.ts), tot = list.reduce((a, r) => a + (endOf(r) ? endOf(r) - r.ts : 0), 0);
     return `<li class="sl-day"><b>${esc(k.slice(5))} ${esc(t(weekday(new Date(k + "T12:00:00").getTime())))}</b>${tot ? `<span class="muted small">${t("共 {d}", { d: durText(tot) })}</span>` : ""}</li>${list.map(row).join("")}`;
   }).join("");
-  const more = L.show < DAYS ? `<button type="button" class="btn sm" data-act="sl-more">${t("显示更早的 14 天")}</button>` : "";
-  return `<div class="btns" style="margin-bottom:8px"><button type="button" class="btn primary sm" data-act="sl-add">＋ ${t("补记一段睡眠")}</button></div>
+  const more = L.show < DAYS ? `<button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="sl-more">${t("显示更早的 14 天")}</button>` : "";
+  return `<div class="btns" style="margin-bottom:8px"><button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="sl-add">＋ ${t("补记一段睡眠")}</button></div>
     ${keys.length ? `<ul class="sl-list">${body}</ul>` : `<p class="small muted">${t("最近 {n} 天没有睡眠记录。", { n: L.show })}</p>`}
     <div class="btns" style="margin-top:8px">${more}</div>
     <p class="small muted" style="margin:8px 0 0">${t("点一条可以改时间、怎么入睡、在哪儿睡、备注，或删除。这里的记录和小月亮是同一份，两边同步。")}</p>`;
