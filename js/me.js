@@ -10,12 +10,12 @@ import { loadReleases, releasesReady } from "./release-data.js";
    报告、法规、设置、介绍、打印、姊妹应用。底部一个页签，宽窄屏一样，不再折叠。
    没登录也能打开（设置在这里登录）。 */
 // 入口行：图标 + 标题 + 一句摘要 + ›。课程 / 资源 / 日历的入口页也用它
-const mrow = (act, title, desc, icon) => `<button class="mrow" ${act}><span class="mi" aria-hidden="true">${icon}</span><span class="mt"><b>${title}</b>${desc ? `<small>${desc}</small>` : ""}</span><span class="mch" aria-hidden="true">›</span></button>`;
+const mrow = (act, title, desc, icon) => `<button class="mrow" ${act}><span class="mi" aria-hidden="true">${icon}</span><span class="mt"><b>${title}</b>${desc ? `<small>${desc}</small>` : ""}</span><span class="ui-chev" aria-hidden="true">›</span></button>`;
 function viewMe(){
   const ready = S.cloud === "ready" && S.hs.loaded;
   const who = ready ? t("{name} · {age}", { name: esc(childName()), age: esc(ageText()) }) : S.cloud === "signedout" ? t("还没登录") : S.cloud === "nofamily" ? t("还没加入家庭") : "";
   const row = mrow;
-  const link = (a) => `<a class="mrow" href="${a.url}"><span class="mi" aria-hidden="true">↗</span><span class="mt"><b>${esc(t(a.name))}</b><small>${esc(tc(a.desc))}</small></span><span class="mch" aria-hidden="true">›</span></a>`;
+  const link = (a) => `<a class="mrow" href="${a.url}"><span class="mi" aria-hidden="true">↗</span><span class="mt"><b>${esc(t(a.name))}</b><small>${esc(tc(a.desc))}</small></span><span class="ui-chev" aria-hidden="true">›</span></a>`;
   return `
   <h2>${t("我的")}${who ? ` <span class="small muted" style="font-family:var(--f-body);font-weight:400">${who}</span>` : ""}</h2>
   <div class="panel mlist">

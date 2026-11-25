@@ -55,14 +55,14 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .mrow .mt{flex:1;min-width:0;display:flex;flex-direction:column}
 .mrow .mt b{font-size:16px;font-weight:600}
 .mrow .mt small{font-size:12.5px;color:var(--muted);line-height:1.4}
-.mrow .mch{color:var(--muted);font-size:18px}
+.mrow .ui-chev{font-size:18px}
 /* 介绍 badge：新手随时能点开 */
 .badge{border:1px solid var(--line);background:var(--slate-soft);color:var(--slate);border-radius:999px;padding:2px 9px;font-size:12px;line-height:18px;cursor:pointer;min-height:24px}
 .badge:hover{background:var(--slate);color:#fff}
 /* child switcher: the name itself is the trigger, the menu drops down under it */
 .bname{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-family:var(--f-head);font-weight:700;font-size:21px;letter-spacing:.01em;min-height:28px}
-.bname .chev{display:inline-block;width:10px;height:10px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-3px) rotate(45deg);transition:transform .15s}
-.bname[aria-expanded="true"] .chev{transform:translateY(2px) rotate(225deg)}
+.bname .ui-chev{margin-left:4px}
+.bname[aria-expanded="true"] .ui-chev{transform:rotate(180deg)}
 .kids{position:absolute;top:100%;left:0;z-index:30;margin-top:6px;min-width:260px;max-width:min(92vw,360px);background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 10px 28px rgba(0,0,0,.14);padding:6px;display:flex;flex-direction:column;gap:2px}
 .kids[hidden]{display:none}
 .kids button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:44px;padding:8px 12px;border-radius:var(--radius-sm);font-size:15px}

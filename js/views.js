@@ -87,7 +87,7 @@ function renderStatus(){
   $("#status").innerHTML = `<span class="dot ${st[0]}"></span>${esc(st[1])}`;
   { const v = $("#appver"); if (v) { const l = `${t("发布日志")} · v${APP_VERSION}`; v.setAttribute("aria-label", l); v.title = l; } }   // 顶栏版本号点开发布日志（换语言时跟着换）
   const c = child();
-  $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="chev" aria-hidden="true"></span>`;
+  $("#bname").innerHTML = `${esc(c ? t("{name}的学堂", { name: c.name || t("宝宝") }) : t("家庭学堂"))}<span class="ui-chev" data-dir="down" aria-hidden="true">▾</span>`;
   $("#bage").textContent = c ? ageText() : (S.cloud === "ready" ? (S.babies.length ? t("1 岁以下的宝宝在小月亮里记") : t("家庭里还没有孩子")) : t("登录后显示孩子"));
   $("#kids").setAttribute("aria-label", t("切换孩子"));
   $("#kids").innerHTML = S.children.map(k => `<button role="menuitemradio" aria-checked="${k.id === S.childId}" data-kidsel="${esc(k.id)}"><b>${esc(k.name || t("宝宝"))}</b><small>${esc(ageText(k.id))}</small></button>`).join("")

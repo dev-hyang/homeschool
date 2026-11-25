@@ -221,7 +221,7 @@ function labsPage(){
   const item = it => { const f = labFlag(it.last), d = it.prev ? labNum(+it.last.value - +it.prev.value) : null;
     return `<button type="button" class="mrow lab-row" data-act="gr-lab-open" data-k="${esc(it.k)}"><span class="mi ${f ? "lab-bad" : ""}" aria-hidden="true">${f ? "!" : "✓"}</span>
       <span class="mt"><b>${esc(labTitle(it.k, it.last))}</b><span class="lab-now"><span class="num">${labNum(it.last.value)}</span> <small class="muted">${esc(it.last.unit || "")}</small>${f ? ` ${flagTxt(f)}` : ""}${d ? ` <small class="muted">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</small>` : ""}</span>
-      <small>${esc([labRange(it.last) && t("参考 {r}", { r: labRange(it.last) }), labDay(it.last.day), t("{n} 次", { n: it.rows.length })].filter(Boolean).join(" · "))}</small></span>${labSpark(it.rows)}<span class="mch" aria-hidden="true">›</span></button>`; };
+      <small>${esc([labRange(it.last) && t("参考 {r}", { r: labRange(it.last) }), labDay(it.last.day), t("{n} 次", { n: it.rows.length })].filter(Boolean).join(" · "))}</small></span>${labSpark(it.rows)}<span class="ui-chev" aria-hidden="true">›</span></button>`; };
   const sections = groups.map(([g, items]) => { const nb = items.filter(it => labFlag(it.last)).length;
     return `<section class="gr-sec"><div class="gr-sh"><h2>${esc(t(LAB_GROUPS[g]))} <span class="small muted gr-n">${t("{n} 项", { n: items.length })}${nb ? ` · ${t("{n} 项超出范围", { n: nb })}` : ""}</span></h2></div><div class="panel mlist">${items.map(item).join("")}</div></section>`; }).join("");
   return `${top(btn)}<div class="gr-tiles">${statTile(t("项目"), String(latest.length), t("每项最新一次"), "var(--slate)")}${statTile(t("超出范围"), String(bad), bad ? t("下次就诊时问医生") : t("都在范围内"), bad ? "var(--rose)" : "var(--sage)")}</div>
@@ -240,7 +240,7 @@ function labItemView(){
   const g = LABS[k] ? LAB_GROUPS[LABS[k].group] : LAB_GROUPS.other;
   const rec = (x, i) => { const p = desc[i + 1], d = p ? labNum(+x.value - +p.value) : null, fx = labFlag(x);
     return `<button type="button" class="mrow" data-act="gr-lab-edit" data-id="${esc(x.id)}"><span class="mi ${fx ? "lab-bad" : ""}" aria-hidden="true">${fx ? "!" : "✓"}</span><span class="mt"><b>${esc(labDay(x.day))} · <span class="num">${labNum(x.value)}</span> <small class="muted">${esc(x.unit || "")}</small>${fx ? ` ${flagTxt(fx)}` : ""}${d ? ` <small class="muted">${d > 0 ? "↑" : "↓"} ${Math.abs(d)}</small>` : ""}</b>
-      <small>${esc([labRange(x) && t("参考 {r}", { r: labRange(x) }), x.notes, x.ai_used ? "AI" : ""].filter(Boolean).join(" · "))}</small></span><span class="mch" aria-hidden="true">›</span></button>`; };
+      <small>${esc([labRange(x) && t("参考 {r}", { r: labRange(x) }), x.notes, x.ai_used ? "AI" : ""].filter(Boolean).join(" · "))}</small></span><span class="ui-chev" aria-hidden="true">›</span></button>`; };
   return `${top(`<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="gr-lab-add" data-k="${esc(k)}">＋ ${t("再记一次这一项")}</button>`)}
     <div class="panel lab-head ${f ? "flag-" + f : ""}"><p class="small muted" style="margin:0 0 2px">${esc(t(g))}</p><h2 style="margin:0">${esc(labTitle(k, last))}</h2>
       <div class="lab-big"><b class="num">${labNum(last.value)}</b> <span class="muted">${esc(last.unit || "")}</span> ${f ? flagTxt(f) : `<span class="lab-flag ok">${t("在范围内")}</span>`}</div>
@@ -284,7 +284,7 @@ function historyPage(){
   return `${top(`<button type="button" class="ui-btn" data-size="sm" data-tone="primary" data-act="gr-profile">✎ ${t("编辑病史 · 过敏 · 用药")}</button><button type="button" class="ui-btn" data-size="sm" data-tone="ghost" data-act="km-settings">💊 ${t("用药卡与设置")}</button>`)}
     <div class="panel gr-kvs">${row("过敏", p.allergies)}${row("病史", p.conditions)}${row("长期用药", p.meds)}${row("备注", p.notes)}</div>
     <p class="small muted gr-foot">${t("有食物 / 药物过敏、哮喘、湿疹这类情况，记在这里，给医生、学校、AI 分析都用得上。和牧羊人的档案是同一份。")}</p>
-    <div class="panel mlist"><button type="button" class="mrow" data-tab="gr-meds"><span class="mi" aria-hidden="true">💊</span><span class="mt"><b>${t("用药记录与趋势")}</b><small>${meds.length ? t("共 {n} 次 · 近 14 / 30 / 90 天的次数、每种药、每一次", { n: meds.length }) : t("记一次用药，这里就有次数趋势和历史")}</small></span><span class="mch" aria-hidden="true">›</span></button></div>`;
+    <div class="panel mlist"><button type="button" class="mrow" data-tab="gr-meds"><span class="mi" aria-hidden="true">💊</span><span class="mt"><b>${t("用药记录与趋势")}</b><small>${meds.length ? t("共 {n} 次 · 近 14 / 30 / 90 天的次数、每种药、每一次", { n: meds.length }) : t("记一次用药，这里就有次数趋势和历史")}</small></span><span class="ui-chev" aria-hidden="true">›</span></button></div>`;
 }
 /* ---- 用药记录与趋势：次数柱状图 + 按药名汇总（js/growth-meds.js），下面是每一次（能搜索、筛类别、列表 | 时间线，点一条改 / 删） ---- */
 function medsPage(){
