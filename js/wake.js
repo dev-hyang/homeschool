@@ -5,6 +5,7 @@ import { $, H, esc, hm, pad, toast } from "./core/util.js";
 import { WAKE_IDEAS } from "./data/bedtime.js";
 import { cfg, kidName, kids, songBlob, songs } from "./bedtime.js";
 import { closeSheet, head, showSheet } from "./sheet.js";
+import { formBar, formMenu } from "./shared/ui-form.js";
 import { render } from "./views.js";
 import { isNap, sleepRow } from "./sleep.js";
 import { wakeAdvice } from "./sleep-advice.js";
@@ -155,7 +156,7 @@ function drawWake(){
     ? `<div class="seg" style="flex-direction:column;align-items:stretch">${wakeSongs.map(s => `<button type="button" data-act="wk-play" data-song="${esc(s.id)}" aria-pressed="${music.song && music.song.id === s.id}">♪ ${esc(s.title)}</button>`).join("")}</div><p class="small muted" style="margin:6px 0 0">${t("音量 30 秒慢慢升上来；放完自动接下一首，整个唤醒歌单循环到你点「停止」。")}</p>`
     : `<p class="small muted" style="margin:0 0 6px">${t("歌单里还没有标了「轻柔唤醒」的歌：在睡前页的歌单里加歌时勾上这个标签。")}</p>`}${music.song ? `<div class="ui-acts btns" style="margin-top:6px">${wakeSongs.length > 1 ? `<button class="ui-btn" data-tone="ghost" data-act="wk-prev">⏮ ${t("上一首")}</button><button class="ui-btn" data-tone="ghost" data-act="wk-next">${t("下一首")} ⏭</button>` : ""}<button class="ui-btn" data-tone="ghost" data-act="wk-stop">${t("停止音乐")}</button></div>` : ""}${ideas}</div>`;
   const alsoHTML = W.wake && W.others.length ? `<div class="field"><div class="lab">${t("一起唤醒")}</div><div class="seg">${W.others.map(oid => { const r = rowOf(oid); return r ? `<button type="button" data-act="wk-also" data-id="${esc(oid)}" aria-pressed="${W.also.has(oid)}">${esc(kidName(childOf(r)))}</button>` : ""; }).join("")}</div><p class="small muted" style="margin:6px 0 0">${t("选中的孩子用同一个醒来时间和「怎么醒的」，各自的入睡时间不变。")}</p></div>` : "";
-  $("#sheetIn").innerHTML = `${head(esc(W.wake ? t("唤醒 · {n}", { n: name }) : W.isNew ? t("补记睡眠 · {n}", { n: name }) : t("睡眠记录 · {n}", { n: name })))}
+  $("#sheetIn").innerHTML = `${head(esc(W.wake ? t("唤醒 · {n}", { n: name }) : W.isNew ? t("补记睡眠 · {n}", { n: name }) : t("睡眠记录 · {n}", { n: name })), "", W.isNew ? "" : formMenu([{ label: t("删除这条"), attrs: 'data-act="wk-del"', tone: "danger" }], { label: t("更多操作") }))}
   ${alsoHTML}${W.wake ? musicHTML : ""}
   ${W.wake ? "" : `<div class="field"><div class="lab">${t("这一段是")}</div><div class="seg">${KIND.map(k => `<button type="button" data-act="wk-seg" data-k="kind" data-v="${k}" aria-pressed="${d.kind === k}">${t(KIND_NAME[k])}</button>`).join("")}</div></div>`}
   <div class="field"><label for="wkStart">${t("入睡时间")}</label><input id="wkStart" type="datetime-local" max="${nowMax}" value="${esc(d.start)}"></div>
@@ -166,7 +167,7 @@ function drawWake(){
   <div class="field"><label for="wkNote">${t("备注")}</label><input id="wkNote" type="text" value="${esc(d.note)}" placeholder="${esc(t("夜醒次数、哭闹…"))}"></div>
   ${W.wake ? "" : musicHTML}
   <p class="small muted">${W.isNew ? t("会记进小月亮的睡眠记录，两边同步。") : t("改的就是小月亮里的这条睡眠记录，那边会同步更新。")}</p>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="wk-save">${W.wake ? t("记下醒来") : t("保存")}</button>${W.isNew ? "" : `<button class="ui-btn" data-tone="danger" data-act="wk-del">${t("删除这条")}</button>`}</div>`;
+  ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-act="close"' }, { role: "save", label: W.wake ? t("记下醒来") : t("保存"), attrs: 'data-act="wk-save"' }])}`;
 }
 async function saveWake(btn){
   readWake(); const d = W.d, start = fromInput(d.start), end = fromInput(d.end);

@@ -8,6 +8,7 @@ import { $, D, dayKey, esc, toast } from "./core/util.js";
 import { EXTRA, EXTRA_KEYS, INTAKE_SYSTEM, VAX_NAMES, extraParts, mergeInto, placeText, parseIntake, sameEntry, sameVisit, vaxForm } from "./intake-lib.js";
 import { attachHTML, attachHas, attachPayload, attachReset } from "./attach.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
+import { formBar, formMenu } from "./shared/ui-form.js";
 import { TIMINGS, timingOf, timingText } from "./med-advice.js";
 import { trendHTML } from "./growth-meds.js";
 import { VT_KEYS, bmiBand, bpLimit, flag as vtFlag, hrRange, vitalsContext, vitalsHTML } from "./vitals.js";
@@ -433,9 +434,8 @@ function draw(){
       <input type="number" inputmode="decimal" step="any" min="0" data-ixk="w" value="${esc(x.w)}" placeholder="${esc(t("体重") + " " + unit("weight"))}" aria-label="${esc(t("体重") + " " + unit("weight"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="l" value="${esc(x.l)}" placeholder="${esc(t("身高") + " " + unit("length"))}" aria-label="${esc(t("身高") + " " + unit("length"))}"><input type="number" inputmode="decimal" step="any" min="0" data-ixk="h" value="${esc(x.h)}" placeholder="${esc(t("头围") + " " + unit("head"))}" aria-label="${esc(t("头围") + " " + unit("head"))}">${Object.keys(x.ex || {}).length ? `<span class="small muted ix-note">${esc(extras(x.ex).join(" · "))}</span>` : ""}`)).join("")}</div>${secClose}`}
     ${ed || !X.labs.length || sc !== "all" ? "" : `${secOpen("labs", `🧪 ${t("化验")} <span class="small muted">${t("{n} 项", { n: X.labs.length })}</span>`)}${H.hlOk ? "" : `<p class="small muted">${t("化验存在牧羊人的化验表里；数据库还没有这张表（迁移 026），这次先不存。")}</p>`}<div class="ix-list" data-ixlist="labs">${X.labs.map((x, i) => row(X.labs, i, `<input type="date" data-ixk="day" value="${esc(x.day)}" max="${today}" aria-label="${esc(t("日期"))}">
       <input type="text" data-ixk="name" value="${esc(x.name)}" placeholder="${esc(t("项目"))}" aria-label="${esc(t("项目"))}"><input type="text" inputmode="decimal" data-ixk="value" value="${esc(x.value)}" placeholder="${esc(t("结果"))}" aria-label="${esc(t("结果"))}"><input type="text" data-ixk="unit" value="${esc(x.unit)}" placeholder="${esc(t("单位"))}" aria-label="${esc(t("单位"))}"><input type="text" inputmode="decimal" data-ixk="lo" value="${esc(x.lo)}" placeholder="${esc(t("参考下限"))}" aria-label="${esc(t("参考下限"))}"><input type="text" inputmode="decimal" data-ixk="hi" value="${esc(x.hi)}" placeholder="${esc(t("参考上限"))}" aria-label="${esc(t("参考上限"))}">`)).join("")}</div>${secClose}`}
-    <div class="ui-acts btns">${ed ? `<button type="button" class="ui-btn" data-tone="primary" data-ix="save">${t("保存修改")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button><button type="button" class="ui-btn" data-tone="danger" data-ix="del">${t("删除")}</button>`
-      : `<button type="button" class="ui-btn" data-tone="primary" data-ix="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 条", { n }) : t("还没有要保存的")}</button><button type="button" class="ui-btn" data-tone="ghost" data-ix="close">${t("取消")}</button>`}</div>`;
-  $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${scoped ? SC_TEXT[sc].icon : home ? "📏" : "✦"} ${esc(t(scoped ? SC_TEXT[sc].title : home ? "量一次身高体重" : "AI 综合录入"))}`)}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${modeSeg}${read}${form}
+    ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-ix="close"' }, ed ? { role: "save", label: t("保存修改"), attrs: 'data-ix="save"' } : { role: "save", label: n ? t("保存 {n} 条", { n }) : t("还没有要保存的"), attrs: `data-ix="save"${n ? "" : " disabled"}` }])}`;
+  $("#sheetIn").innerHTML = `${head(ed ? `✎ ${esc(t("修改这条记录"))}` : `${scoped ? SC_TEXT[sc].icon : home ? "📏" : "✦"} ${esc(t(scoped ? SC_TEXT[sc].title : home ? "量一次身高体重" : "AI 综合录入"))}`, "", ed ? formMenu([{ label: t("删除"), attrs: 'data-ix="del"', tone: "danger" }], { label: t("更多操作") }) : "")}<p class="small muted ix-who">${t("记录给")} <b>${esc(childName(X.child))}</b></p>${modeSeg}${read}${form}
     <datalist id="ixvax">${VAX_NAMES.map(v => `<option value="${esc(t(v))}">`).join("")}</datalist>`;
 }
 function readIx(){
@@ -718,7 +718,7 @@ function drawLb(){
     <div class="lb-tbl">${rows}</div>${g === "other" ? `<button type="button" class="chip" data-lb="extra">＋ ${t("加一项（单子上别的项目）")}</button>` : ""}
     <div class="field"><label class="check"><input type="checkbox" data-lbd="fasting" ${LB.fasting ? "checked" : ""}>${t("空腹采血")}</label></div>
     <p class="small muted lb-hint">${t("参考范围以化验单为准（孩子和成人不一样，这里不预填）。")}</p>
-    <div class="ui-acts btns"><button type="button" class="ui-btn" data-tone="primary" data-lb="save" ${n ? "" : "disabled"}>${n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的")}</button></div>`;
+    ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-act="close"' }, { role: "save", label: n ? t("保存 {n} 项化验", { n }) : t("还没有要保存的"), attrs: `data-lb="save"${n ? "" : " disabled"}` }])}`;
 }
 /** 改了数字之后只更新提示、套餐上的数目和保存按钮（不重画，光标不跳） */
 function lbRefresh(row){

@@ -4,6 +4,7 @@ import { $, esc, newId, toast } from "./core/util.js";
 import { SONG_TAGS } from "./data/bedtime.js";
 import * as hs from "./hs.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
+import { formBar, formMenu } from "./shared/ui-form.js";
 import { render } from "./views.js";
 import { mrow } from "./me.js";
 import { h2, migrateHTML, offlineHTML, songBlob, songs, stopPreview } from "./bedtime.js";
@@ -82,7 +83,7 @@ function drawPicker(id){
   $("#sheetIn").innerHTML = `${head(esc(t("添加歌曲")))}
   <p class="small muted">${t("点一下加进「{n}」，再点一下去掉。", { n: esc(l ? l.name : "") })}</p>
   <div class="panel">${songs().length ? `<div class="tasks">${songs().map(s => `<button type="button" class="task pick-row" data-act="mu-pick" data-id="${esc(id)}" data-sid="${esc(s.id)}" aria-pressed="${mine.has(s.id)}" style="width:100%;text-align:left"><span class="bar" style="background:${mine.has(s.id) ? "var(--sage)" : "var(--line)"}"></span><span class="main"><span class="title">${mine.has(s.id) ? "✓ " : ""}${esc(s.title)}</span><span class="meta">${s.artist ? esc(s.artist) + " · " : ""}${pill(s)}</span></span></button>`).join("")}</div>` : `<div class="empty">${t("还没有歌：先到「全部歌曲」添加。")}</div>`}</div>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="mu-pick-done" data-id="${esc(id)}">${t("完成")}</button></div>`;
+  ${formBar("edit", [{ role: "save", label: t("完成"), attrs: `data-act="mu-pick-done" data-id="${esc(id)}"` }])}`;
   showSheet();
 }
 
@@ -95,7 +96,7 @@ function drawAddTo(songId){
   <div class="panel">${pls.length ? `<div class="seg" role="group" style="flex-direction:column;align-items:stretch">${pls.map(p => `<button type="button" data-act="mu-addto-toggle" data-id="${esc(p.id)}" data-sid="${esc(songId)}" aria-pressed="${L.inList(pls, p.id, songId)}">${L.inList(pls, p.id, songId) ? "✓ " : ""}${esc(p.name)}</button>`).join("")}</div>` : `<p class="muted">${t("还没有自建歌单。")}</p>`}
     <div class="ui-acts btns"><button class="ui-btn" data-tone="ghost" data-act="mu-addto-new" data-sid="${esc(songId)}">＋ ${t("新建歌单并加入")}</button></div>
     <p class="small muted">${t("按标签的默认歌单是自动的：改歌的标签就行。")}</p></div>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="mu-addto-done">${t("完成")}</button></div>`;
+  ${formBar("edit", [{ role: "save", label: t("完成"), attrs: 'data-act="mu-addto-done"' }])}`;
   showSheet();
 }
 const nameForm = (title, initial, onSave) => openForm(title, [{ k: "name", label: "歌单名称", type: "text", ph: "早晨唱的歌" }], { name: initial }, async f => {

@@ -2,6 +2,10 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-25.1", title: { zh: "表单：取消 / 保存固定在底部，不常用的操作收进右上角 ⋯", en: "Forms: Cancel / Save pinned at the bottom, rare actions in the ⋯ menu" }, items: [
+    { k: "better", zh: "各个表单和弹出的页面：顶部不再有「关闭」；表单底部固定显示「取消」「保存」，其他页面底部是「关闭」，往下滚动也一直在。", en: "Forms and pop-up pages no longer have a Close button at the top; forms keep Cancel and Save pinned at the bottom, other pages keep a Close button there." },
+    { k: "better", zh: "「删除」「加到流程 / 歌单」「按出处抓取经文」这些不常用的操作，收进表单右上角的 ⋯ 菜单，不会再误点。", en: "Delete, Add to routine / playlist and Fetch verse now live in the ⋯ menu at the top right of a form to avoid accidental taps." },
+  ] },
   { v: "2026-11-24.12", title: { zh: "菜单行换成共用的行控件", en: "Menu rows use the shared row control" }, items: [
     { k: "better", zh: "「我的」和化验列表等菜单行换成和爱家小助手同一个行控件：同样的最小高度和分隔线（界面几乎不变）。", en: "Menu rows such as Me and the lab list now use the same row control as Home Pantry: same minimum height and dividers (nearly no visible change)." },
   ] },

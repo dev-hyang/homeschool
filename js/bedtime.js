@@ -16,6 +16,7 @@ import { initSongRows } from "./songs-ui.js";
 import { EMOTIONS } from "./data/emotions.js";
 import { angerHTML } from "./principle.js";
 import { closeSheet, getForm, head, openForm, showSheet } from "./sheet.js";
+import { formBar, formMenu } from "./shared/ui-form.js";
 import { render } from "./views.js";
 import { openPlayer, playAct, playChange, playerOpen } from "./bedtime-play.js";
 import { FULL, MB, WARN, fmtBytes, storageRoom } from "./usage.js";
@@ -388,7 +389,7 @@ function drawKidPick(){
   $("#sheetIn").innerHTML = `${head(esc(t("谁参加「{flow}」？", { flow: tb(c.flowName) })))}
   <p class="small muted" style="margin-top:0">${t("先选好参加的孩子，再开始。完成时还能再改。")}</p>
   <div class="seg" role="group" aria-label="${t("谁参加了")}">${kids().map(k => `<button type="button" data-act="bt-pick-kid" data-id="${esc(k.id)}" aria-pressed="${PICK.has(k.id)}">${esc(k.name || t("宝宝"))}${asleep.includes(k.id) ? " 😴" : ""}</button>`).join("")}</div>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="bt-pick-go" ${PICK.size ? "" : "disabled"}>${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${esc(tb(c.flowName))}</button></div>`;
+  ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-act="close"' }, { role: "save", label: `${c.flowKind === "nap" ? "☀" : "🌙"} ${t("开始")} ${tb(c.flowName)}`, attrs: `data-act="bt-pick-go"${PICK.size ? "" : " disabled"}` }])}`;
 }
 async function startFlow(ids){
   const c = cfg();
@@ -530,7 +531,7 @@ function openSongForm(s){
 }
 function drawSongForm(){
   const f = songForm, d = f.draft;
-  $("#sheetIn").innerHTML = `${head(esc(t(f.id ? "编辑歌曲" : "添加歌曲")))}
+  $("#sheetIn").innerHTML = `${head(esc(t(f.id ? "编辑歌曲" : "添加歌曲")), "", f.id ? formMenu([{ label: t("加到流程…"), attrs: 'data-act="bt-song-addto"' }, { label: t("加到歌单…"), attrs: `data-act="mu-song-addto" data-id="${esc(f.id)}"` }, { label: t("删除"), attrs: 'data-act="bt-song-delete"', tone: "danger" }], { label: t("更多操作") }) : "")}
   <div class="field"><label for="btTitle">${t("歌名")}</label><input id="btTitle" type="text" value="${esc(d.title)}" placeholder="Jesus Loves Me 耶稣爱我"></div>
   <div class="field"><label for="btArtist">${t("演唱者 / 来源（可空）")}</label><input id="btArtist" type="text" value="${esc(d.artist)}" placeholder="Seeds Kids Worship"></div>
   <div class="field"><div class="lab">${t("用在哪一段（可多选）")}</div><div class="seg">${Object.entries(SONG_TAGS).map(([k, v]) => `<button type="button" data-act="bt-song-tag" data-v="${k}" aria-pressed="${d.tags.includes(k)}">${t(v)}</button>`).join("")}</div></div>
@@ -539,7 +540,7 @@ function drawSongForm(){
     ${d.lyrics_ai ? `<div class="alert info" style="margin-top:6px">${t("这段歌词是 AI 补的，可能和原唱有出入（公共领域的老诗歌较准，近年的歌常记错）。核对过就勾掉：")} <label class="check" style="margin-left:6px"><input type="checkbox" id="btAiOk">${t("核对过了")}</label></div>` : ""}
     <div class="ui-acts btns" style="margin-top:8px"><button class="ui-btn" data-tone="ghost" data-act="bt-song-ai">${t("让 AI 补词")}</button></div>
     <p class="small muted" style="margin:6px 0 0">${t("用咩咩咩里填的 API key（只存本机）。AI 只按歌名和演唱者回忆歌词，当草稿用，父母改完再保存。")}</p></div>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="bt-song-save">${t("保存")}</button>${f.id ? `<button class="ui-btn" data-tone="ghost" data-act="bt-song-addto">${t("加到流程…")}</button><button class="ui-btn" data-tone="ghost" data-act="mu-song-addto" data-id="${esc(f.id)}">${t("加到歌单…")}</button><button class="ui-btn" data-tone="danger" data-act="bt-song-delete">${t("删除")}</button>` : ""}</div>`;
+  ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-act="close"' }, { role: "save", label: t("保存"), attrs: 'data-act="bt-song-save"' }])}`;
 }
 function readSongForm(){ const d = songForm.draft; d.title = ($("#btTitle") || {}).value?.trim() || ""; d.artist = ($("#btArtist") || {}).value?.trim() || ""; d.lyrics = ($("#btLyrics") || {}).value?.trim() || ""; const ok = $("#btAiOk"); if (ok && ok.checked) d.lyrics_ai = false; }
 async function aiLyrics(){
@@ -811,7 +812,7 @@ function openAddToFlow(songId){
     <div class="seg" style="margin-top:6px">${f.steps.map(st => { const other = st.songs.filter(x => x !== songId), cur = other.length ? songLabel(other[0]) + (other.length > 1 ? " +" + (other.length - 1) : "") : ""; return `<button type="button" data-act="bt-pick-step" data-song="${esc(songId)}" data-flow="${esc(f.id)}" data-step="${esc(st.id)}" aria-pressed="${st.songs.includes(songId)}">${esc(tb(st.name))}${cur ? ` <small class="muted">♪${esc(cur)}</small>` : ""}</button>`; }).join("") || `<span class="small muted">${t("这个流程还没有步骤")}</span>`}</div></div>`).join("")}
   <h2>${t("冲突管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "cf").map(btn).join("")}</div>
   <h2>${t("情绪管理 · 推荐歌曲")}</h2><div class="seg">${tl.filter(x => x.kind === "em").map(btn).join("")}</div>
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
+  ${formBar("edit", [{ role: "save", label: t("完成"), attrs: 'data-act="close"' }])}`;
   showSheet();
 }
 /* 反过来：从话题卡上选歌 */
@@ -820,7 +821,7 @@ function openPickSongsForTopic(topicId, name){
   $("#sheetIn").innerHTML = `${head(esc(t("推荐歌曲")))}
   <p class="small"><b>${esc(tc(name))}</b><br><span class="muted">${t("点一下加进这个话题的推荐歌曲，再点一下取消。")}</span></p>
   ${list.length ? `<div class="seg" style="flex-direction:column;align-items:stretch">${list.map(s => `<button type="button" data-act="bt-pin-song" data-topic="${esc(topicId)}" data-song="${esc(s.id)}" aria-pressed="${(c.topicSongs[topicId] || []).includes(s.id)}">♪ ${esc(s.title)} <small class="muted">${(s.tags || []).map(k => t(SONG_TAGS[k] || k)).join("、")}</small></button>`).join("")}</div>` : `<div class="empty">${t("歌单里还没有歌。先到「睡前安然 → 歌单」添加。")}</div>`}
-  <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="close">${t("完成")}</button></div>`;
+  ${formBar("edit", [{ role: "save", label: t("完成"), attrs: 'data-act="close"' }])}`;
   showSheet();
 }
 const previewing = id => previewId === id;

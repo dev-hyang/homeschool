@@ -6,6 +6,7 @@ import { saveSettings } from "./hs.js";
 import { TIMINGS, timingText } from "./med-advice.js";
 import { cleanRules, heroOff, heroOn, kidRules, medsOf, nameChoices, recentMeds, weekCounts } from "./kidmed-lib.js";
 import { closeSheet, head, openForm, showSheet } from "./sheet.js";
+import { formBar, formMenu } from "./shared/ui-form.js";
 import { render } from "./views.js";
 
 /* ============ 今天页顶部：孩子的「距上次用药」大卡片 ============
@@ -103,7 +104,7 @@ function drawSettings(){
     ${rows || `<p class="small muted">${t("还没有填任何药。")}</p>`}<div class="ui-acts btns"><button type="button" class="ui-btn" data-tone="ghost" data-act="km-rule-add">＋ ${t("添加一种药")}</button></div>
     <div class="lab" style="margin-top:14px">${t("今天页顶部显示用药卡的孩子")}</div><div class="chips km-kids" role="group">${kids}</div>
     <p class="small muted">${t("没设过的孩子：最近 14 天有用药记录就自动显示；康复后点「不再显示」或在这里关掉，随时能再打开。")}</p>
-    <div class="ui-acts btns"><button class="ui-btn" data-tone="primary" data-act="km-save">${t("保存")}</button></div>`;
+    ${formBar("edit", [{ role: "cancel", label: t("取消"), attrs: 'data-act="close"' }, { role: "save", label: t("保存"), attrs: 'data-act="km-save"' }])}`;
 }
 const openSettings = () => { KM.draft = null; drawSettings(); showSheet(); ensureKidMeds(); };
 const setHero = async (cid, on) => { const cur = settings().kidMeds || {}; await saveSettings({ kidMeds: { ...cur, hero: { ...(cur.hero || {}), [cid]: on } } }); };
