@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-27.1", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "准备了牧羊人用的目录、视图切换和进度条样式，以后用得上；你现在看到的界面和操作都和上一版一样。", en: "Added the directory, view-switch and progress-bar styles used by Shepherd for later; what you see and how it works are unchanged." }
+  ] },
   { v: "2026-11-25.2", title: { zh: "可输入的下拉框和爱家小助手统一", en: "Type-in dropdowns now match Pantry" }, items: [
     { k: "better", zh: "疫苗名称、自填项这类「可以输入、也有以前的选择可点」的框，电脑上点进去就列出可选项，打字筛选，点一项填进去并收起；也可以填列表里没有的。手机上继续用手机自带的建议条。", en: "On laptop, type-in fields with suggestions list the options when you click in, filter as you type and close after you pick one; you can still type something new. Phones keep their built-in suggestions." },
   ] },
