@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-27.3", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
+    { k: "better", zh: "更新了和小月亮、牧羊人共用的记录列表和视图切换样式，以后用得上；你现在看到的界面和操作都和上一版一样。", en: "Updated the record-list and view-switch styles shared with Baby log and Shepherd, for later; what you see and how it works are unchanged." }
+  ] },
   { v: "2026-11-27.2", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "准备了牧羊人用的记录列表样式（列表 / 时间轴），以后用得上；你现在看到的界面和操作都和上一版一样。", en: "Added the record-list styles (list / timeline) used by Shepherd for later; what you see and how it works are unchanged." }
   ] },
