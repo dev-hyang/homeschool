@@ -2,6 +2,9 @@
    每次推送：改 js/core/config.js 的 APP_VERSION，并在最上面加一条同版本号的记录（最新在前）。
    写给家长看：一句话简介 + 1–4 条短要点，不写技术词。k：new 新功能 / better 改进 / fix 修复。 */
 export const RELEASES = [
+  { v: "2026-11-28.1", title: { zh: "下拉框在屏幕上下放不下时自动调整", en: "Dropdowns now fit the screen" }, items: [
+    { k: "better", zh: "下拉选项和「筛选」面板往下放不下时，会选上面或下面空间大的一边，并把框高缩到刚好放得下，选项多时框内出滚动条。", en: "Dropdowns and the filter panel open toward the side with more room and shrink to fit, scrolling inside when there are many options." }
+  ] },
   { v: "2026-11-27.8", title: { zh: "内部整理（界面和用法不变）", en: "Behind-the-scenes tidy-up (no change to how it looks or works)" }, items: [
     { k: "better", zh: "更新了和牧羊人、小月亮共用的 ⚙ 设置菜单（上面放不下时向下展开），这个应用里暂时用不到；你现在看到的界面和操作都和上一版一样。", en: "Updated the shared ⚙ menu (it opens downward when there's no room above), which this app doesn't use yet; what you see and how it works is unchanged." }
   ] },
